@@ -65,15 +65,10 @@ export function ConnectButton({
         aria-disabled={!isConnected && (disabledOuter || isConnecting)}
         title={disabledOuter && !isConnected ? '请先选择有可节点的供应商' : undefined}
         className={cn(
-          'relative rounded-full flex items-center justify-center transition-all duration-500',
+          /* DOM 不变：仅边框、发光与 disabled 透明度随状态过渡；禁用态由原生 disabled 统一管理光标 */
+          'relative flex items-center justify-center rounded-full transition-[box-shadow,border-color] duration-500 enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-45',
           dims.outer,
           'glass-strong group',
-          !isConnecting &&
-            ((!isConnected && !disabledOuter) || isConnected)
-            ? 'hover:scale-105 active:scale-95 cursor-pointer'
-            : isConnecting
-              ? 'cursor-default'
-              : 'opacity-45 cursor-not-allowed',
           isConnected && 'border-primary/30'
         )}
         style={{
@@ -105,7 +100,7 @@ export function ConnectButton({
 
         <div
           className={cn(
-            'relative rounded-full flex items-center justify-center transition-all duration-500',
+            'relative flex items-center justify-center rounded-full transition-[background-image,colors] duration-500',
             dims.inner,
             isConnected
               ? 'bg-gradient-to-br from-primary to-primary'
@@ -122,48 +117,43 @@ export function ConnectButton({
           />
         </div>
 
-        {isConnected && (
-          <>
-            <div
-              className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping pointer-events-none"
-              style={{ animationDuration: '1.5s' }}
-            />
-            <div
-              className="absolute inset-0 rounded-full border border-primary/20 animate-ping pointer-events-none"
-              style={{ animationDuration: '3s', animationDelay: '0.5s' }}
-            />
-          </>
-        )}
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 rounded-full border-2 border-primary/30 transition-opacity duration-300',
+            isConnected ? 'animate-ping opacity-100' : 'opacity-0'
+          )}
+          style={{ animationDuration: '1.5s' }}
+        />
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 rounded-full border border-primary/20 transition-opacity duration-300',
+            isConnected ? 'animate-ping opacity-100' : 'opacity-0'
+          )}
+          style={{ animationDuration: '3s', animationDelay: '0.5s' }}
+        />
       </button>
 
       <div className="flex min-h-[2.875rem] flex-col items-center justify-center gap-1 text-center">
-        {isConnecting ? (
-          <div
-            className={cn(
-              'font-semibold transition-colors duration-300',
-              dims.caption,
-              'text-muted-foreground'
-            )}
-          >
-            连接中...
-          </div>
-        ) : isConnected ? (
-          <div className={cn(dims.caption, 'invisible select-none font-semibold')} aria-hidden>
-            点击连接
-          </div>
-        ) : (
-          <div className={cn('font-semibold text-muted-foreground transition-colors duration-300', dims.caption)}>
-            点击连接
-          </div>
-        )}
+        <p
+          className={cn(
+            'min-h-[1.5em] font-semibold transition-colors duration-300',
+            dims.caption,
+            isConnecting && 'text-muted-foreground',
+            !isConnecting && !isConnected && 'text-muted-foreground',
+            !isConnecting && isConnected && 'text-primary'
+          )}
+        >
+          {isConnecting ? '连接中...' : isConnected ? '已连接' : '点击连接'}
+        </p>
         <div
           className={cn(
-            'flex h-[1.125rem] items-center justify-center gap-1.5 text-[11px]',
-            !isConnected && 'pointer-events-none opacity-0'
+            'flex h-[1.125rem] items-center justify-center gap-1.5 text-[11px] transition-opacity duration-300',
+            isConnected ? 'opacity-100' : 'opacity-0',
+            !isConnected && 'pointer-events-none select-none'
           )}
           aria-hidden={!isConnected}
         >
-          <Zap className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+          <Zap className="text-primary" aria-hidden />
           <span className="font-medium text-primary">代理已开启</span>
         </div>
       </div>

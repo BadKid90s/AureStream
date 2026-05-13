@@ -199,7 +199,7 @@ export function Dashboard({ onOpenProviders }: DashboardProps) {
                 <div className="flex flex-col gap-4">
                   <CardTitle className="sr-only">订阅信息</CardTitle>
                   {currentProvider ? (
-                    <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-end lg:gap-8">
                       <div className="flex min-w-0 flex-col gap-4">
                         {tierBadgeText ? (
                           <div className="flex flex-wrap items-center gap-2">
@@ -241,11 +241,11 @@ export function Dashboard({ onOpenProviders }: DashboardProps) {
                           </div>
                         </dl>
                       </div>
-                      <div className="flex flex-col items-center justify-center gap-4 lg:min-h-[12rem]">
+                      <div className="flex w-full flex-col items-stretch gap-4">
                         {trafficPct != null ? (
                           <>
-                            <TrafficUsageRing pct={trafficPct} caption="用量占比" />
-                            <div className="flex w-full max-w-xs flex-col gap-2">
+                            <TrafficUsageRing pct={trafficPct} caption="用量占比" className="self-center" />
+                            <div className="flex w-full max-w-xs flex-col gap-2 self-center">
                               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                                 <span>已用 / 总额度</span>
                                 <span className="font-medium tabular-nums text-foreground">

@@ -19,12 +19,9 @@ export const CONNECTION_CARD_STRETCH_CLASS =
   'flex h-full min-h-[min(32rem,55vh)] flex-col border-border bg-card shadow-sm'
 
 /**
- * 「核心柱」槽位高度（rem）：断开/连接共用占位，确保 ConnectButton 垂直位置不因区块显隐而跳动。
- * 调整任一常量时请同步另一侧的 invisible 占位，断开态「本地区域估算」仍在下方真实渲染。
+ * 「核心柱」槽位高度：仅保留时长行占位，断开/连接同高；顶栏不再垫大块留白。
  */
-const MIN_GEO_ROW_SLOT_H = '2.5rem'
-const MIN_LOCAL_HINT_SLOT_H = '2.25rem'
-const MIN_DURATION_BLOCK_H = '2rem'
+const MIN_DURATION_BLOCK_H = '1.75rem'
 const PILL_WRAP_MIN_H = '2.125rem'
 const NODE_ROW_MIN_H = '4.75rem'
 
@@ -241,7 +238,7 @@ export function ConnectionInfoCard({
 
   return (
     <Card className={cn(CONNECTION_CARD_STRETCH_CLASS, className)}>
-      <CardHeader className="shrink-0">
+      <CardHeader className="shrink-0 pb-3 pt-4">
         <div className="flex flex-col gap-2">
           <CardTitle className="text-base">连接控制台</CardTitle>
           <CardDescription>
@@ -252,22 +249,7 @@ export function ConnectionInfoCard({
 
       <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
         {/* 核心柱：自同一顶锚单列 gap，固定槽位 + 断开占位，ConnectButton 垂直位置与连接状态无关 */}
-        <div className="flex w-full shrink-0 flex-col gap-4">
-          {/* 地理估算视觉已下移至速率胶囊之下；此处保留等高空槽，避免 ConnectButton 垂直位移 */}
-          <div
-            className="flex w-full shrink-0 overflow-hidden rounded-xl"
-            style={{ minHeight: MIN_GEO_ROW_SLOT_H }}
-          >
-            <div aria-hidden className="invisible w-full shrink-0 self-stretch select-none" />
-          </div>
-
-          <div
-            className="flex shrink-0 flex-col justify-center overflow-hidden px-px"
-            style={{ minHeight: MIN_LOCAL_HINT_SLOT_H }}
-          >
-            <div aria-hidden className="invisible w-full shrink-0 self-stretch select-none" />
-          </div>
-
+        <div className="flex w-full shrink-0 flex-col gap-3">
           <div
             className="flex shrink-0 flex-col items-center justify-center overflow-hidden text-center"
             style={{ minHeight: MIN_DURATION_BLOCK_H }}
