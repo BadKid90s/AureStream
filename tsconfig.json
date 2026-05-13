@@ -23,7 +23,8 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "lucide-react": ["./node_modules/lucide-react/dist/lucide-react.d.ts"]
     }
   },
   "include": ["src"],

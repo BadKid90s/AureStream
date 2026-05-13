@@ -1,107 +1,171 @@
 import { Power, Zap } from 'lucide-react'
+import { useId } from 'react'
 import { cn } from '@/lib/utils'
 import { useProxyStore } from '@/stores/appStore'
 
-export function ConnectButton() {
+const SIZE_MAP = {
+  default: {
+    glow: 'w-[9.25rem] h-[9.25rem]',
+    outer: 'w-[7.75rem] h-[7.75rem]',
+    inner: 'w-[5rem] h-[5rem]',
+    icon: 'w-9 h-9',
+    caption: 'text-base',
+  },
+  lg: {
+    glow: 'w-[12rem] h-[12rem]',
+    outer: 'w-[10rem] h-[10rem]',
+    inner: 'w-[6.75rem] h-[6.75rem]',
+    icon: 'w-11 h-11',
+    caption: 'text-lg',
+  },
+} as const
+
+interface ConnectButtonProps {
+  /** 外层禁用（如无供应商或无可用节点） */
+  disabled?: boolean
+  /** default：原尺寸；lg：左侧连接列主按钮放大 */
+  size?: keyof typeof SIZE_MAP
+  className?: string
+}
+
+export function ConnectButton({
+  disabled: disabledOuter = false,
+  size = 'default',
+  className,
+}: ConnectButtonProps) {
   const { isConnected, isConnecting, connect, disconnect } = useProxyStore()
+  const spinGradId = useId().replace(/:/g, 'i')
+  const dims = SIZE_MAP[size]
 
   const handleClick = () => {
     if (isConnected) {
+      if (isConnecting) return
       disconnect()
-    } else {
-      connect()
+      return
     }
+    if (disabledOuter || isConnecting) return
+    void connect()
   }
 
   return (
-    <div className="relative flex flex-col items-center gap-6">
-      {/* Outer glow ring */}
-      <div className={cn(
-        "absolute inset-0 w-40 h-40 rounded-full transition-all duration-700",
-        isConnected
-          ? "bg-primary/20 blur-2xl animate-pulse"
-          : "bg-primary/5 blur-xl"
-      )}
+    <div className={cn('relative flex flex-col items-center gap-3', className)}>
+      <div
+        className={cn(
+          'absolute inset-0 rounded-full transition-all duration-700 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2',
+          dims.glow,
+          isConnected ? 'bg-primary/20 blur-2xl animate-pulse' : 'bg-primary/5 blur-xl'
+        )}
         style={isConnected ? { animationDuration: '2s' } : undefined}
       />
 
-      {/* Button */}
       <button
+        type="button"
         onClick={handleClick}
-        disabled={isConnecting}
+        disabled={!isConnected && (disabledOuter || isConnecting)}
+        aria-disabled={!isConnected && (disabledOuter || isConnecting)}
+        title={disabledOuter && !isConnected ? '请先选择有可节点的供应商' : undefined}
         className={cn(
-          "relative w-36 h-36 rounded-full flex items-center justify-center transition-all duration-500",
-          "glass-strong hover:scale-105 active:scale-95",
-          "group cursor-pointer",
-          isConnected && "border-primary/30"
+          'relative rounded-full flex items-center justify-center transition-all duration-500',
+          dims.outer,
+          'glass-strong group',
+          !isConnecting &&
+            ((!isConnected && !disabledOuter) || isConnected)
+            ? 'hover:scale-105 active:scale-95 cursor-pointer'
+            : isConnecting
+              ? 'cursor-default'
+              : 'opacity-45 cursor-not-allowed',
+          isConnected && 'border-primary/30'
         )}
         style={{
           boxShadow: isConnected
-            ? "0 0 60px rgba(45, 212, 191, 0.4), 0 0 120px rgba(45, 212, 191, 0.15), inset 0 1px 0 rgba(255,255,255,0.3)"
-            : "0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.3)"
+            ? '0 0 48px rgba(59, 130, 246, 0.35), 0 0 96px rgba(59, 130, 246, 0.12), inset 0 1px 0 rgba(255,255,255,0.3)'
+            : '0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.3)',
         }}
       >
-        {/* Connecting ring animation */}
         {isConnecting && (
-          <svg className="absolute inset-0 w-full h-full animate-spin" viewBox="0 0 144 144">
+          <svg className="absolute inset-0 w-full h-full animate-spin" viewBox="0 0 124 124">
             <circle
-              cx="72" cy="72" r="68"
+              cx="62"
+              cy="62"
+              r="58"
               fill="none"
-              stroke="url(#gradient)"
+              stroke={`url(#spin-grad-${spinGradId})`}
               strokeWidth="3"
               strokeLinecap="round"
-              strokeDasharray="320 100"
+              strokeDasharray="260 120"
             />
             <defs>
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#2dd4bf" />
+              <linearGradient id={`spin-grad-${spinGradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="var(--color-primary)" />
                 <stop offset="100%" stopColor="transparent" />
               </linearGradient>
             </defs>
           </svg>
         )}
 
-        {/* Inner circle */}
-        <div className={cn(
-          "relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500",
-          isConnected
-            ? "bg-gradient-to-br from-primary to-teal-600"
-            : "bg-gradient-to-br from-gray-300 to-gray-200 dark:from-gray-700 dark:to-gray-600"
-        )}>
+        <div
+          className={cn(
+            'relative rounded-full flex items-center justify-center transition-all duration-500',
+            dims.inner,
+            isConnected
+              ? 'bg-gradient-to-br from-primary to-primary'
+              : 'bg-gradient-to-br from-gray-300 to-gray-200 dark:from-gray-700 dark:to-gray-600'
+          )}
+        >
           <Power
             className={cn(
-              "w-10 h-10 relative z-10 transition-all duration-300",
-              isConnected
-                ? "text-white drop-shadow-lg"
-                : "text-gray-500 dark:text-gray-400"
+              'relative z-10 transition-all duration-300',
+              dims.icon,
+              isConnected ? 'text-white drop-shadow-lg' : 'text-gray-500 dark:text-gray-400'
             )}
             strokeWidth={2}
           />
         </div>
 
-        {/* Pulse rings when connected */}
         {isConnected && (
           <>
-            <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" style={{ animationDuration: '1.5s' }} />
-            <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
+            <div
+              className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping pointer-events-none"
+              style={{ animationDuration: '1.5s' }}
+            />
+            <div
+              className="absolute inset-0 rounded-full border border-primary/20 animate-ping pointer-events-none"
+              style={{ animationDuration: '3s', animationDelay: '0.5s' }}
+            />
           </>
         )}
       </button>
 
-      {/* Status text */}
-      <div className="text-center">
-        <div className={cn(
-          "text-lg font-semibold transition-colors duration-300",
-          isConnected ? "text-primary" : "text-muted-foreground"
-        )}>
-          {isConnecting ? '连接中...' : isConnected ? '已连接' : '点击连接'}
-        </div>
-        {isConnected && (
-          <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-            <Zap className="w-3 h-3 text-primary" />
-            <span>安全代理已开启</span>
+      <div className="flex min-h-[2.875rem] flex-col items-center justify-center gap-1 text-center">
+        {isConnecting ? (
+          <div
+            className={cn(
+              'font-semibold transition-colors duration-300',
+              dims.caption,
+              'text-muted-foreground'
+            )}
+          >
+            连接中...
+          </div>
+        ) : isConnected ? (
+          <div className={cn(dims.caption, 'invisible select-none font-semibold')} aria-hidden>
+            点击连接
+          </div>
+        ) : (
+          <div className={cn('font-semibold text-muted-foreground transition-colors duration-300', dims.caption)}>
+            点击连接
           </div>
         )}
+        <div
+          className={cn(
+            'flex h-[1.125rem] items-center justify-center gap-1.5 text-[11px]',
+            !isConnected && 'pointer-events-none opacity-0'
+          )}
+          aria-hidden={!isConnected}
+        >
+          <Zap className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+          <span className="font-medium text-primary">代理已开启</span>
+        </div>
       </div>
     </div>
   )

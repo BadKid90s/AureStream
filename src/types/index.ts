@@ -6,6 +6,12 @@ export interface Provider {
   enabled: boolean
   lastUpdated: string
   nodeCount: number
+  /** 订阅总流量（GB），可选；用于首页展示 */
+  trafficTotalGB?: number
+  /** 已用流量（GB），可选 */
+  trafficUsedGB?: number
+  /** 订阅到期时间 ISO 8601 */
+  expiresAt?: string
 }
 
 export interface Node {
@@ -55,7 +61,7 @@ export function getLatencyColor(delay?: number): string {
   const level = getLatencyLevel(delay)
   switch (level) {
     case 'excellent':
-      return 'text-green-500'
+      return 'text-primary'
     case 'good':
       return 'text-yellow-500'
     case 'poor':

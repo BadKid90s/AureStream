@@ -7,18 +7,41 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Frontend (Vite)
 dist
 dist-ssr
 *.local
+.vite
+*.tsbuildinfo
 
-# Editor directories and files
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS
+.DS_Store
+
+# Test & coverage
+coverage
+*.lcov
+.nyc_output
+
+# Rust / Cargo artifacts (see also src-tauri/.gitignore)
+target/
+
+# Cargo lockfile backups (keep src-tauri/Cargo.lock tracked for reproducible Tauri builds)
+*.lock.bak

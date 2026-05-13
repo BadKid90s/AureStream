@@ -1,6 +1,9 @@
-import { Settings as SettingsIcon, Moon, Sun, Info, Monitor, Globe, Zap } from 'lucide-react'
+import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { Moon, Sun, Info, Monitor, Globe, Zap } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PageShell } from '@/components/layout/PageShell'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
 
@@ -8,7 +11,10 @@ export function Settings() {
   const { theme, toggleTheme } = useAppStore()
 
   const SettingRow = ({ icon: Icon, title, description, children }: {
-    icon: any, title: string, description: string, children: React.ReactNode
+    icon: LucideIcon
+    title: string
+    description: string
+    children: ReactNode
   }) => (
     <div className="glass rounded-2xl p-5 flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -25,18 +31,9 @@ export function Settings() {
   )
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <SettingsIcon className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold">设置</h1>
-          <p className="text-sm text-muted-foreground">配置应用参数和偏好</p>
-        </div>
-      </div>
-
-      <div className="space-y-3">
+    <PageShell title="设置" subtitle="外观、代理与应用信息">
+      <div className="space-y-6">
+        <div className="space-y-3">
         <SettingRow icon={Monitor} title="外观主题" description="选择浅色或深色模式">
           <div className="flex rounded-xl bg-black/5 dark:bg-white/5 p-1 gap-1">
             <button
@@ -143,7 +140,8 @@ export function Settings() {
             ))}
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

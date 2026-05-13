@@ -162,7 +162,7 @@ export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: P
             <button
               type="submit"
               disabled={isLoading}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-teal-600 text-white text-sm font-medium shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-white text-sm font-medium shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50"
             >
               {isLoading ? '保存中...' : editingProvider ? '保存修改' : '添加'}
             </button>
