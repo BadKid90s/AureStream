@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:1420)",
+      "Bash(npm list *)",
+      "Bash(npx tsc *)",
+      "Bash(npm install *)",
+      "Bash(cargo check *)",
+      "Bash(ls -la \"/c/Users/root/.cargo/bin/\" 2>&1 | head -10)",
+      "Bash(export PATH=\"/c/Users/root/.cargo/bin:$PATH\")",
+      "Bash(npx tauri *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(netstat -ano)",
+      "Bash(pkill -f \"node\")",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(taskkill //F //IM mihomoproxy.exe)",
+      "Bash(curl -s http://localhost:1420/src/index.css)",
+      "Bash(npx vite *)",
+      "Bash(curl -s http://localhost:1421/src/index.css)",
+      "Bash(curl -s http://localhost:1421)",
+      "Bash(taskkill //F //IM cargo.exe)",
+      "Bash(tasklist)",
+      "Bash(curl -s http://localhost:1420/src/main.tsx)",
+      "Bash(curl -s http://localhost:1430/src/main.tsx)",
+      "WebFetch(domain:dribbble.com)",
+      "WebSearch",
+      "Bash(python3 -c \"from PIL import Image; img = Image.open\\('docs/original-83da7b142a8b3aabe9f530e868c671d1.webp'\\); img.save\\('docs/_design_ref.png'\\)\")",
+      "Bash(python -c \"from PIL import Image; img = Image.open\\('docs/original-83da7b142a8b3aabe9f530e868c671d1.webp'\\); img.save\\('docs/_design_ref.png'\\)\")",
+      "Bash(magick docs/original-83da7b142a8b3aabe9f530e868c671d1.webp docs/_design_ref.png)",
+      "Bash(ffmpeg -i docs/original-83da7b142a8b3aabe9f530e868c671d1.webp docs/_design_ref.png -y)",
+      "Bash(node -e \"const sharp = require\\('sharp'\\); sharp\\('docs/original-83da7b142a8b3aabe9f530e868c671d1.webp'\\).png\\(\\).toFile\\('docs/_design_ref.png'\\).then\\(\\(\\) => console.log\\('done'\\)\\).catch\\(e => console.error\\(e\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(git add *)"
+    ]
+  }
+}
