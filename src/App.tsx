@@ -5,12 +5,17 @@ import { useSeedProxyStore } from '@/hooks/useSeedProxyStore'
 import { Dashboard } from '@/pages/Dashboard'
 import { Providers } from '@/pages/Providers'
 import { Settings } from '@/pages/Settings'
-import { useAppStore } from '@/stores/appStore'
+import { useAppStore, useProxyStore } from '@/stores/appStore'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const { theme } = useAppStore()
+  const initAutoUpdateTimers = useProxyStore((s) => s.initAutoUpdateTimers)
   useSeedProxyStore()
+
+  useEffect(() => {
+    initAutoUpdateTimers()
+  }, [initAutoUpdateTimers])
 
   const openProviders = () => setCurrentPage('providers')
 

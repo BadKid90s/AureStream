@@ -1,5 +1,6 @@
 pub mod proxy;
 pub mod provider;
+pub mod subscription;
 
 use serde::{Deserialize, Serialize};
 
@@ -44,10 +45,9 @@ pub struct Provider {
     pub id: String,
     pub name: String,
     pub url: String,
-    pub group: Option<String>,
-    pub enabled: bool,
     pub last_updated: String,
     pub node_count: usize,
+    pub auto_update_interval: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

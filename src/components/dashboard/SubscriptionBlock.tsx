@@ -52,7 +52,7 @@ export function SubscriptionBlock({
         <div className="flex flex-col gap-4 min-h-[14.5rem]">
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-semibold text-foreground">
-              {provider.name?.trim() || provider.group?.trim() || '—'}
+              {provider.name?.trim() || '—'}
             </p>
           </div>
 

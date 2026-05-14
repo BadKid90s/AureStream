@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Provider, Node } from '@/types'
+import { downloadSubscription, deleteSubscriptionFile, getSubscriptionPath } from '@/lib/api'
+import { reloadConfig } from 'tauri-plugin-mihomo-api'
 
 interface AppStore {
   theme: 'light' | 'dark'
@@ -16,10 +18,29 @@ export const useAppStore = create<AppStore>()(
       toggleTheme: () => set({ theme: get().theme === 'light' ? 'dark' : 'light' }),
     }),
     {
-      name: 'mihomoproxy-app-store',
+      name: 'aureproxy-app-store',
     }
   )
 )
+
+// --- Auto-update timers (not persisted, managed in memory) ---
+const autoUpdateTimers = new Map<string, ReturnType<typeof setInterval>>()
+
+function clearAutoUpdateTimer(providerId: string) {
+  const timer = autoUpdateTimers.get(providerId)
+  if (timer) {
+    clearInterval(timer)
+    autoUpdateTimers.delete(providerId)
+  }
+}
+
+function setupAutoUpdateTimer(providerId: string, intervalMinutes: number, refreshFn: (id: string) => Promise<void>) {
+  clearAutoUpdateTimer(providerId)
+  const timer = setInterval(() => {
+    refreshFn(providerId)
+  }, intervalMinutes * 60 * 1000)
+  autoUpdateTimers.set(providerId, timer)
+}
 
 interface ProxyStore {
   providers: Provider[]
@@ -28,13 +49,13 @@ interface ProxyStore {
   currentNode?: Node
   isConnected: boolean
   isConnecting: boolean
-  /** 连接成功时的 Unix 毫秒时间戳，用于首页连接计时 */
   connectedAt?: number
-  /** 连接态展示的出口 IP（演示/mock，断开清空） */
   connectedIp?: string
   uploadSpeed: number
   downloadSpeed: number
   isTestingLatency: boolean
+  /** 正在更新的 provider ID 集合 */
+  refreshingIds: Set<string>
 
   addProvider: (provider: Provider) => void
   updateProvider: (id: string, updates: Partial<Provider>) => void
@@ -49,6 +70,12 @@ interface ProxyStore {
   setConnectingStatus: (isConnecting: boolean) => void
   updateSpeeds: (upload: number, download: number) => void
   testLatency: () => Promise<void>
+  /** 下载订阅配置文件并更新 provider 元数据 */
+  fetchAndSaveSubscription: (id: string) => Promise<void>
+  /** 设置当前订阅并通知 mihomo 加载配置 */
+  setCurrentSubscription: (provider?: Provider) => Promise<void>
+  /** 初始化所有 provider 的自动更新定时器 */
+  initAutoUpdateTimers: () => void
 }
 
 export const useProxyStore = create<ProxyStore>()(
@@ -65,22 +92,42 @@ export const useProxyStore = create<ProxyStore>()(
       uploadSpeed: 0,
       downloadSpeed: 0,
       isTestingLatency: false,
+      refreshingIds: new Set<string>(),
 
-      addProvider: (provider) => set({ providers: [...get().providers, provider] }),
+      addProvider: (provider) => {
+        set({ providers: [...get().providers, provider] })
+        if (provider.autoUpdateInterval) {
+          setupAutoUpdateTimer(provider.id, provider.autoUpdateInterval, get().fetchAndSaveSubscription)
+        }
+      },
 
-      updateProvider: (id, updates) =>
+      updateProvider: (id, updates) => {
+        const prev = get().providers.find(p => p.id === id)
         set({
           providers: get().providers.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-        }),
+        })
+        // 更新自动更新定时器
+        if (prev && updates.autoUpdateInterval !== undefined) {
+          if (updates.autoUpdateInterval) {
+            setupAutoUpdateTimer(id, updates.autoUpdateInterval, get().fetchAndSaveSubscription)
+          } else {
+            clearAutoUpdateTimer(id)
+          }
+        }
+        // 同步 currentProvider
+        if (get().currentProvider?.id === id) {
+          set({ currentProvider: { ...get().currentProvider!, ...updates } })
+        }
+      },
 
       deleteProvider: (id) => {
+        clearAutoUpdateTimer(id)
         const newProviders = get().providers.filter((p) => p.id !== id)
-        const newNodes = get().nodes.filter((n) => n.providerId !== id)
         let currentProvider = get().currentProvider
-        let currentNode = get().currentNode
         if (currentProvider?.id === id) currentProvider = undefined
-        if (currentNode?.providerId === id) currentNode = undefined
-        set({ providers: newProviders, nodes: newNodes, currentProvider, currentNode })
+        set({ providers: newProviders, currentProvider })
+        // 删除订阅文件
+        deleteSubscriptionFile(id).catch(() => {})
       },
 
       setCurrentProvider: (provider) => {
@@ -176,9 +223,81 @@ export const useProxyStore = create<ProxyStore>()(
           if (fresh) set({ currentNode: fresh })
         }
       },
+
+      fetchAndSaveSubscription: async (id: string) => {
+        const provider = get().providers.find(p => p.id === id)
+        if (!provider) return
+
+        const refreshingIds = new Set(get().refreshingIds)
+        refreshingIds.add(id)
+        set({ refreshingIds })
+
+        try {
+          await downloadSubscription(id, provider.url)
+          set({
+            providers: get().providers.map(p =>
+              p.id === id
+                ? { ...p, lastUpdated: new Date().toISOString() }
+                : p
+            ),
+          })
+          // 同步 currentProvider
+          if (get().currentProvider?.id === id) {
+            set({
+              currentProvider: {
+                ...get().currentProvider!,
+                lastUpdated: new Date().toISOString(),
+              },
+            })
+          }
+        } catch (e) {
+          console.error(`Failed to fetch subscription for ${id}:`, e)
+        } finally {
+          const ids = new Set(get().refreshingIds)
+          ids.delete(id)
+          set({ refreshingIds: ids })
+        }
+      },
+
+      setCurrentSubscription: async (provider?: Provider) => {
+        set({ currentProvider: provider, currentNode: undefined })
+        if (!provider) return
+
+        // 确保订阅文件存在，然后通知 mihomo 加载
+        try {
+          const path = await getSubscriptionPath(provider.id)
+          if (path) {
+            await reloadConfig(true, path)
+          }
+        } catch (e) {
+          console.error('Failed to reload mihomo config:', e)
+        }
+      },
+
+      initAutoUpdateTimers: () => {
+        // 清除所有旧定时器
+        for (const id of autoUpdateTimers.keys()) {
+          clearAutoUpdateTimer(id)
+        }
+        // 为每个有 autoUpdateInterval 的 provider 设置定时器
+        for (const provider of get().providers) {
+          if (provider.autoUpdateInterval) {
+            setupAutoUpdateTimer(
+              provider.id,
+              provider.autoUpdateInterval,
+              get().fetchAndSaveSubscription
+            )
+          }
+        }
+      },
     }),
     {
-      name: 'mihomoproxy-proxy-store',
+      name: 'aureproxy-proxy-store',
+      // 不持久化 refreshingIds（运行时状态）
+      partialize: (state) => {
+        const { refreshingIds, ...rest } = state
+        return rest
+      },
     }
   )
 )

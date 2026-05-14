@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Moon, Sun, Info, Monitor, Globe, Zap } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -6,9 +6,18 @@ import { Label } from '@/components/ui/label'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
+import { getVersion, type MihomoVersion } from 'tauri-plugin-mihomo-api'
 
 export function Settings() {
   const { theme, toggleTheme } = useAppStore()
+  const [kernelVersion, setKernelVersion] = useState<MihomoVersion | null>(null)
+  const [kernelError, setKernelError] = useState(false)
+
+  useEffect(() => {
+    getVersion()
+      .then(setKernelVersion)
+      .catch(() => setKernelError(true))
+  }, [])
 
   const SettingRow = ({ icon: Icon, title, description, children }: {
     icon: LucideIcon
@@ -130,7 +139,14 @@ export function Settings() {
           <div className="space-y-2 text-sm">
             {[
               { label: '应用版本', value: '1.0.0' },
-              { label: '内核版本', value: 'v1.18.2' },
+              {
+                label: '内核版本',
+                value: kernelVersion
+                  ? kernelVersion.version
+                  : kernelError
+                    ? '未运行'
+                    : '检测中…',
+              },
               { label: '框架', value: 'Tauri 2.0' },
             ].map((item) => (
               <div key={item.label} className="flex justify-between py-1.5 px-3 rounded-lg bg-black/5 dark:bg-white/5">

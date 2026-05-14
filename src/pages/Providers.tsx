@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { PageShell } from '@/components/layout/PageShell'
 import { useProxyStore } from '@/stores/appStore'
-import type { Provider, Node } from '@/types'
+import type { Provider } from '@/types'
 
 export function Providers() {
   const {
@@ -22,9 +22,10 @@ export function Providers() {
     addProvider,
     updateProvider,
     deleteProvider,
-    setNodes,
     currentProvider,
-    setCurrentProvider,
+    setCurrentSubscription,
+    fetchAndSaveSubscription,
+    refreshingIds,
   } = useProxyStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null)
@@ -36,48 +37,23 @@ export function Providers() {
 
   const handleSave = (providerData: Omit<Provider, 'id' | 'nodeCount' | 'lastUpdated'>) => {
     const id = editingProvider?.id || crypto.randomUUID()
-    const nodeCount =
-      editingProvider?.nodeCount ?? Math.floor(Math.random() * 20) + 5
     const lastUpdated = new Date().toISOString()
 
-    const demoTraffic: Pick<Provider, 'trafficTotalGB' | 'trafficUsedGB' | 'expiresAt'> =
-      !editingProvider
-        ? {
-            trafficTotalGB: 200,
-            trafficUsedGB: 50.3,
-            expiresAt: new Date(Date.now() + 90 * 86400000).toISOString(),
-          }
-        : {
-            trafficTotalGB: editingProvider.trafficTotalGB,
-            trafficUsedGB: editingProvider.trafficUsedGB,
-            expiresAt: editingProvider.expiresAt,
-          }
-
-    const newProvider: Provider = {
-      ...(editingProvider ?? {}),
-      ...providerData,
-      ...demoTraffic,
-      id,
-      nodeCount,
-      lastUpdated,
-    }
-
     if (editingProvider) {
-      updateProvider(editingProvider.id, newProvider)
+      updateProvider(editingProvider.id, {
+        ...editingProvider,
+        ...providerData,
+      })
     } else {
+      const newProvider: Provider = {
+        ...providerData,
+        id,
+        nodeCount: 0,
+        lastUpdated,
+      }
       addProvider(newProvider)
-
-      const mockNodes: Node[] = Array.from({ length: newProvider.nodeCount }, (_, i) => ({
-        id: crypto.randomUUID(),
-        name: `节点 ${i + 1}`,
-        providerId: newProvider.id,
-        type: 'http',
-        server: `server${i + 1}.example.com`,
-        port: 8080 + i,
-        enabled: true,
-      }))
-
-      setNodes([...useProxyStore.getState().nodes, ...mockNodes])
+      // 添加后自动下载订阅
+      fetchAndSaveSubscription(id)
     }
 
     setEditingProvider(null)
@@ -99,15 +75,12 @@ export function Providers() {
     setDeleteTargetId(null)
   }
 
-  const handleRefresh = async (id: string) => {
-    updateProvider(id, { lastUpdated: new Date().toISOString() })
+  const handleRefresh = (id: string) => {
+    fetchAndSaveSubscription(id)
   }
 
-  const handleToggleEnabled = (id: string, enabled: boolean) => {
-    updateProvider(id, { enabled })
-    if (!enabled && currentProvider?.id === id) {
-      setCurrentProvider(undefined)
-    }
+  const handleSetActive = (provider: Provider) => {
+    setCurrentSubscription(provider)
   }
 
   const handleAddNew = () => {
@@ -134,11 +107,11 @@ export function Providers() {
               key={provider.id}
               provider={provider}
               isActive={currentProvider?.id === provider.id}
-              onSetActive={setCurrentProvider}
+              isRefreshing={refreshingIds.has(provider.id)}
+              onSetActive={handleSetActive}
               onEdit={handleEdit}
               onDelete={handleDeleteRequest}
               onRefresh={handleRefresh}
-              onToggleEnabled={handleToggleEnabled}
             />
           ))}
           {/* 添加服务商卡片 — 同尺寸占位 */}
@@ -171,8 +144,8 @@ export function Providers() {
             <AlertDialogTitle className="text-lg">删除服务商</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget
-                ? `确定要删除「${deleteTarget.name}」吗？相关的节点也会被删除。`
-                : '确定要删除这个服务商吗？相关的节点也会被删除。'}
+                ? `确定要删除「${deleteTarget.name}」吗？相关的订阅配置文件也会被删除。`
+                : '确定要删除这个服务商吗？相关的订阅配置文件也会被删除。'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

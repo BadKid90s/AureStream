@@ -18,10 +18,20 @@ interface ProviderModalProps {
   editingProvider?: Provider | null
 }
 
+const AUTO_UPDATE_OPTIONS = [
+  { label: '不自动更新', value: undefined },
+  { label: '每 30 分钟', value: 30 },
+  { label: '每 1 小时', value: 60 },
+  { label: '每 2 小时', value: 120 },
+  { label: '每 6 小时', value: 360 },
+  { label: '每 12 小时', value: 720 },
+  { label: '每 24 小时', value: 1440 },
+]
+
 export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: ProviderModalProps) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
-  const [group, setGroup] = useState('')
+  const [autoUpdateInterval, setAutoUpdateInterval] = useState<number | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; url?: string }>({})
 
@@ -29,11 +39,11 @@ export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: P
     if (editingProvider) {
       setName(editingProvider.name)
       setUrl(editingProvider.url)
-      setGroup(editingProvider.group || '')
+      setAutoUpdateInterval(editingProvider.autoUpdateInterval)
     } else {
       setName('')
       setUrl('')
-      setGroup('')
+      setAutoUpdateInterval(undefined)
     }
     setErrors({})
   }, [editingProvider, open])
@@ -72,13 +82,10 @@ export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: P
     setIsLoading(true)
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500))
-
       onSave({
         name: name.trim(),
         url: url.trim(),
-        group: group.trim() || undefined,
-        enabled: editingProvider?.enabled ?? true,
+        autoUpdateInterval,
       })
 
       onOpenChange(false)
@@ -138,15 +145,22 @@ export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: P
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="group">分组</Label>
-              <Input
-                id="group"
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-                placeholder="例如：默认"
+              <Label htmlFor="autoUpdate">定时更新</Label>
+              <select
+                id="autoUpdate"
+                value={autoUpdateInterval ?? ''}
+                onChange={(e) =>
+                  setAutoUpdateInterval(e.target.value ? Number(e.target.value) : undefined)
+                }
                 disabled={isLoading}
-                className="h-10 rounded-xl"
-              />
+                className="h-10 rounded-xl border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {AUTO_UPDATE_OPTIONS.map((opt) => (
+                  <option key={opt.label} value={opt.value ?? ''}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

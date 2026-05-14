@@ -79,3 +79,22 @@ export async function testNodeLatency(nodeId: string, server: string, port: numb
 export async function testAllNodesLatency(): Promise<LatencyResult[]> {
   return await invoke<LatencyResult[]>('test_all_nodes_latency')
 }
+
+// --- Subscription management ---
+
+export interface DownloadResult {
+  path: string
+  content_length: number
+}
+
+export async function downloadSubscription(providerId: string, url: string): Promise<DownloadResult> {
+  return await invoke<DownloadResult>('download_subscription', { providerId, url })
+}
+
+export async function getSubscriptionPath(providerId: string): Promise<string | null> {
+  return await invoke<string | null>('get_subscription_path', { providerId })
+}
+
+export async function deleteSubscriptionFile(providerId: string): Promise<void> {
+  return await invoke<void>('delete_subscription_file', { providerId })
+}
