@@ -128,8 +128,8 @@ export function LeftOperationPanel({
             onClick={onOpenNodePicker}
             className="animate-fade-in-up group flex w-full max-w-[28rem] items-center rounded-full px-4 sm:px-5 h-14 sm:h-16 text-left font-normal"
           >
-            <span className="flex w-full items-center gap-3 min-w-0">
-              <span className="flex items-center gap-2.5 shrink-0 min-w-0">
+            <span className="flex w-full items-center gap-2 sm:gap-3 min-w-0">
+              <span className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
                 <span className="text-xl leading-none shrink-0" aria-hidden>
                   {nodeLine.flag}
                 </span>
