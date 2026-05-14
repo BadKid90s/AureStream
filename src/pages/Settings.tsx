@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { getVersion, type MihomoVersion } from 'tauri-plugin-mihomo-api'
 
 export function Settings() {
-  const { theme, toggleTheme } = useAppStore()
+  const { theme, toggleTheme, proxyBypassDomains, setProxyBypassDomains } = useAppStore()
   const [kernelVersion, setKernelVersion] = useState<MihomoVersion | null>(null)
   const [kernelError, setKernelError] = useState(false)
 
@@ -77,22 +77,21 @@ export function Settings() {
             </div>
             <div>
               <div className="font-medium text-sm">代理设置</div>
-              <div className="text-xs text-muted-foreground">配置代理连接参数</div>
+              <div className="text-xs text-muted-foreground">配置系统代理排除地址（逗号分隔）</div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="listen" className="text-xs">监听地址</Label>
-              <Input id="listen" defaultValue="127.0.0.1" className="h-10 rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="httpPort" className="text-xs">HTTP 端口</Label>
-              <Input id="httpPort" type="number" defaultValue="7890" className="h-10 rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="socks5Port" className="text-xs">SOCKS5 端口</Label>
-              <Input id="socks5Port" type="number" defaultValue="7891" className="h-10 rounded-xl" />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="proxyBypassDomains" className="text-xs">排除代理的地址</Label>
+            <Input
+              id="proxyBypassDomains"
+              value={proxyBypassDomains}
+              onChange={(e) => setProxyBypassDomains(e.target.value)}
+              placeholder="localhost,127.*,10.*,192.168.*,<local>"
+              className="h-10 rounded-xl"
+            />
+            <p className="text-xs text-muted-foreground">
+              示例：localhost,127.*,10.*,192.168.*,*.local,&lt;local&gt;
+            </p>
           </div>
         </div>
 

@@ -38,9 +38,7 @@ export interface AppConfig {
   providers: Provider[]
   nodes: Node[]
   proxy: {
-    listen: string
-    httpPort: number
-    socks5Port: number
+    bypassDomains: string
   }
   startup: {
     autoStart: boolean

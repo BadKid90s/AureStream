@@ -5,8 +5,10 @@ import {
   addProvider as addProviderIpc,
   updateProvider as updateProviderIpc,
   deleteProvider as deleteProviderIpc,
+  getProxyConfig,
   getProviders,
   getNodes,
+  startProxy,
   downloadSubscription,
   deleteSubscriptionFile,
   getSubscriptionPath,
@@ -14,6 +16,7 @@ import {
   buildAureproxyMihomoConfig,
   startMihomoKernel,
   stopProxy,
+  updateProxyConfig,
 } from '@/lib/api'
 import {
   reloadConfig,
@@ -22,12 +25,18 @@ import {
   getProxies,
   selectNodeForGroup,
 } from 'tauri-plugin-mihomo-api'
-import { AURE_NODE_SELECTOR, MIHOMO_LATENCY_TEST_URL } from '@/constants/mihomo'
+import {
+  AURE_NODE_SELECTOR,
+  DEFAULT_PROXY_BYPASS_DOMAINS,
+  MIHOMO_LATENCY_TEST_URL,
+} from '@/constants/mihomo'
 import { mihomoProxiesToNodes } from '@/lib/mihomoSubscriptionNodes'
 
 interface AppStore {
   theme: 'light' | 'dark'
+  proxyBypassDomains: string
   setTheme: (theme: 'light' | 'dark') => void
+  setProxyBypassDomains: (value: string) => void
   toggleTheme: () => void
 }
 
@@ -35,7 +44,9 @@ export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
       theme: 'light',
+      proxyBypassDomains: DEFAULT_PROXY_BYPASS_DOMAINS,
       setTheme: (theme) => set({ theme }),
+      setProxyBypassDomains: (value) => set({ proxyBypassDomains: value }),
       toggleTheme: () => set({ theme: get().theme === 'light' ? 'dark' : 'light' }),
     }),
     {
@@ -289,6 +300,14 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       const path = await getSubscriptionPath(currentProvider.id)
       if (!path) throw new Error('订阅配置文件不存在，请先更新订阅')
 
+      const proxyBypassDomains = useAppStore.getState().proxyBypassDomains
+      const proxyConfig = await getProxyConfig()
+      await updateProxyConfig({
+        ...proxyConfig,
+        bypass_domains: proxyBypassDomains,
+      })
+      await startProxy()
+
       // 对齐 external-controller、启动 Mihomo sidecar（内部轮询 API 就绪）
       const runtimePath = await buildAureproxyMihomoConfig(currentProvider.id)
       await startMihomoKernel(runtimePath)
@@ -301,6 +320,11 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         connectedAt: Date.now(),
       })
     } catch (e) {
+      try {
+        await stopProxy()
+      } catch {
+        // ignore
+      }
       set({ isConnecting: false })
       throw e
     }

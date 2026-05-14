@@ -2,20 +2,26 @@
 //! Mihomo 要求 `path` 必须位于 `-d` 工作目录（及其 SAFE_PATHS）之下，因此从应用配置目录的订阅文件**复制**到 `mihomo-work/subscriptions/` 再写入配置。
 
 use super::mihomo_constants::LATENCY_TEST_URL;
+use super::proxy::ProxyState;
+use super::allocate_high_random_port;
 use serde_yaml::{Mapping, Value};
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 
 /// 与模板中 proxy-groups.name 一致，供前端 selectNodeForGroup / getGroupByName 使用
 pub const AURE_NODE_SELECTOR: &str = "Aure_Node_Selector";
 const PROXY_PROVIDER_KEY: &str = "Aure_Sub";
 const EXTERNAL_CONTROLLER: &str = "127.0.0.1:9090";
 
-fn build_config_value(subscription_file_absolute: &str) -> Value {
+fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port: u16) -> Value {
     let mut root = Mapping::new();
     root.insert(
+        Value::String("bind-address".to_string()),
+        Value::String(listen.to_string()),
+    );
+    root.insert(
         Value::String("mixed-port".to_string()),
-        Value::Number(7890.into()),
+        Value::Number(mixed_port.into()),
     );
     root.insert(
         Value::String("ipv6".to_string()),
@@ -116,7 +122,18 @@ fn build_config_value(subscription_file_absolute: &str) -> Value {
 pub async fn build_aureproxy_mihomo_config(
     app: AppHandle,
     provider_id: String,
+    proxy_state: State<'_, ProxyState>,
 ) -> Result<String, String> {
+    let (listen, mixed_port) = {
+        let mut config = proxy_state.config.lock().map_err(|e| e.to_string())?;
+        let status = proxy_state.status.lock().map_err(|e| e.to_string())?;
+        config.listen = "127.0.0.1".to_string();
+        if !status.is_running || config.mixed_port == 0 {
+            config.mixed_port = allocate_high_random_port()?;
+        }
+        (config.listen.clone(), config.mixed_port)
+    };
+
     let config_dir = app
         .path()
         .app_config_dir()
@@ -150,7 +167,7 @@ pub async fn build_aureproxy_mihomo_config(
         .map_err(|e| format!("无法解析 mihomo-work 内订阅路径: {}", e))?;
     let abs_str = absolute.to_string_lossy().to_string();
 
-    let yaml_value = build_config_value(&abs_str);
+    let yaml_value = build_config_value(&abs_str, &listen, mixed_port);
 
     let text =
         serde_yaml::to_string(&yaml_value).map_err(|e| format!("序列化内置配置失败: {}", e))?;

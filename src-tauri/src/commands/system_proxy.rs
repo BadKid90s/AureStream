@@ -2,11 +2,9 @@
 //! macOS：对 `networksetup -listallnetworkservices` 列出的已启用服务调用 `set*proxy`。
 //! 其他平台：占位，后续可接 Windows 注册表 / Linux gsettings。
 
+use crate::commands::ProxyConfig;
 use std::io::{BufRead, BufReader};
-use std::path::Path;
 use std::process::{Command, Stdio};
-
-use serde_yaml::Value;
 
 fn run_networksetup(args: &[&str]) -> Result<(), String> {
     let out = Command::new("/usr/sbin/networksetup")
@@ -68,17 +66,29 @@ fn macos_list_network_services() -> Result<Vec<String>, String> {
 }
 
 #[cfg(target_os = "macos")]
-fn apply_macos(host: &str, http_port: u16, socks_port: u16) -> Result<(), String> {
+fn apply_macos(config: &ProxyConfig) -> Result<(), String> {
+    if config.mixed_port == 0 {
+        return Err("系统代理端口未就绪，请重新连接".to_string());
+    }
+    let host = system_proxy_host(&config.listen);
+    let port = config.mixed_port.to_string();
+    let bypass_domains = parse_bypass_domains(&config.bypass_domains);
     let services = macos_list_network_services()?;
     for svc in &services {
-        run_networksetup(&["-setwebproxy", svc, host, &http_port.to_string()])?;
-        run_networksetup(&["-setsecurewebproxy", svc, host, &http_port.to_string()])?;
-        run_networksetup(&[
-            "-setsocksfirewallproxy",
-            svc,
-            host,
-            &socks_port.to_string(),
-        ])?;
+        run_networksetup(&["-setwebproxy", svc, &host, &port])?;
+        run_networksetup(&["-setsecurewebproxy", svc, &host, &port])?;
+        run_networksetup(&["-setsocksfirewallproxy", svc, &host, &port])?;
+        if bypass_domains.is_empty() {
+            run_networksetup(&["-setproxybypassdomains", svc, "Empty"])?;
+        } else {
+            let mut args: Vec<&str> = Vec::with_capacity(2 + bypass_domains.len());
+            args.push("-setproxybypassdomains");
+            args.push(svc.as_str());
+            for domain in &bypass_domains {
+                args.push(domain.as_str());
+            }
+            run_networksetup(&args)?;
+        }
         run_networksetup(&["-setwebproxystate", svc, "on"])?;
         run_networksetup(&["-setsecurewebproxystate", svc, "on"])?;
         run_networksetup(&["-setsocksfirewallproxystate", svc, "on"])?;
@@ -106,57 +116,23 @@ pub(crate) fn system_proxy_host(bind: &str) -> String {
     }
 }
 
-/// 从 Mihomo YAML 读取 HTTP / SOCKS 端口（支持 `mixed-port` 或 `port` + `socks-port`）。
-pub(crate) fn read_mihomo_inbound_ports(path: &Path) -> Result<(String, u16, u16), String> {
-    let text =
-        std::fs::read_to_string(path).map_err(|e| format!("读取 Mihomo 配置失败: {}", e))?;
-    let v: Value = serde_yaml::from_str(&text).map_err(|e| format!("解析 Mihomo YAML 失败: {}", e))?;
-    let bind = v
-        .get("bind-address")
-        .and_then(Value::as_str)
-        .unwrap_or("127.0.0.1")
-        .to_string();
-
-    if let Some(m) = v.get("mixed-port").and_then(Value::as_u64) {
-        let p: u16 = m
-            .try_into()
-            .map_err(|_| "mixed-port 超出 u16 范围".to_string())?;
-        return Ok((bind, p, p));
-    }
-
-    let http: u16 = v
-        .get("port")
-        .and_then(Value::as_u64)
-        .map(|x| {
-            x.try_into()
-                .map_err(|_| "port 超出 u16 范围".to_string())
-        })
-        .transpose()?
-        .unwrap_or(7890);
-
-    let socks: u16 = v
-        .get("socks-port")
-        .and_then(Value::as_u64)
-        .map(|x| {
-            x.try_into()
-                .map_err(|_| "socks-port 超出 u16 范围".to_string())
-        })
-        .transpose()?
-        .unwrap_or(7891);
-
-    Ok((bind, http, socks))
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn parse_bypass_domains(raw: &str) -> Vec<String> {
+    raw.split([',', ';', '\n', '\r'])
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(ToString::to_string)
+        .collect()
 }
 
-pub(crate) fn apply_for_mihomo_config(path: &Path) -> Result<(), String> {
+pub(crate) fn apply_platform(config: &ProxyConfig) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        let (bind, http, socks) = read_mihomo_inbound_ports(path)?;
-        let host = system_proxy_host(&bind);
-        return apply_macos(&host, http, socks);
+        return apply_macos(config);
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = path;
+        let _ = config;
         Ok(())
     }
 }

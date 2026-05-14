@@ -1,5 +1,5 @@
 use crate::commands::mihomo_kernel::{stop_mihomo_sidecar, MihomoKernelState};
-use crate::commands::{ProxyConfig, ProxyStatus};
+use crate::commands::{allocate_high_random_port, ProxyConfig, ProxyStatus};
 use std::sync::Mutex;
 use tauri::State;
 
@@ -19,9 +19,17 @@ impl Default for ProxyState {
 
 #[tauri::command]
 pub fn start_proxy(state: State<ProxyState>) -> Result<String, String> {
+    let mut config = state.config.lock().map_err(|e| e.to_string())?;
     let mut status = state.status.lock().map_err(|e| e.to_string())?;
+    config.listen = "127.0.0.1".to_string();
+    if config.mixed_port == 0 {
+        config.mixed_port = allocate_high_random_port()?;
+    }
     status.is_running = true;
-    Ok("Proxy started successfully".to_string())
+    Ok(format!(
+        "Proxy prepared on {}:{}",
+        config.listen, config.mixed_port
+    ))
 }
 
 #[tauri::command]
@@ -30,9 +38,11 @@ pub async fn stop_proxy(
     mihomo_state: State<'_, MihomoKernelState>,
 ) -> Result<String, String> {
     stop_mihomo_sidecar(&mihomo_state).await?;
+    let mut config = proxy_state.config.lock().map_err(|e| e.to_string())?;
     let mut status = proxy_state.status.lock().map_err(|e| e.to_string())?;
     status.is_running = false;
     status.current_node = None;
+    config.mixed_port = 0;
     Ok("Proxy stopped successfully".to_string())
 }
 

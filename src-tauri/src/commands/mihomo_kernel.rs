@@ -5,6 +5,8 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_shell::{process::CommandEvent, ShellExt};
 use tokio::sync::Mutex;
 
+use crate::commands::proxy::ProxyState;
+
 pub struct MihomoKernelState {
     inner: Mutex<Option<MihomoChild>>,
     /// 若为 true，表示上次成功连接时已由本应用开启系统代理，断开时应尝试关闭。
@@ -61,6 +63,7 @@ async fn wait_for_controller_ready() -> Result<(), String> {
 pub async fn start_mihomo_kernel(
     app: AppHandle,
     state: State<'_, MihomoKernelState>,
+    proxy_state: State<'_, ProxyState>,
     patched_config_path: String,
 ) -> Result<(), String> {
     let config = PathBuf::from(&patched_config_path);
@@ -134,13 +137,18 @@ pub async fn start_mihomo_kernel(
         if let Some(MihomoChild { child }) = guard.take() {
             let _ = child.kill();
         }
+        if let Ok(mut status) = proxy_state.status.lock() {
+            status.is_running = false;
+        }
         return Err(e);
     }
 
-    let cfg_for_proxy = config.clone();
-    match tokio::task::spawn_blocking(move || {
-        crate::commands::system_proxy::apply_for_mihomo_config(&cfg_for_proxy)
-    })
+    let proxy_config = proxy_state
+        .config
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+    match tokio::task::spawn_blocking(move || crate::commands::system_proxy::apply_platform(&proxy_config))
     .await
     {
         Ok(Ok(())) => {
@@ -155,6 +163,10 @@ pub async fn start_mihomo_kernel(
             );
         }
         Err(join_err) => eprintln!("[system-proxy] 启用任务失败: {:?}", join_err),
+    }
+
+    if let Ok(mut status) = proxy_state.status.lock() {
+        status.is_running = true;
     }
 
     Ok(())

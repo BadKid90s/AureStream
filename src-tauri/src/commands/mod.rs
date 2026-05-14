@@ -7,22 +7,40 @@ pub mod provider;
 pub mod subscription;
 
 use serde::{Deserialize, Serialize};
+use std::net::TcpListener;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProxyConfig {
     pub listen: String,
-    pub http_port: u16,
-    pub socks5_port: u16,
+    pub mixed_port: u16,
+    pub bypass_domains: String,
 }
 
 impl Default for ProxyConfig {
     fn default() -> Self {
         Self {
             listen: "127.0.0.1".to_string(),
-            http_port: 7890,
-            socks5_port: 7891,
+            mixed_port: 0,
+            bypass_domains: "localhost,127.*,10.*,172.16.*,172.17.*,172.18.*,172.19.*,172.20.*,172.21.*,172.22.*,172.23.*,172.24.*,172.25.*,172.26.*,172.27.*,172.28.*,172.29.*,172.30.*,172.31.*,192.168.*,<local>".to_string(),
         }
     }
+}
+
+/// 分配一个高位随机可用端口（优先 49152+），用于本地回环监听。
+pub(crate) fn allocate_high_random_port() -> Result<u16, String> {
+    for _ in 0..32 {
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .map_err(|e| format!("分配本地端口失败: {}", e))?;
+        let port = listener
+            .local_addr()
+            .map_err(|e| format!("读取本地端口失败: {}", e))?
+            .port();
+        drop(listener);
+        if port >= 49_152 {
+            return Ok(port);
+        }
+    }
+    Err("未获取到高位随机端口，请稍后重试".to_string())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

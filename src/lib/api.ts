@@ -3,8 +3,8 @@ import type { Provider, Node } from '@/types'
 
 export interface ProxyConfig {
   listen: string
-  http_port: number
-  socks5_port: number
+  mixed_port: number
+  bypass_domains: string
 }
 
 export interface ProxyStatus {
