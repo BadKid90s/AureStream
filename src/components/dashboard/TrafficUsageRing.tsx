@@ -21,12 +21,12 @@ export function TrafficUsageRing({
 
   return (
     <div className={cn('flex flex-col items-center gap-2', className)}>
-      <div className="relative flex size-[8.5rem] items-center justify-center shrink-0">
+      <div className="relative flex size-[5.5rem] sm:size-[6.5rem] lg:size-[8.5rem] items-center justify-center shrink-0">
         <svg
           width={VIEW}
           height={VIEW}
           viewBox={`0 0 ${VIEW} ${VIEW}`}
-          className="size-full max-h-[8.5rem] max-w-[8.5rem] shrink-0 -rotate-90"
+          className="size-full max-h-[5.5rem] max-w-[5.5rem] sm:max-h-[6.5rem] sm:max-w-[6.5rem] lg:max-h-[8.5rem] lg:max-w-[8.5rem] shrink-0 -rotate-90"
           aria-hidden
         >
           <circle

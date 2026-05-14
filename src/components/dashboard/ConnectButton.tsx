@@ -4,6 +4,13 @@ import { cn } from '@/lib/utils'
 import { useProxyStore } from '@/stores/appStore'
 
 const SIZE_MAP = {
+  sm: {
+    glow: 'w-[7rem] h-[7rem]',
+    outer: 'w-[6rem] h-[6rem]',
+    inner: 'w-[4rem] h-[4rem]',
+    icon: 'w-7 h-7',
+    caption: 'text-sm',
+  },
   default: {
     glow: 'w-[10rem] h-[10rem]',
     outer: 'w-[8.5rem] h-[8.5rem]',
@@ -48,7 +55,7 @@ export function ConnectButton({
   }
 
   return (
-    <div className={cn('relative flex flex-col items-center gap-12', className)}>
+    <div className={cn('relative flex flex-col items-center gap-3 sm:gap-4', className)}>
       {/* 呼吸光晕 — 同一元素，仅切换动画类名 */}
       <div
         className={cn(
@@ -149,7 +156,7 @@ export function ConnectButton({
       </button>
 
       {/* 文字区 — 同一结构，仅文本/颜色随状态过渡 */}
-      <div className="flex min-h-[3rem] flex-col items-center justify-center gap-1 text-center">
+      <div className="flex min-h-[2rem] flex-col items-center justify-center gap-0.5 text-center">
         <p
           className={cn(
             'min-h-[1.5em] font-semibold transition-all duration-700 ease-in-out',

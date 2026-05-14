@@ -89,7 +89,7 @@ export function Providers() {
   }
 
   return (
-    <PageShell title="服务商管理" subtitle="添加与管理订阅服务商">
+    <PageShell title="服务商管理"  className="max-w-6xl">
       <div className="space-y-4 sm:space-y-5 lg:space-y-6">
         {/* Providers grid */}
         {providers.length === 0 ? (
@@ -101,7 +101,7 @@ export function Providers() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">点击下方按钮添加您的第一个订阅</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {providers.map((provider) => (
             <ProviderCard
               key={provider.id}
@@ -114,14 +114,17 @@ export function Providers() {
               onRefresh={handleRefresh}
             />
           ))}
-          {/* 添加服务商卡片 — 同尺寸占位 */}
+          {/* 添加服务商卡片 */}
           <button
             type="button"
             onClick={handleAddNew}
-            className="glass rounded-2xl overflow-hidden group transition-all duration-300 hover:scale-[1.02] border-2 border-dashed border-border/60 hover:border-primary/40 flex flex-col items-center justify-center gap-2 min-h-[16rem] text-muted-foreground hover:text-primary"
+            className="glass rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[var(--shadow-glass-hover)] border-2 border-dashed border-border/50 hover:border-primary/40 flex flex-col items-center justify-center gap-2 min-h-[12rem] text-muted-foreground hover:text-primary"
           >
-            <Plus className="w-8 h-8" />
+            <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center">
+              <Plus className="w-5 h-5" />
+            </div>
             <span className="text-sm font-medium">添加服务商</span>
+            <span className="text-[11px] text-muted-foreground/60">粘贴订阅链接开始使用</span>
           </button>
         </div>
       )}

@@ -84,7 +84,7 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
   const trafficUsed = currentProvider?.trafficUsedGB
 
   return (
-    <PageShell fillHeight className="max-w-7xl" title="首页" subtitle="连接状态与订阅概览">
+    <PageShell fillHeight className="max-w-7xl" title="首页">
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {/* 中轴光晕背景 */}
         <div
@@ -100,9 +100,9 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
         />
 
         {/* 黄金分割双栏 */}
-        <div className="relative grid w-full grid-cols-1 items-center gap-6 lg:grid-cols-[61.8%_38.2%] lg:gap-0">
-          {/* 左栏 61.8%：操作区 */}
-          <section className="flex min-h-0 flex-col justify-center lg:pr-8">
+        <div className="relative grid w-full grid-cols-1 gap-4 md:grid-cols-[55%_45%] md:gap-0 lg:grid-cols-[61.8%_38.2%]">
+          {/* 左栏：操作区 */}
+          <section className="flex min-h-0 flex-col justify-center md:pr-6 lg:pr-8">
             <LeftOperationPanel
               isConnected={isConnected}
               canConnect={canConnect}
@@ -117,8 +117,8 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
             />
           </section>
 
-          {/* 右栏 38.2%：信息展示区 */}
-          <section className="flex min-h-0 flex-col gap-6 px-4 lg:border-l lg:border-border/30 lg:pl-8">
+          {/* 右栏：信息展示区 */}
+          <section className="flex min-h-0 flex-col gap-3 overflow-y-auto px-4 md:border-l md:border-border/30 md:pl-6 lg:gap-4 lg:pl-8">
             <SubscriptionBlock provider={currentProvider} onOpenProviders={onOpenProviders} />
             <div className="border-t border-border/20" />
             <NetworkBlock connectedIp={connectedIp} />

@@ -40,7 +40,7 @@ export function Settings() {
   )
 
   return (
-    <PageShell title="设置" subtitle="外观、代理与应用信息">
+    <PageShell title="设置">
       <div className="space-y-6">
         <div className="space-y-3">
         <SettingRow icon={Monitor} title="外观主题" description="选择浅色或深色模式">

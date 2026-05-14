@@ -49,7 +49,7 @@ export function NetworkBlock({
       </div>
 
       {info ? (
-        <div className="flex flex-col gap-2 min-h-[8.5rem]">
+        <div className="flex flex-col gap-2 min-h-[7rem]">
           {INFO_ROWS.map(({ key, label }) => (
             <div key={key} className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{label}</span>
@@ -60,7 +60,7 @@ export function NetworkBlock({
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border/50 bg-muted/15 px-4 py-5 text-center min-h-[8.5rem] justify-center">
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border/50 bg-muted/15 px-4 py-5 text-center min-h-[7rem] justify-center">
           <p className="text-xs font-medium text-muted-foreground">无网络信息</p>
           <p className="text-[11px] text-muted-foreground/70">连接后显示 IP、地区与运营商</p>
         </div>

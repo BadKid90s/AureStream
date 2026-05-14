@@ -1,4 +1,3 @@
-import { Store } from 'lucide-react'
 import { TrafficUsageRing } from '@/components/dashboard/TrafficUsageRing'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -41,18 +40,11 @@ export function SubscriptionBlock({
 
   return (
     <div className={cn('flex flex-col gap-4', className)}>
-      <div className="flex items-center gap-2.5">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Store className="size-4 text-primary" strokeWidth={1.75} />
-        </div>
-        <span className="text-sm font-semibold text-foreground">供应商订阅</span>
-      </div>
-
       {provider ? (
-        <div className="flex flex-col gap-4 min-h-[14.5rem]">
+        <div className="flex flex-col gap-3 min-h-[9rem] sm:min-h-[10rem] lg:min-h-[12rem]">
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-semibold text-foreground">
-              {provider.name?.trim() || '—'}
+              <span className="text-sm font-semibold text-foreground"> {provider.name?.trim() || '—'}</span>
             </p>
           </div>
 
@@ -86,12 +78,12 @@ export function SubscriptionBlock({
           {trafficPct != null ? (
             <div className="flex items-center gap-4">
               <Progress value={trafficPct} className="h-1.5 flex-1" aria-label="流量使用进度" />
-              <span className="w-[8.5rem] shrink-0 text-center text-[10px] font-medium text-muted-foreground">用量占比</span>
+              <span className="w-[5rem] sm:w-[6.5rem] lg:w-[8.5rem] shrink-0 text-center text-[10px] font-medium text-muted-foreground">用量占比</span>
             </div>
           ) : null}
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/50 bg-muted/15 px-4 py-6 text-center min-h-[14.5rem] justify-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/50 bg-muted/15 px-4 py-6 text-center min-h-[9rem] sm:min-h-[10rem] lg:min-h-[12rem] justify-center">
           <p className="text-xs font-medium text-muted-foreground">尚未选择供应商</p>
           <p className="text-[11px] text-muted-foreground/70">
             导入订阅后在此查看套餐信息与用量

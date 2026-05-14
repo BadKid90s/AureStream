@@ -17,9 +17,8 @@ export function PageShell({
   contentClassName,
   fillHeight,
   title,
-  subtitle,
 }: PageShellProps) {
-  const showHeader = Boolean(title ?? subtitle)
+  const showHeader = Boolean(title)
 
   return (
     <div
@@ -37,9 +36,6 @@ export function PageShell({
                 {title}
               </span>
             </h1>
-          ) : null}
-          {subtitle ? (
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
           ) : null}
         </header>
       )}
