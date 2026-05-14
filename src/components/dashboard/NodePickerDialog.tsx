@@ -1,4 +1,4 @@
-import { Activity, ChevronRight, Server } from 'lucide-react'
+import { Activity } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useProxyStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
@@ -30,7 +30,7 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md flex flex-col max-h-[min(85dvh,32rem)] p-0 gap-0 overflow-hidden border-border">
+      <DialogContent className="max-w-lg flex flex-col max-h-[min(85dvh,36rem)] p-0 gap-0 overflow-hidden border-border">
         <div className="border-b border-border p-6 pb-4">
           <DialogHeader className="mb-0">
             <DialogTitle>节点列表</DialogTitle>
@@ -63,9 +63,18 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
                           : 'hover:bg-black/5 dark:hover:bg-white/10 text-foreground'
                       )}
                     >
-                      <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Server className="w-4 h-4 text-primary" />
-                      </div>
+                      {/* 单选框指示器 */}
+                      <span
+                        className={cn(
+                          'inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                          active
+                            ? 'border-primary bg-primary'
+                            : 'border-muted-foreground/30 bg-transparent'
+                        )}
+                        aria-hidden
+                      >
+                        {active && <span className="size-2 rounded-full bg-primary-foreground" />}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{node.name}</div>
                         <div className="text-xs text-muted-foreground truncate">
@@ -80,9 +89,6 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
                       >
                         {delayText}
                       </span>
-                      {active && (
-                        <ChevronRight className="w-4 h-4 shrink-0 opacity-60" />
-                      )}
                     </button>
                   </li>
                 )

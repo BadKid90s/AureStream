@@ -188,3 +188,72 @@ body::before {
 *, *::before, *::after {
   transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
+
+/* Breathing animations for ConnectButton */
+@keyframes breathing-idle {
+  0%, 100% {
+    opacity: 0.12;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  50% {
+    opacity: 0.28;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@keyframes breathing-active {
+  0%, 100% {
+    opacity: 0.18;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  50% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.animate-breathing-idle {
+  animation: breathing-idle 4s ease-in-out infinite;
+}
+
+.animate-breathing-active {
+  animation: breathing-active 2s ease-in-out infinite;
+}
+
+/* Center-axis glow — radiates outward from the ConnectButton */
+@keyframes axis-glow-idle {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.08; }
+}
+
+@keyframes axis-glow-active {
+  0%, 100% { opacity: 0.06; }
+  50% { opacity: 0.15; }
+}
+
+.animate-axis-glow-idle {
+  animation: axis-glow-idle 4s ease-in-out infinite;
+}
+
+.animate-axis-glow-active {
+  animation: axis-glow-active 2s ease-in-out infinite;
+}
+
+/* State transition animations for left panel content */
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.7s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s ease-out forwards;
+}

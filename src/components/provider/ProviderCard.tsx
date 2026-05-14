@@ -8,6 +8,7 @@ interface ProviderCardProps {
   onEdit: (provider: Provider) => void
   onDelete: (id: string) => void
   onRefresh: (id: string) => void
+  onToggleEnabled: (id: string, enabled: boolean) => void
 }
 
 export function ProviderCard({
@@ -17,6 +18,7 @@ export function ProviderCard({
   onEdit,
   onDelete,
   onRefresh,
+  onToggleEnabled,
 }: ProviderCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -50,12 +52,14 @@ export function ProviderCard({
               )}
             </div>
           </div>
-          {/* Status badge */}
-          <span
-            className={`inline-flex shrink-0 self-start min-[380px]:self-auto items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium ${
+          {/* Status badge — clickable toggle */}
+          <button
+            type="button"
+            onClick={() => onToggleEnabled(provider.id, !provider.enabled)}
+            className={`inline-flex shrink-0 self-start min-[380px]:self-auto items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium transition-colors cursor-pointer ${
               provider.enabled
-                ? 'bg-primary/10 text-primary'
-                : 'bg-gray-500/10 text-gray-500'
+                ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                : 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20'
             }`}
           >
             {provider.enabled ? (
@@ -63,7 +67,7 @@ export function ProviderCard({
             ) : (
               <><WifiOff className="w-2.5 h-2.5" /> 禁用</>
             )}
-          </span>
+          </button>
         </div>
 
         {/* Stats */}

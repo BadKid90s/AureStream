@@ -5,33 +5,33 @@ import { useProxyStore } from '@/stores/appStore'
 
 const SIZE_MAP = {
   default: {
-    glow: 'w-[9.25rem] h-[9.25rem]',
-    outer: 'w-[7.75rem] h-[7.75rem]',
-    inner: 'w-[5rem] h-[5rem]',
-    icon: 'w-9 h-9',
+    glow: 'w-[10rem] h-[10rem]',
+    outer: 'w-[8.5rem] h-[8.5rem]',
+    inner: 'w-[5.5rem] h-[5.5rem]',
+    icon: 'w-10 h-10',
     caption: 'text-base',
   },
   lg: {
-    glow: 'w-[12rem] h-[12rem]',
-    outer: 'w-[10rem] h-[10rem]',
-    inner: 'w-[6.75rem] h-[6.75rem]',
-    icon: 'w-11 h-11',
+    glow: 'w-[14rem] h-[14rem]',
+    outer: 'w-[12rem] h-[12rem]',
+    inner: 'w-[7.5rem] h-[7.5rem]',
+    icon: 'w-12 h-12',
     caption: 'text-lg',
   },
 } as const
 
 interface ConnectButtonProps {
-  /** 外层禁用（如无供应商或无可用节点） */
   disabled?: boolean
-  /** default：原尺寸；lg：左侧连接列主按钮放大 */
   size?: keyof typeof SIZE_MAP
   className?: string
+  proxyMode?: '规则' | '全局' | '直连'
 }
 
 export function ConnectButton({
   disabled: disabledOuter = false,
   size = 'default',
   className,
+  proxyMode,
 }: ConnectButtonProps) {
   const { isConnected, isConnecting, connect, disconnect } = useProxyStore()
   const spinGradId = useId().replace(/:/g, 'i')
@@ -48,16 +48,25 @@ export function ConnectButton({
   }
 
   return (
-    <div className={cn('relative flex flex-col items-center gap-3', className)}>
+    <div className={cn('relative flex flex-col items-center gap-12', className)}>
+      {/* 呼吸光晕 — 同一元素，仅切换动画类名 */}
       <div
         className={cn(
-          'absolute inset-0 rounded-full transition-all duration-700 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2',
+          'absolute rounded-full transition-all duration-1000 ease-in-out',
           dims.glow,
-          isConnected ? 'bg-primary/20 blur-2xl animate-pulse' : 'bg-primary/5 blur-xl'
+          'bg-primary/25 dark:bg-primary/20 blur-2xl',
+          isConnected
+            ? 'animate-breathing-active'
+            : 'animate-breathing-idle'
         )}
-        style={isConnected ? { animationDuration: '2s' } : undefined}
+        style={{
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
       />
 
+      {/* 主按钮 — 始终是同一个 <button>，仅颜色/阴影随状态过渡 */}
       <button
         type="button"
         onClick={handleClick}
@@ -65,24 +74,22 @@ export function ConnectButton({
         aria-disabled={!isConnected && (disabledOuter || isConnecting)}
         title={disabledOuter && !isConnected ? '请先选择有可节点的供应商' : undefined}
         className={cn(
-          /* DOM 不变：仅边框、发光与 disabled 透明度随状态过渡；禁用态由原生 disabled 统一管理光标 */
-          'relative flex items-center justify-center rounded-full transition-[box-shadow,border-color] duration-500 enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-45',
+          'relative z-10 flex items-center justify-center rounded-full transition-all duration-700 ease-in-out',
+          'enabled:cursor-pointer disabled:cursor-not-allowed',
           dims.outer,
           'glass-strong group',
-          isConnected && 'border-primary/30'
+          isConnected
+            ? 'border-primary/30 shadow-[0_0_48px_rgba(59,130,246,0.35),0_0_96px_rgba(59,130,246,0.12)]'
+            : 'border-border/60 shadow-[0_4px_24px_rgba(0,0,0,0.06)]',
+          !isConnected && !isConnecting && 'opacity-90 hover:opacity-100',
+          isConnecting && 'border-primary/20',
         )}
-        style={{
-          boxShadow: isConnected
-            ? '0 0 48px rgba(59, 130, 246, 0.35), 0 0 96px rgba(59, 130, 246, 0.12), inset 0 1px 0 rgba(255,255,255,0.3)'
-            : '0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.3)',
-        }}
       >
+        {/* 连接中 — 旋转渐变环 */}
         {isConnecting && (
-          <svg className="absolute inset-0 w-full h-full animate-spin" viewBox="0 0 124 124">
+          <svg className="absolute inset-0 size-full animate-spin" viewBox="0 0 124 124">
             <circle
-              cx="62"
-              cy="62"
-              r="58"
+              cx="62" cy="62" r="58"
               fill="none"
               stroke={`url(#spin-grad-${spinGradId})`}
               strokeWidth="3"
@@ -98,63 +105,74 @@ export function ConnectButton({
           </svg>
         )}
 
+        {/* 内部圆形 — 同一元素，仅渐变随状态过渡 */}
         <div
           className={cn(
-            'relative flex items-center justify-center rounded-full transition-[background-image,colors] duration-500',
+            'relative flex items-center justify-center rounded-full transition-all duration-700 ease-in-out',
             dims.inner,
             isConnected
-              ? 'bg-gradient-to-br from-primary to-primary'
-              : 'bg-gradient-to-br from-gray-300 to-gray-200 dark:from-gray-700 dark:to-gray-600'
+              ? 'bg-gradient-to-br from-primary to-blue-500 shadow-lg'
+              : isConnecting
+                ? 'bg-gradient-to-br from-primary/60 to-blue-500/60'
+                : 'bg-gradient-to-br from-gray-300 to-gray-200 dark:from-gray-700 dark:to-gray-600 shadow-md',
           )}
         >
           <Power
             className={cn(
-              'relative z-10 transition-all duration-300',
+              'relative z-10 transition-all duration-700 ease-in-out',
               dims.icon,
-              isConnected ? 'text-white drop-shadow-lg' : 'text-gray-500 dark:text-gray-400'
+              isConnected
+                ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]'
+                : isConnecting
+                  ? 'text-white/80'
+                  : 'text-gray-500 dark:text-gray-400',
             )}
             strokeWidth={2}
           />
         </div>
 
+        {/* 已连接 — 外层脉动波纹 */}
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 rounded-full border-2 border-primary/30 transition-opacity duration-300',
-            isConnected ? 'animate-ping opacity-100' : 'opacity-0'
+            'pointer-events-none absolute inset-0 rounded-full border-2 border-primary/30 transition-opacity duration-700',
+            isConnected ? 'animate-ping opacity-100' : 'opacity-0',
           )}
           style={{ animationDuration: '1.5s' }}
         />
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 rounded-full border border-primary/20 transition-opacity duration-300',
-            isConnected ? 'animate-ping opacity-100' : 'opacity-0'
+            'pointer-events-none absolute inset-0 rounded-full border border-primary/20 transition-opacity duration-700',
+            isConnected ? 'animate-ping opacity-100' : 'opacity-0',
           )}
           style={{ animationDuration: '3s', animationDelay: '0.5s' }}
         />
       </button>
 
-      <div className="flex min-h-[2.875rem] flex-col items-center justify-center gap-1 text-center">
+      {/* 文字区 — 同一结构，仅文本/颜色随状态过渡 */}
+      <div className="flex min-h-[3rem] flex-col items-center justify-center gap-1 text-center">
         <p
           className={cn(
-            'min-h-[1.5em] font-semibold transition-colors duration-300',
+            'min-h-[1.5em] font-semibold transition-all duration-700 ease-in-out',
             dims.caption,
             isConnecting && 'text-muted-foreground',
             !isConnecting && !isConnected && 'text-muted-foreground',
-            !isConnecting && isConnected && 'text-primary'
+            !isConnecting && isConnected && 'text-primary',
           )}
         >
           {isConnecting ? '连接中...' : isConnected ? '已连接' : '点击连接'}
         </p>
         <div
           className={cn(
-            'flex h-[1.125rem] items-center justify-center gap-1.5 text-[11px] transition-opacity duration-300',
-            isConnected ? 'opacity-100' : 'opacity-0',
-            !isConnected && 'pointer-events-none select-none'
+            'flex h-[1.25rem] items-center justify-center gap-1.5 text-[11px] transition-all duration-700 ease-in-out',
+            isConnected ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1',
+            !isConnected && 'pointer-events-none select-none',
           )}
           aria-hidden={!isConnected}
         >
-          <Zap className="text-primary" aria-hidden />
-          <span className="font-medium text-primary">代理已开启</span>
+          <Zap className="size-3 text-primary" aria-hidden />
+          <span className="font-medium text-primary">
+            {proxyMode === '全局' ? '全局模式已开启' : proxyMode === '直连' ? '直连模式已开启' : '规则模式已开启'}
+          </span>
         </div>
       </div>
     </div>

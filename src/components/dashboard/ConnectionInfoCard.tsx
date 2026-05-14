@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronRight, RefreshCw, ServerOff } from 'lucide-react'
 
-import { ConnectButton } from '@/components/dashboard/ConnectButton'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -240,39 +239,32 @@ export function ConnectionInfoCard({
     <Card className={cn(CONNECTION_CARD_STRETCH_CLASS, className)}>
       <CardHeader className="shrink-0 pb-3 pt-4">
         <div className="flex flex-col gap-2">
-          <CardTitle className="text-base">连接控制台</CardTitle>
+          <CardTitle className="text-base">连接操作</CardTitle>
           <CardDescription>
-            {isConnected ? '会话、速率与所选出口节点' : '本地区域参考（估算）与连接'}
+            {isConnected ? '会话时长、速率与出口节点' : '本地区域参考与节点选择'}
           </CardDescription>
         </div>
       </CardHeader>
 
       <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
-        {/* 核心柱：自同一顶锚单列 gap，固定槽位 + 断开占位，ConnectButton 垂直位置与连接状态无关 */}
+        {/* 核心柱：时长 + 速率胶囊 */}
         <div className="flex w-full shrink-0 flex-col gap-3">
           <div
             className="flex shrink-0 flex-col items-center justify-center overflow-hidden text-center"
             style={{ minHeight: MIN_DURATION_BLOCK_H }}
           >
             {!isConnected ? (
-              <>
-                {/* 占位与已连接大号数字占位同高 */}
-                <p
-                  className="pointer-events-none select-none text-[1.65rem] font-semibold tabular-nums leading-none tracking-tight text-transparent sm:text-[1.85rem]"
-                  aria-hidden
-                >
-                  {formatDuration(0)}
-                </p>
-              </>
+              <p
+                className="pointer-events-none select-none text-[1.65rem] font-semibold tabular-nums leading-none tracking-tight text-transparent sm:text-[1.85rem]"
+                aria-hidden
+              >
+                {formatDuration(0)}
+              </p>
             ) : (
               <p className="text-[1.65rem] font-semibold tabular-nums leading-none tracking-tight text-foreground sm:text-[1.85rem]">
                 {formatDuration(elapsedSec)}
               </p>
             )}
-          </div>
-
-          <div className="flex shrink-0 justify-center">
-            <ConnectButton disabled={!canConnect} size="lg" />
           </div>
 
           {/* 速率胶囊 */}
