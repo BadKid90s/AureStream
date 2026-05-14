@@ -2,13 +2,13 @@
 
 ## 行为概要
 
-运行时配置由 **`build_aureproxy_mihomo_config(providerId)`** 生成：内置规则与 `Aure_Node_Selector`，**`proxy-providers.Aure_Sub`** 为 **`type: file`**。Mihomo 只允许 `path` 位于内核 `-d`（即 **`mihomo-work`**）之下，因此会从应用配置里的 **`subscriptions/<provider_id>.yaml`** 复制到 **`mihomo-work/subscriptions/`**，再在生成 YAML 中写入该镜像的绝对路径（每次连接前同步）。`external-controller` 为 **`127.0.0.1:9090`**。
+运行时配置由 **`build_aureproxy_mihomo_config(providerId)`** 生成：内置规则与 `Aure_Node_Selector`，**`proxy-providers.Aure_Sub`** 为 **`type: file`**。Mihomo 只允许 `path` 位于内核 `-d`（即 **`mihomo-work`**）之下，因此会从应用配置里的 **`subscriptions/<provider_id>.yaml`** 复制到 **`mihomo-work/subscriptions/`**，再在生成 YAML 中写入该镜像的绝对路径（每次连接前同步）。`external-controller` 为 **`127.0.0.1:9090`**。模板中 **`log-level` 为 `info`**（便于看到 GeoSite/GeoIP 初始化与配置加载完成等日志）。规则链前置 **`DOMAIN,localhost`** 与 **`IP-CIDR,127.0.0.0/8`**（环回直连）。若出现 `localhost:80` dial 失败类 **warning**，多为本机程序经代理访问 `http://localhost` 或 hosts 误指向 `127.0.0.1`，可检查设置里环回绕过与 **`/etc/hosts`**。
 
 连接流程：
 
 1. 校验本地订阅文件存在（`get_subscription_path`）。
 2. **`build_aureproxy_mihomo_config(providerId)`** 写出 `runtime/aureproxy-mihomo.yaml`。
-3. **`start_mihomo_kernel`**：`-f` 上述文件，`-d` 为 **`mihomo-work`**，轮询 `GET 127.0.0.1:9090/version`（启动后先有短缓冲；墙钟最长约 **90 秒**：首次 GEOIP/GEOSITE 拉取 geodata 可能较慢）；若超时则终止 sidecar，避免长期占用端口。
+3. **`start_mihomo_kernel`**：`-f` 上述文件，`-d` 为 **`mihomo-work`**，轮询 `GET 127.0.0.1:9090/version`（启动后先有短缓冲；墙钟最长约 **30 秒**）；若超时则终止 sidecar。首次 GEOIP/GEOSITE 拉取 geodata 若超过 30 秒会误报超时，可重试连接。
 
 断开：先 **`closeAllConnections`**，再 **`stop_proxy`**（终止 sidecar；并尝试关闭本应用开启的系统代理，见下节）——节点列表会恢复为 SQLite 中的旧数据若有。
 

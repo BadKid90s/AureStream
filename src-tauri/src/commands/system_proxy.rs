@@ -72,23 +72,19 @@ fn apply_macos(config: &ProxyConfig) -> Result<(), String> {
     }
     let host = system_proxy_host(&config.listen);
     let port = config.mixed_port.to_string();
-    let bypass_domains = parse_bypass_domains(&config.bypass_domains);
+    let bypass_domains = merge_bypass_with_loopback(parse_bypass_domains(&config.bypass_domains));
     let services = macos_list_network_services()?;
     for svc in &services {
         run_networksetup(&["-setwebproxy", svc, &host, &port])?;
         run_networksetup(&["-setsecurewebproxy", svc, &host, &port])?;
         run_networksetup(&["-setsocksfirewallproxy", svc, &host, &port])?;
-        if bypass_domains.is_empty() {
-            run_networksetup(&["-setproxybypassdomains", svc, "Empty"])?;
-        } else {
-            let mut args: Vec<&str> = Vec::with_capacity(2 + bypass_domains.len());
-            args.push("-setproxybypassdomains");
-            args.push(svc.as_str());
-            for domain in &bypass_domains {
-                args.push(domain.as_str());
-            }
-            run_networksetup(&args)?;
+        let mut args: Vec<&str> = Vec::with_capacity(2 + bypass_domains.len());
+        args.push("-setproxybypassdomains");
+        args.push(svc.as_str());
+        for domain in &bypass_domains {
+            args.push(domain.as_str());
         }
+        run_networksetup(&args)?;
         run_networksetup(&["-setwebproxystate", svc, "on"])?;
         run_networksetup(&["-setsecurewebproxystate", svc, "on"])?;
         run_networksetup(&["-setsocksfirewallproxystate", svc, "on"])?;
@@ -116,13 +112,26 @@ pub(crate) fn system_proxy_host(bind: &str) -> String {
     }
 }
 
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[cfg(target_os = "macos")]
 fn parse_bypass_domains(raw: &str) -> Vec<String> {
     raw.split([',', ';', '\n', '\r'])
         .map(str::trim)
         .filter(|item| !item.is_empty())
         .map(ToString::to_string)
         .collect()
+}
+
+/// 本机回环必须绕过系统代理，否则流量会同侧经 Mihomo 再 `GEOIP,private,DIRECT` 访问本机，易刷 `localhost:80` 类告警。
+#[cfg(target_os = "macos")]
+fn merge_bypass_with_loopback(parsed: Vec<String>) -> Vec<String> {
+    const ALWAYS: &[&str] = &["localhost", "127.0.0.1", "<local>"];
+    let mut out: Vec<String> = ALWAYS.iter().map(|s| (*s).to_string()).collect();
+    for item in parsed {
+        if !out.iter().any(|x| x == &item) {
+            out.push(item);
+        }
+    }
+    out
 }
 
 pub(crate) fn apply_platform(config: &ProxyConfig) -> Result<(), String> {

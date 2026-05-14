@@ -106,6 +106,8 @@ interface ProxyStore {
   currentNode?: Node
   isConnected: boolean
   isConnecting: boolean
+  /** 正在执行断开（关闭内核与系统代理），避免重复点击 */
+  isDisconnecting: boolean
   connectedAt?: number
   connectedIp?: string
   uploadSpeed: number
@@ -148,6 +150,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   currentNode: undefined,
   isConnected: false,
   isConnecting: false,
+  isDisconnecting: false,
   connectedAt: undefined,
   connectedIp: undefined,
   uploadSpeed: 0,
@@ -242,8 +245,8 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   },
 
   refreshSubscriptionNodesFromMihomo: async () => {
-    const { isConnected, currentProvider } = get()
-    if (!isConnected || !currentProvider) return
+    const { currentProvider } = get()
+    if (!currentProvider) return
     try {
       const raw = await getProxies()
       const leafNodes = mihomoProxiesToNodes(raw, currentProvider.id)
@@ -293,6 +296,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   connect: async () => {
     const { currentProvider } = get()
     if (!currentProvider) throw new Error('请先选择一个订阅')
+    if (get().isDisconnecting) throw new Error('正在断开连接，请稍候')
 
     set({ isConnecting: true })
     try {
@@ -331,41 +335,47 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   },
 
   disconnect: async () => {
+    if (get().isDisconnecting) return
+    set({ isDisconnecting: true })
     try {
-      const { closeAllConnections } = await import('tauri-plugin-mihomo-api')
-      await closeAllConnections()
-    } catch {
-      // ignore cleanup errors
+      try {
+        const { closeAllConnections } = await import('tauri-plugin-mihomo-api')
+        await closeAllConnections()
+      } catch {
+        // ignore cleanup errors
+      }
+      try {
+        await stopProxy()
+      } catch {
+        // ignore
+      }
+      let dbNodes: Node[] = []
+      try {
+        const n = await getNodes()
+        if (Array.isArray(n)) dbNodes = n
+      } catch {
+        /* 忽略：测试环境或未初始化 DB */
+      }
+      const prevNode = get().currentNode
+      const cp = get().currentProvider
+      const nextNode =
+        prevNode &&
+        cp &&
+        dbNodes.some((x) => x.id === prevNode.id && x.providerId === cp.id)
+          ? dbNodes.find((x) => x.id === prevNode.id)
+          : undefined
+      set({
+        isConnected: false,
+        connectedAt: undefined,
+        connectedIp: undefined,
+        uploadSpeed: 0,
+        downloadSpeed: 0,
+        nodes: dbNodes,
+        currentNode: nextNode,
+      })
+    } finally {
+      set({ isDisconnecting: false })
     }
-    try {
-      await stopProxy()
-    } catch {
-      // ignore
-    }
-    let dbNodes: Node[] = []
-    try {
-      const n = await getNodes()
-      if (Array.isArray(n)) dbNodes = n
-    } catch {
-      /* 忽略：测试环境或未初始化 DB */
-    }
-    const prevNode = get().currentNode
-    const cp = get().currentProvider
-    const nextNode =
-      prevNode &&
-      cp &&
-      dbNodes.some((x) => x.id === prevNode.id && x.providerId === cp.id)
-        ? dbNodes.find((x) => x.id === prevNode.id)
-        : undefined
-    set({
-      isConnected: false,
-      connectedAt: undefined,
-      connectedIp: undefined,
-      uploadSpeed: 0,
-      downloadSpeed: 0,
-      nodes: dbNodes,
-      currentNode: nextNode,
-    })
   },
 
   setConnectStatus: (isConnected) =>

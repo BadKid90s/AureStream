@@ -103,6 +103,9 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
     );
 
     let rules_vec: Vec<String> = vec![
+        // 本机环回必须直连：开发服务、本机 HTTP（含 :80）等需能访问；无进程监听时仍会 connection refused，属正常。
+        "DOMAIN,localhost,DIRECT".to_string(),
+        "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve".to_string(),
         "GEOIP,private,DIRECT".to_string(),
         "GEOIP,CN,DIRECT".to_string(),
         "GEOSITE,cn,DIRECT".to_string(),

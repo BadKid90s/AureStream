@@ -12,8 +12,40 @@ use tauri::Manager;
 
 pub struct DbState(pub Mutex<rusqlite::Connection>);
 
+/// `tauri-plugin-mihomo` 内用 reqwest 访问 `127.0.0.1:9090`；若进程继承系统代理（指向本机 mixed-port），
+/// 这些请求会错误走代理，导致 `/proxies`、组延迟测试等全部失败。在创建插件/任意 HTTP 客户端之前写入 NO_PROXY。
+fn ensure_loopback_in_no_proxy_env() {
+    let loopback = "127.0.0.1,localhost,::1";
+
+    for key in ["NO_PROXY", "no_proxy"] {
+        let Ok(cur) = std::env::var(key) else {
+            std::env::set_var(key, loopback);
+            continue;
+        };
+
+        let cur = cur.trim();
+        if cur.is_empty() {
+            std::env::set_var(key, loopback);
+            continue;
+        }
+        if cur == "*" {
+            continue;
+        }
+        let has_loopback = cur.split(',').any(|p| {
+            let p = p.trim();
+            p == "127.0.0.1" || p == "localhost" || p == "::1"
+        });
+        if has_loopback {
+            continue;
+        }
+        std::env::set_var(key, format!("{loopback},{cur}"));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    ensure_loopback_in_no_proxy_env();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())

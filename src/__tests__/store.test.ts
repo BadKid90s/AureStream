@@ -50,6 +50,8 @@ describe('ProxyStore - Provider CRUD', () => {
       currentProvider: undefined,
       currentNode: undefined,
       nodes: [],
+      isConnecting: false,
+      isDisconnecting: false,
     })
   })
 
@@ -137,6 +139,8 @@ describe('ProxyStore - setCurrentProvider', () => {
       currentProvider: undefined,
       currentNode: undefined,
       nodes: [],
+      isConnecting: false,
+      isDisconnecting: false,
     })
   })
 

@@ -26,17 +26,19 @@ impl Default for MihomoKernelState {
     }
 }
 
-/// 首次启动含 GEOIP/GEOSITE 时需拉取 geodata，9s 内常无法就绪；用墙钟上限避免误报超时。
+/// 首次启动含 GEOIP/GEOSITE 时需拉取 geodata，短时内常无法就绪；用墙钟上限避免长期阻塞。
 async fn wait_for_controller_ready() -> Result<(), String> {
+    // 连接成功后系统代理会指向本机 mixed-port；reqwest 默认会跟系统代理，轮询 9090 可能被错误转发。必须直连本机 API。
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(2))
+        .no_proxy()
         .build()
         .map_err(|e| format!("构建 HTTP 客户端失败: {}", e))?;
 
     // 给 sidecar 完成 exec、解析配置的一小段缓冲
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
 
     loop {
         if std::time::Instant::now() >= deadline {
@@ -53,7 +55,7 @@ async fn wait_for_controller_ready() -> Result<(), String> {
     }
 
     Err(
-        "等待 Mihomo API 就绪超时（已轮询约 90 秒）。常见原因：1）首次 GEOIP/GEOSITE 需下载 geodata，耗时较长；2）127.0.0.1:9090 被占用；3）内核因配置或订阅 YAML 错误已退出——请查看控制台 [mihomo] 日志。"
+        "等待 Mihomo API 就绪超时（已轮询约 30 秒）。常见原因：1）首次 GEOIP/GEOSITE 需下载 geodata，可能超过 30 秒；2）127.0.0.1:9090 被占用；3）内核因配置或订阅 YAML 错误已退出——请查看控制台 [mihomo] 日志。"
             .to_string(),
     )
 }
