@@ -133,12 +133,12 @@ export function LeftOperationPanel({
                 <span className="text-xl leading-none shrink-0" aria-hidden>
                   {nodeLine.flag}
                 </span>
-                <span className="flex items-baseline gap-1.5 min-w-0 overflow-hidden">
-                  <span className="text-sm font-semibold text-foreground truncate">
+                <span className="flex flex-col gap-0.5 min-w-0 overflow-hidden">
+                  <span className="text-sm font-semibold text-foreground truncate leading-tight">
                     {nodeLine.primary}
                   </span>
                   {nodeLine.secondary ? (
-                    <span className="text-[11px] text-muted-foreground truncate">
+                    <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate leading-tight">
                       · {nodeLine.secondary}
                     </span>
                   ) : null}
