@@ -3,6 +3,7 @@ import { Package, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProviderCard } from '@/components/provider/ProviderCard'
 import { ProviderModal } from '@/components/provider/ProviderModal'
+import { downloadSubscription } from '@/lib/api'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +49,8 @@ export function Providers() {
         })
         toast.success(`「${providerData.name}」已更新`)
       } else {
+        await downloadSubscription(id, providerData.url)
+        // 下载成功，添加 provider
         const newProvider: Provider = {
           ...providerData,
           id,
@@ -55,18 +58,23 @@ export function Providers() {
           lastUpdated,
         }
         await addProvider(newProvider)
+        // 从 DB 刷新以获取订阅元数据
         const result = await fetchAndSaveSubscription(id)
         if (result.success) {
           toast.success(`「${providerData.name}」订阅添加成功`)
         } else {
-          toast.error(`「${providerData.name}」订阅下载失败：${result.error}`)
+          toast.success(`「${providerData.name}」添加成功，但元数据更新失败`)
         }
       }
     } catch (e) {
-      toast.error(`操作失败：${e instanceof Error ? e.message : String(e)}`)
+      toast.error(`订阅下载失败：${e instanceof Error ? e.message : String(e)}`)
     }
 
     setEditingProvider(null)
+  }
+
+  const handleModalOpenChange = (open: boolean) => {
+    setIsModalOpen(open)
   }
 
   const handleEdit = (provider: Provider) => {
@@ -155,7 +163,7 @@ export function Providers() {
 
       <ProviderModal
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onOpenChange={handleModalOpenChange}
         onSave={handleSave}
         editingProvider={editingProvider}
       />

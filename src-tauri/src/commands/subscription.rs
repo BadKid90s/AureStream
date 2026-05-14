@@ -130,6 +130,8 @@ pub async fn download_subscription(
     // so we can capture headers (like subscription-userinfo) from the initial response.
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .timeout(std::time::Duration::from_secs(60))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
@@ -138,6 +140,7 @@ pub async fn download_subscription(
 
     let mut response = client
         .get(url.clone())
+        .header("User-Agent", "clash-verge/v2.2.3")
         .send()
         .await
         .map_err(|e| format!("Failed to fetch subscription: {}", e))?;
@@ -165,6 +168,7 @@ pub async fn download_subscription(
             eprintln!("[subscription] Redirect {} -> {}", response.status(), resolved);
             response = client
                 .get(resolved.clone())
+                .header("User-Agent", "clash-verge/v2.2.3")
                 .send()
                 .await
                 .map_err(|e| format!("Failed to follow redirect: {}", e))?;

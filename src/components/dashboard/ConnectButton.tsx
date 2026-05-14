@@ -2,6 +2,7 @@ import { Power, Zap } from 'lucide-react'
 import { useId } from 'react'
 import { cn } from '@/lib/utils'
 import { useProxyStore } from '@/stores/appStore'
+import { toast } from 'sonner'
 
 const SIZE_MAP = {
   sm: {
@@ -44,14 +45,18 @@ export function ConnectButton({
   const spinGradId = useId().replace(/:/g, 'i')
   const dims = SIZE_MAP[size]
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (isConnected) {
       if (isConnecting) return
       disconnect()
       return
     }
     if (disabledOuter || isConnecting) return
-    void connect()
+    try {
+      await connect()
+    } catch (e) {
+      toast.error(`连接失败：${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   return (

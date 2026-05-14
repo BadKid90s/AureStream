@@ -77,7 +77,7 @@ interface ProxyStore {
   setNodes: (nodes: Node[]) => void
   updateNodeDelay: (nodeId: string, delay: number) => void
   connect: () => Promise<void>
-  disconnect: () => void
+  disconnect: () => Promise<void>
   setConnectStatus: (isConnected: boolean) => void
   setConnectingStatus: (isConnecting: boolean) => void
   updateSpeeds: (upload: number, download: number) => void
@@ -184,39 +184,44 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     }),
 
   connect: async () => {
-    const { currentProvider, nodes, currentNode } = get()
-    if (!currentProvider) return
-    const pool = nodes.filter(
-      (n) => n.providerId === currentProvider.id && n.enabled
-    )
-    if (pool.length === 0) return
-
-    let node = currentNode
-    if (!node || node.providerId !== currentProvider.id) {
-      node = pool[0]
-      set({ currentNode: node })
-    }
+    const { currentProvider } = get()
+    if (!currentProvider) throw new Error('请先选择一个订阅')
 
     set({ isConnecting: true })
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    const mockOctet = () => Math.floor(Math.random() * 220) + 12
-    const connectedIp = `${mockOctet()}.${mockOctet()}.${mockOctet()}.${mockOctet()}`
-    set({
-      isConnecting: false,
-      isConnected: true,
-      connectedAt: Date.now(),
-      connectedIp,
-    })
+    try {
+      // 获取订阅配置文件路径
+      const path = await getSubscriptionPath(currentProvider.id)
+      if (!path) throw new Error('订阅配置文件不存在，请先更新订阅')
+
+      // 通知 mihomo 加载配置并启动
+      await reloadConfig(true, path)
+
+      set({
+        isConnecting: false,
+        isConnected: true,
+        connectedAt: Date.now(),
+      })
+    } catch (e) {
+      set({ isConnecting: false })
+      throw e
+    }
   },
 
-  disconnect: () =>
+  disconnect: async () => {
+    try {
+      const { closeAllConnections } = await import('tauri-plugin-mihomo-api')
+      await closeAllConnections()
+    } catch {
+      // ignore cleanup errors
+    }
     set({
       isConnected: false,
       connectedAt: undefined,
       connectedIp: undefined,
       uploadSpeed: 0,
       downloadSpeed: 0,
-    }),
+    })
+  },
 
   setConnectStatus: (isConnected) =>
     set((s) => ({

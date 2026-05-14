@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -165,20 +166,22 @@ export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: P
           </div>
 
           <DialogFooter>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            >
-              取消
-            </button>
+            {!isLoading && (
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                取消
+              </button>
+            )}
             <button
               type="submit"
               disabled={isLoading}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-white text-sm font-medium shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-white text-sm font-medium shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 inline-flex items-center gap-2"
             >
-              {isLoading ? '保存中...' : editingProvider ? '保存修改' : '添加'}
+              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isLoading ? '下载中...' : editingProvider ? '保存修改' : '添加'}
             </button>
           </DialogFooter>
         </form>
