@@ -6,69 +6,224 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AureProxy is a cross-platform desktop proxy client built on the mihomo kernel. It uses Tauri 2.0 (Rust backend) + React 19 + TypeScript + Tailwind CSS v4 + shadcn/ui (Radix). The UI uses a glassmorphism design language with light/dark theme support.
 
-## Commands
+## Quick Start
 
 ```bash
-# Install dependencies (uses npm, not pnpm)
+# Install dependencies
 npm install
 
-# Frontend dev server only (Vite, http://localhost:5173)
-npm run dev
+# Development modes
+npm run dev              # Frontend dev server only (http://localhost:5173)
+npm run dev:desktop      # Full Tauri desktop app with hot reload
 
-# Desktop dev (Tauri shell + Vite)
-npm run dev:desktop
+# Building & Testing
+npm run build           # Production build (typecheck + Vite build)
+npm run typecheck       # TypeScript checking for frontend
+npm run typecheck:node  # TypeScript checking for Node files
 
-# Production build (typecheck + Vite build)
-npm run build
+# Tauri operations
+npm run tauri           # Pass commands to Tauri CLI
+npm run tauri:build     # Build desktop installer
 
-# Vite build only (skip typecheck, for quick iteration)
-npm run build:web
-
-# TypeScript typecheck (frontend src only)
-npm run typecheck
-
-# TypeScript typecheck for vite.config.ts
-npm run typecheck:node
-
-# Tauri CLI passthrough
-npm run tauri
-
-# Build desktop installer (Rust + frontend)
-npm run tauri:build
+# Development utilities
+npm run preview         # Preview built frontend locally
 ```
 
-There are no tests configured in this project currently.
+## Architecture Overview
 
-## Architecture
+### System Architecture
 
-### Frontend (`src/`)
+```
+┌─────────────────────────────────────────┐
+│          Frontend Layer (React 19)       │
+│ Pages → Components → Stores (Zustand)   │
+│ Tailwind CSS v4 + shadcn/ui             │
+├─────────────────────────────────────────┤
+│            Tauri IPC Bridge              │
+│         (Type-safe Rust bindings)        │
+├─────────────────────────────────────────┤
+│         Backend Layer (Tauri 2.0/Rust)   │
+│ SQLite DB • Proxy Control • Config Mgmt │
+├─────────────────────────────────────────┤
+│          Mihomo Kernel (Go)              │
+└─────────────────────────────────────────┘
+```
 
-- **`@/` alias** maps to `./src/` (configured in vite.config.ts and tsconfig.json)
-- **Routing**: Manual state-based routing in `App.tsx` via `currentPage` state (dashboard / providers / settings) — no React Router
-- **State management**: Two Zustand stores in `src/stores/appStore.ts`, both using `persist` middleware:
-  - `useAppStore` — theme (light/dark)
-  - `useProxyStore` — providers, nodes, connection state, speeds, latency
-- **Seed data**: `src/data/seed.ts` provides demo providers/nodes. `src/hooks/useSeedProxyStore.ts` auto-injects them into an empty store in dev mode only
-- **Layout**: `Sidebar` (narrow rail) + `MainContent` (page container). Dashboard uses `overflow-hidden` single-viewport layout; other pages scroll
-- **Styling**: Tailwind CSS v4 with `@theme` custom properties in `src/index.css`. Custom glass utilities: `glass`, `glass-strong`, `glass-light`, `glass-rail`, `glass-hover`. Colors defined as CSS custom properties with separate `.dark` overrides
+### Frontend Structure (`src/`)
 
-### Backend (`src-tauri/`)
+**Core Components:**
+- **Pages**: `Dashboard.tsx` (main page), `Providers.tsx`, `Settings.tsx`
+- **Layout**: `Sidebar` navigation rail + `MainContent` page container
+- **Dashboard**: Golden ratio layout (61.8%/38.2%), single viewport, glassmorphism design
+- **State Management**: 
+  - `useAppStore`: Theme management (light/dark) with persistence
+  - `useProxyStore`: Providers, nodes, connection state, speeds, latency with persistence
+- **API Bridge**: `src/lib/api.ts` wraps all Tauri `invoke()` calls with TypeScript types
 
-- **Tauri 2.0** with Rust. Entry point: `src-tauri/src/lib.rs`
-- **State management**: Two `Mutex`-based state structs managed by Tauri:
-  - `ProxyState` (`commands/proxy.rs`) — proxy config and running status
-  - `ProviderState` (`commands/provider.rs`) — providers and nodes lists
-- **Commands**: All Tauri commands are in `src-tauri/src/commands/` (mod.rs, proxy.rs, provider.rs). Frontend calls them via `invoke()` from `@tauri-apps/api/core` through the wrapper in `src/lib/api.ts`
-- **Dependencies**: reqwest (HTTP), tokio (async), serde/serde_json (serialization)
+**Key Features:**
+- Manual routing via `currentPage` state (no React Router)
+- Seed data in `src/data/seed.ts` for development/demo
+- Real-time proxy connection control with Mihomo integration
+- Subscription management with automatic updates
+- Latency testing and node selection
+- Glassmorphism UI with custom Tailwind utilities
 
-### Frontend-Backend Bridge
+**Design System:**
+- Custom glass utilities: `glass`, `glass-strong`, `glass-light`, `glass-rail`, `glass-hover`
+- Color system via CSS custom properties with dark theme variants
+- Breathing animations for connect button (idle: 4s, active: 2s)
+- Smooth transitions for theme switching and state changes
 
-`src/lib/api.ts` wraps all Tauri `invoke` calls. TypeScript interfaces in `src/types/index.ts` define the frontend data model. The Rust structs in `src-tauri/src/commands/mod.rs` define the backend model — these are independent but parallel definitions (not auto-synced).
+### Backend Structure (`src-tauri/`)
 
-## Key Conventions
+**Entry Points:**
+- `src-tauri/src/main.rs`: Application entry point
+- `src-tauri/src/lib.rs`: Core application logic with Tauri setup
 
-- Components use `cn()` from `src/lib/utils.ts` (clsx + tailwind-merge) for conditional classes
-- shadcn/ui components are in `src/components/ui/` — these are Radix-based, not from a registry
-- All UI text is in Chinese (zh-CN)
-- The proxy connection flow currently uses mock data (random IPs, simulated delays) — no real mihomo kernel integration yet
-- Dashboard uses a golden ratio (61.8% / 38.2%) two-column layout
+**Database Layer:**
+- `src-tauri/src/db.rs`: SQLite database initialization and schema
+- Persistent storage for providers, nodes, and configuration
+
+**Command System:**
+All Tauri commands are defined in `src-tauri/src/commands/`:
+- `proxy.rs`: Proxy control, status, configuration
+- `provider.rs`: Provider/subscription management
+- `subscription.rs`: Download and manage subscription files
+- `mihomo_kernel.rs`: Mihomo sidecar process management
+- `system_proxy.rs`: System proxy configuration
+- `builtin_config.rs`: Generate Mihomo configuration files
+
+**State Management:**
+- `ProxyState`: Mutex-protected proxy configuration and status
+- `MihomoKernelState`: Mihomo sidecar process state
+- Database-backed persistent storage
+
+### Data Models
+
+**Frontend Types (`src/types/index.ts`):**
+```typescript
+interface Provider {
+  id: string
+  name: string
+  url: string
+  lastUpdated: string
+  nodeCount: number
+  trafficTotalGB?: number      // Total traffic (GB)
+  trafficUsedGB?: number        // Used traffic (GB)
+  expiresAt?: string           // ISO 8601 expiration
+  autoUpdateInterval?: number  // Auto-update interval (minutes)
+}
+
+interface Node {
+  id: string
+  name: string
+  providerId: string
+  type: string                  // vmess, vless, trojan, etc.
+  server: string
+  port: number
+  delay?: number               // Latency in ms
+  enabled: boolean
+}
+
+interface ProxyStatus {
+  isConnected: boolean
+  currentNode?: Node
+  uploadSpeed: number         // Bytes per second
+  downloadSpeed: number       // Bytes per second
+  latency?: number            // Current latency in ms
+}
+```
+
+**Backend Models (`src-tauri/src/commands/mod.rs`):**
+Parallel TypeScript definitions with camelCase naming convention for JSON serialization.
+
+### Development Patterns
+
+**Code Organization:**
+- All UI text in Chinese (zh-CN)
+- Component composition over inheritance
+- Type safety enforced at frontend-backend boundary
+- Consistent error handling with structured responses
+
+**Development Workflow:**
+1. Use seed data during development (`src/data/seed.ts`)
+2. Run `npm run dev:desktop` for full Tauri integration
+3. Hot reload works for both frontend and backend changes
+4. Database migrations handled automatically via Tauri setup
+
+**Testing Strategy:**
+- No formal test framework configured yet
+- Manual testing recommended for core flows
+- Seed data provides consistent test environment
+- TODO items in docs indicate areas needing automated tests
+
+## Key Configuration Files
+
+**Build Configuration:**
+- `vite.config.ts`: Frontend build and dev server configuration
+- `src-tauri/Cargo.toml`: Rust dependencies and build settings
+- `src-tauri/tauri.conf.json`: Tauri app metadata and build options
+
+**TypeScript Setup:**
+- `@/` alias resolves to `./src/` (configured in both vite.config.ts and tsconfig.json)
+- Strict type checking enabled
+- Path mapping for clean imports across the codebase
+
+## Environment Variables
+
+**Development:**
+- `TAURI_DEV_HOST`: Override default localhost for remote debugging
+- Database path configured per OS (Windows/macOS/Linux)
+
+**Production:**
+- Mihomo binary bundled with app (`binaries/mihomo`)
+- Configuration stored in OS-specific app data directories
+
+## Common Tasks
+
+**Adding New Features:**
+1. Define TypeScript interface in `src/types/index.ts`
+2. Add Tauri command in appropriate `src-tauri/src/commands/*.rs` file
+3. Create API wrapper function in `src/lib/api.ts`
+4. Update Zustand store with new state and actions
+5. Build React components using shadcn/ui primitives
+
+**Database Operations:**
+- Schema changes should be backward compatible
+- Use existing patterns in `db.rs` for new tables
+- All data access goes through Tauri commands
+
+**UI Development:**
+- Use `cn()` utility for conditional class names
+- Follow glassmorphism design system in `src/index.css`
+- Leverage existing shadcn/ui components
+- Maintain golden ratio layout for dashboard
+
+## Troubleshooting
+
+**Common Issues:**
+- Mihomo process not starting: Check if binary exists in `binaries/` folder
+- Connection failures: Verify NO_PROXY environment variables include localhost
+- Port conflicts: Use `npm run dev:desktop` with `TAURI_DEV_HOST` override
+- Theme not switching: Clear browser cache or check CSS custom property fallbacks
+
+**Debug Mode:**
+- Enable verbose logging in Mihomo kernel configuration
+- Check Tauri developer tools console output
+- Monitor SQLite database contents for data integrity issues
+
+## Future Work (TODO Items)
+
+Based on `docs/TODO.md`:
+1. **UI Polish**: Node name truncation/long text handling
+2. **Latency Testing**: Loading animation during speed tests
+3. **Real Traffic Stats**: Connect to Mihomo's actual traffic metrics
+4. **IP Geolocation**: Display current exit IP and location info
+5. **Storage Optimization**: Replace SQLite with lighter persistence layer
+
+## Documentation References
+
+- `README.md`: User-facing feature overview and quick start
+- `docs/SPEC.md`: Detailed technical specifications and design decisions
+- `docs/DESIGN.md`: Architecture overview and technology rationale
+- `docs/FEATURE_*.md`: Individual feature implementations and enhancements
