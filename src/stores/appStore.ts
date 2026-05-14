@@ -112,6 +112,53 @@ function setupAutoUpdateTimer(providerId: string, intervalMinutes: number, refre
   autoUpdateTimers.set(providerId, timer)
 }
 
+/** Mihomo `/connections` 累计量差分 → 字节/秒（供首页速率展示） */
+let mihomoTrafficTimer: ReturnType<typeof setInterval> | null = null
+let mihomoTrafficSnap = {
+  uploadTotal: 0,
+  downloadTotal: 0,
+  t: 0,
+  primed: false,
+}
+
+function stopMihomoTrafficPoll() {
+  if (mihomoTrafficTimer != null) {
+    clearInterval(mihomoTrafficTimer)
+    mihomoTrafficTimer = null
+  }
+  mihomoTrafficSnap = { uploadTotal: 0, downloadTotal: 0, t: 0, primed: false }
+}
+
+function startMihomoTrafficPoll(updateSpeeds: (up: number, down: number) => void) {
+  stopMihomoTrafficPoll()
+  const tick = async () => {
+    try {
+      const { getConnections } = await import('tauri-plugin-mihomo-api')
+      const c = await getConnections()
+      const now = Date.now()
+      const up = Number(c.uploadTotal ?? 0)
+      const down = Number(c.downloadTotal ?? 0)
+      if (!mihomoTrafficSnap.primed) {
+        mihomoTrafficSnap = { uploadTotal: up, downloadTotal: down, t: now, primed: true }
+        updateSpeeds(0, 0)
+        return
+      }
+      const dt = (now - mihomoTrafficSnap.t) / 1000
+      if (dt < 0.05) return
+      let ul = (up - mihomoTrafficSnap.uploadTotal) / dt
+      let dl = (down - mihomoTrafficSnap.downloadTotal) / dt
+      if (!Number.isFinite(ul) || ul < 0) ul = 0
+      if (!Number.isFinite(dl) || dl < 0) dl = 0
+      updateSpeeds(ul, dl)
+      mihomoTrafficSnap = { uploadTotal: up, downloadTotal: down, t: now, primed: true }
+    } catch {
+      updateSpeeds(0, 0)
+    }
+  }
+  void tick()
+  mihomoTrafficTimer = setInterval(() => void tick(), 1000)
+}
+
 /** 校正当前选中订阅：仅存 1 条时一律视为当前使用中；零条清空；多条时校正无效引用 */
 function normalizeCurrentSubscriptionSelection(
   providers: Provider[],
@@ -392,12 +439,16 @@ export const useProxyStore = create<ProxyStore>()(
 
       await get().refreshSubscriptionNodesFromMihomo()
 
+      stopMihomoTrafficPoll()
+      startMihomoTrafficPoll((u, d) => get().updateSpeeds(u, d))
+
       set({
         isConnecting: false,
         isConnected: true,
         connectedAt: Date.now(),
       })
     } catch (e) {
+      stopMihomoTrafficPoll()
       try {
         await stopProxy()
       } catch {
@@ -410,6 +461,7 @@ export const useProxyStore = create<ProxyStore>()(
 
   disconnect: async () => {
     if (get().isDisconnecting) return
+    stopMihomoTrafficPoll()
     set({ isDisconnecting: true })
     try {
       try {
@@ -452,13 +504,15 @@ export const useProxyStore = create<ProxyStore>()(
     }
   },
 
-  setConnectStatus: (isConnected) =>
+  setConnectStatus: (isConnected) => {
+    if (!isConnected) stopMihomoTrafficPoll()
     set((s) => ({
       isConnected,
       connectedAt: isConnected ? s.connectedAt ?? Date.now() : undefined,
       connectedIp: isConnected ? s.connectedIp : undefined,
       ...(!isConnected ? { uploadSpeed: 0, downloadSpeed: 0 } : {}),
-    })),
+    }))
+  },
 
   setConnectingStatus: (isConnecting) => set({ isConnecting }),
 

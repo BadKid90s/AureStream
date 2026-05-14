@@ -25,7 +25,6 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
     connectedIp,
     uploadSpeed,
     downloadSpeed,
-    updateSpeeds,
   } = useProxyStore()
 
   const [nodeDialogOpen, setNodeDialogOpen] = useState(false)
@@ -38,18 +37,6 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
     const id = window.setInterval(() => setNowTick(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
-
-  useEffect(() => {
-    if (!isConnected) return
-    const sample = () => {
-      const dl = (Math.random() * 42 + 18) * 1024
-      const ul = (Math.random() * 32 + 8) * 1024
-      updateSpeeds(ul, dl)
-    }
-    sample()
-    const id = window.setInterval(sample, 1300)
-    return () => clearInterval(id)
-  }, [isConnected, updateSpeeds])
 
   useLayoutEffect(() => {
     setUploadSeries(emptySeries())
