@@ -1,3 +1,4 @@
+pub mod mihomo_kernel;
 pub mod proxy;
 pub mod provider;
 pub mod subscription;

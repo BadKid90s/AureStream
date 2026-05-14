@@ -107,3 +107,18 @@ export async function getSubscriptionPath(providerId: string): Promise<string | 
 export async function deleteSubscriptionFile(providerId: string): Promise<void> {
   return await invoke<void>('delete_subscription_file', { providerId })
 }
+
+/** 将订阅配置打补丁后与插件控制器对齐，返回运行用配置绝对路径 */
+export async function patchMihomoSubscription(subscriptionPath: string): Promise<string> {
+  return await invoke<string>('patch_mihomo_subscription', { subscriptionPath })
+}
+
+/** 启动或重启 Mihomo sidecar 进程（使用已由 patch 生成的配置路径） */
+export async function startMihomoKernel(patchedConfigPath: string): Promise<void> {
+  return await invoke<void>('start_mihomo_kernel', { patchedConfigPath })
+}
+
+/** 结束由应用拉起的 Mihomo 进程 */
+export async function stopMihomoKernel(): Promise<void> {
+  return await invoke<void>('stop_mihomo_kernel')
+}

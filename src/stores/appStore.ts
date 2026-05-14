@@ -55,14 +55,20 @@ function setupAutoUpdateTimer(providerId: string, intervalMinutes: number, refre
   autoUpdateTimers.set(providerId, timer)
 }
 
-/** 仅有一个（或零个）订阅时默认不按「使用中」选中；多于一个时校正无效引用 */
+/** 校正当前选中订阅：仅存 1 条时一律视为当前使用中；零条清空；多条时校正无效引用 */
 function normalizeCurrentSubscriptionSelection(
   providers: Provider[],
   currentProvider: Provider | undefined,
   currentNode: Node | undefined,
 ): { currentProvider: Provider | undefined; currentNode: Node | undefined } {
-  if (providers.length <= 1) {
+  if (providers.length === 0) {
     return { currentProvider: undefined, currentNode: undefined }
+  }
+  if (providers.length === 1) {
+    const only = providers[0]
+    const nodeOk =
+      currentNode?.providerId === only.id ? currentNode : undefined
+    return { currentProvider: only, currentNode: nodeOk }
   }
   if (currentProvider && !providers.some(p => p.id === currentProvider.id)) {
     return { currentProvider: undefined, currentNode: undefined }
@@ -145,9 +151,14 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
   addProvider: async (provider) => {
     await addProviderIpc(provider)
-    set({ providers: [...get().providers, provider] })
+    const providers = [...get().providers, provider]
+    set({ providers })
     if (provider.autoUpdateInterval) {
       setupAutoUpdateTimer(provider.id, provider.autoUpdateInterval, get().fetchAndSaveSubscription)
+    }
+    // 添加后若仅有这一条订阅，自动设为「使用中」
+    if (providers.length === 1) {
+      await get().setCurrentSubscription(provider)
     }
   },
 

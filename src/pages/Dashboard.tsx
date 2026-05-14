@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { LeftOperationPanel } from '@/components/dashboard/LeftOperationPanel'
 import { NetworkBlock } from '@/components/dashboard/NetworkBlock'
 import { NodePickerDialog } from '@/components/dashboard/NodePickerDialog'
@@ -18,7 +18,6 @@ function emptySeries(): number[] {
 
 export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void }) {
   const {
-    nodes,
     currentProvider,
     currentNode,
     isConnected,
@@ -74,12 +73,8 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
     return () => clearInterval(id)
   }, [isConnected])
 
-  const availableNodes = useMemo(() => {
-    if (!currentProvider) return []
-    return nodes.filter((n) => n.providerId === currentProvider.id && n.enabled)
-  }, [nodes, currentProvider])
-
-  const canConnect = Boolean(currentProvider) && availableNodes.length > 0
+  /** 内核由订阅 YAML 驱动；nodes 表可能未写入，不因「零节点」禁止连接 */
+  const canConnect = Boolean(currentProvider)
 
   const trafficUsed = currentProvider?.trafficUsedGB
 

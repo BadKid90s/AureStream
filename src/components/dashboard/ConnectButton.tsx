@@ -84,7 +84,7 @@ export function ConnectButton({
         onClick={handleClick}
         disabled={!isConnected && (disabledOuter || isConnecting)}
         aria-disabled={!isConnected && (disabledOuter || isConnecting)}
-        title={disabledOuter && !isConnected ? '请先选择有可节点的供应商' : undefined}
+        title={disabledOuter && !isConnected ? '请先选择服务商' : undefined}
         className={cn(
           'relative z-10 flex items-center justify-center rounded-full transition-all duration-700 ease-in-out',
           'enabled:cursor-pointer disabled:cursor-not-allowed',

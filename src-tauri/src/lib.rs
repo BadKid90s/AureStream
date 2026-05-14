@@ -3,6 +3,9 @@ mod db;
 
 use std::sync::Mutex;
 
+use commands::mihomo_kernel::{
+    patch_mihomo_subscription, start_mihomo_kernel, stop_mihomo_kernel, MihomoKernelState,
+};
 use commands::proxy::{get_proxy_config, get_proxy_status, set_current_node, start_proxy, stop_proxy, update_proxy_config, ProxyState};
 use commands::provider::{add_provider, delete_provider, get_nodes, get_nodes_by_provider, get_providers, test_all_nodes_latency, test_node_latency, update_provider};
 use commands::subscription::{delete_subscription_file, download_subscription, get_subscription_path};
@@ -20,6 +23,7 @@ pub fn run() {
             let conn = db::init_db(app.handle())?;
             app.manage(DbState(Mutex::new(conn)));
             app.manage(ProxyState::default());
+            app.manage(MihomoKernelState::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -39,7 +43,10 @@ pub fn run() {
             test_all_nodes_latency,
             download_subscription,
             get_subscription_path,
-            delete_subscription_file
+            delete_subscription_file,
+            patch_mihomo_subscription,
+            start_mihomo_kernel,
+            stop_mihomo_kernel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

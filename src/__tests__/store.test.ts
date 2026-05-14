@@ -13,12 +13,16 @@ vi.mock('tauri-plugin-mihomo-api', () => ({
   getGroups: vi.fn().mockResolvedValue({}),
 }))
 
-// Mock api.ts
-vi.mock('@/lib/api', () => ({
-  downloadSubscription: vi.fn().mockResolvedValue({ path: '/mock/path.yaml', content_length: 1024 }),
-  deleteSubscriptionFile: vi.fn().mockResolvedValue(undefined),
-  getSubscriptionPath: vi.fn().mockResolvedValue('/mock/path.yaml'),
-}))
+// Mock api.ts — 沿用真实导出，仅为新增内核命令提供 stub（避免测试中启动进程）
+vi.mock('@/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/api')>()
+  return {
+    ...actual,
+    patchMihomoSubscription: vi.fn().mockResolvedValue('/mock/runtime/aureproxy-mihomo.yaml'),
+    startMihomoKernel: vi.fn().mockResolvedValue(undefined),
+    stopMihomoKernel: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 import { useProxyStore } from '@/stores/appStore'
 import type { Provider } from '@/types'
@@ -45,76 +49,76 @@ describe('ProxyStore - Provider CRUD', () => {
     })
   })
 
-  it('addProvider adds a provider to the list', () => {
+  it('addProvider adds a provider to the list', async () => {
     const p = makeProvider({ name: 'Provider A' })
-    useProxyStore.getState().addProvider(p)
+    await useProxyStore.getState().addProvider(p)
 
     const { providers } = useProxyStore.getState()
     expect(providers).toHaveLength(1)
     expect(providers[0].name).toBe('Provider A')
   })
 
-  it('addProvider does not affect other providers', () => {
+  it('addProvider does not affect other providers', async () => {
     const p1 = makeProvider({ name: 'A' })
     const p2 = makeProvider({ name: 'B' })
-    useProxyStore.getState().addProvider(p1)
-    useProxyStore.getState().addProvider(p2)
+    await useProxyStore.getState().addProvider(p1)
+    await useProxyStore.getState().addProvider(p2)
 
     expect(useProxyStore.getState().providers).toHaveLength(2)
   })
 
-  it('updateProvider updates matching provider fields', () => {
+  it('updateProvider updates matching provider fields', async () => {
     const p = makeProvider({ name: 'Original' })
-    useProxyStore.getState().addProvider(p)
-    useProxyStore.getState().updateProvider(p.id, { name: 'Updated' })
+    await useProxyStore.getState().addProvider(p)
+    await useProxyStore.getState().updateProvider(p.id, { name: 'Updated' })
 
     const updated = useProxyStore.getState().providers.find(x => x.id === p.id)
     expect(updated?.name).toBe('Updated')
   })
 
-  it('updateProvider does not affect other providers', () => {
+  it('updateProvider does not affect other providers', async () => {
     const p1 = makeProvider({ id: 'a', name: 'A' })
     const p2 = makeProvider({ id: 'b', name: 'B' })
-    useProxyStore.getState().addProvider(p1)
-    useProxyStore.getState().addProvider(p2)
-    useProxyStore.getState().updateProvider('a', { name: 'A-updated' })
+    await useProxyStore.getState().addProvider(p1)
+    await useProxyStore.getState().addProvider(p2)
+    await useProxyStore.getState().updateProvider('a', { name: 'A-updated' })
 
     const b = useProxyStore.getState().providers.find(x => x.id === 'b')
     expect(b?.name).toBe('B')
   })
 
-  it('updateProvider syncs currentProvider if it is the same', () => {
+  it('updateProvider syncs currentProvider if it is the same', async () => {
     const p = makeProvider({ name: 'Current' })
-    useProxyStore.getState().addProvider(p)
+    await useProxyStore.getState().addProvider(p)
     useProxyStore.getState().setCurrentProvider(p)
-    useProxyStore.getState().updateProvider(p.id, { name: 'Updated Current' })
+    await useProxyStore.getState().updateProvider(p.id, { name: 'Updated Current' })
 
     expect(useProxyStore.getState().currentProvider?.name).toBe('Updated Current')
   })
 
-  it('deleteProvider removes the provider', () => {
+  it('deleteProvider removes the provider', async () => {
     const p = makeProvider()
-    useProxyStore.getState().addProvider(p)
-    useProxyStore.getState().deleteProvider(p.id)
+    await useProxyStore.getState().addProvider(p)
+    await useProxyStore.getState().deleteProvider(p.id)
 
     expect(useProxyStore.getState().providers).toHaveLength(0)
   })
 
-  it('deleteProvider clears currentProvider if it was deleted', () => {
+  it('deleteProvider clears currentProvider if it was deleted', async () => {
     const p = makeProvider()
-    useProxyStore.getState().addProvider(p)
+    await useProxyStore.getState().addProvider(p)
     useProxyStore.getState().setCurrentProvider(p)
-    useProxyStore.getState().deleteProvider(p.id)
+    await useProxyStore.getState().deleteProvider(p.id)
 
     expect(useProxyStore.getState().currentProvider).toBeUndefined()
   })
 
-  it('deleteProvider does not affect other providers', () => {
+  it('deleteProvider does not affect other providers', async () => {
     const p1 = makeProvider({ id: 'keep' })
     const p2 = makeProvider({ id: 'delete' })
-    useProxyStore.getState().addProvider(p1)
-    useProxyStore.getState().addProvider(p2)
-    useProxyStore.getState().deleteProvider('delete')
+    await useProxyStore.getState().addProvider(p1)
+    await useProxyStore.getState().addProvider(p2)
+    await useProxyStore.getState().deleteProvider('delete')
 
     const remaining = useProxyStore.getState().providers
     expect(remaining).toHaveLength(1)
@@ -132,19 +136,19 @@ describe('ProxyStore - setCurrentProvider', () => {
     })
   })
 
-  it('sets the current provider', () => {
+  it('sets the current provider', async () => {
     const p = makeProvider({ name: 'My Provider' })
-    useProxyStore.getState().addProvider(p)
+    await useProxyStore.getState().addProvider(p)
     useProxyStore.getState().setCurrentProvider(p)
 
     expect(useProxyStore.getState().currentProvider?.name).toBe('My Provider')
   })
 
-  it('clears currentNode when switching to a different provider', () => {
+  it('clears currentNode when switching to a different provider', async () => {
     const p1 = makeProvider({ id: 'p1' })
     const p2 = makeProvider({ id: 'p2' })
-    useProxyStore.getState().addProvider(p1)
-    useProxyStore.getState().addProvider(p2)
+    await useProxyStore.getState().addProvider(p1)
+    await useProxyStore.getState().addProvider(p2)
     useProxyStore.getState().setCurrentProvider(p1)
 
     // Simulate having a current node from p1
@@ -164,9 +168,9 @@ describe('ProxyStore - setCurrentProvider', () => {
     expect(useProxyStore.getState().currentNode).toBeUndefined()
   })
 
-  it('clears currentProvider when set to undefined', () => {
+  it('clears currentProvider when set to undefined', async () => {
     const p = makeProvider()
-    useProxyStore.getState().addProvider(p)
+    await useProxyStore.getState().addProvider(p)
     useProxyStore.getState().setCurrentProvider(p)
     useProxyStore.getState().setCurrentProvider(undefined)
 
