@@ -23,14 +23,17 @@ dist-ssr
 !.env.example
 
 # Editor
-.vscode/*
-!.vscode/extensions.json
+.vscode/
 .idea
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# AI / IDE settings
+.claude/
+.agents/
 
 # OS
 .DS_Store

@@ -1,4 +1,4 @@
-import { ChevronRight, ArrowLeftRight, Globe, Zap, Server } from 'lucide-react'
+import { ChevronRight, ArrowLeftRight, Globe, Zap } from 'lucide-react'
 import { ConnectButton } from '@/components/dashboard/ConnectButton'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
