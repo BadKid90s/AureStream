@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Provider, Node } from '@/types'
 import {
   addProvider as addProviderIpc,
@@ -12,7 +12,7 @@ import {
   downloadSubscription,
   deleteSubscriptionFile,
   getSubscriptionPath,
-  testAllNodesLatency,
+  testNodeLatency,
   buildAureproxyMihomoConfig,
   startMihomoKernel,
   stopProxy,
@@ -31,6 +31,44 @@ import {
   MIHOMO_LATENCY_TEST_URL,
 } from '@/constants/mihomo'
 import { mihomoProxiesToNodes } from '@/lib/mihomoSubscriptionNodes'
+
+/** 本地持久化测速：订阅 id + 节点 id（与 Mihomo 叶子代理名一致） */
+function nodeLatencyCacheKey(providerId: string, nodeId: string): string {
+  return `${providerId}:${nodeId}`
+}
+
+/** Vitest 等环境下 global localStorage 可能无 setItem；提供内存后备以免 persist 崩溃 */
+function createMemoryLocalStorage(): Storage {
+  const m = new Map<string, string>()
+  return {
+    get length() {
+      return m.size
+    },
+    clear: () => m.clear(),
+    getItem: (key) => m.get(key) ?? null,
+    key: (index) => Array.from(m.keys())[index] ?? null,
+    removeItem: (key) => {
+      m.delete(key)
+    },
+    setItem: (key, value) => {
+      m.set(key, value)
+    },
+  } as Storage
+}
+
+let memoryLocalStorageSingleton: Storage | null = null
+
+function getBrowserOrMemoryStorage(): Storage {
+  if (typeof globalThis.localStorage?.setItem === 'function') {
+    return globalThis.localStorage
+  }
+  memoryLocalStorageSingleton ??= createMemoryLocalStorage()
+  return memoryLocalStorageSingleton
+}
+
+function latencyPersistStorage() {
+  return createJSONStorage(() => getBrowserOrMemoryStorage())
+}
 
 interface AppStore {
   theme: 'light' | 'dark'
@@ -113,8 +151,12 @@ interface ProxyStore {
   uploadSpeed: number
   downloadSpeed: number
   isTestingLatency: boolean
+  /** 本轮一键测速尚未完成的节点 id（用于每行显示刷新动画，含已有旧延迟的重测） */
+  latencyPendingByNodeId: Record<string, boolean>
   /** 正在更新的 provider ID 集合 */
   refreshingIds: Set<string>
+  /** 上次一键测速结果（按订阅+节点缓存，持久化以便再次打开列表仍显示） */
+  nodeLatencyByKey: Record<string, number>
 
   /** 从数据库加载所有 provider 和 node */
   loadProviders: () => Promise<void>
@@ -143,7 +185,9 @@ interface ProxyStore {
   initAutoUpdateTimers: () => void
 }
 
-export const useProxyStore = create<ProxyStore>()((set, get) => ({
+export const useProxyStore = create<ProxyStore>()(
+  persist(
+    (set, get) => ({
   providers: [],
   nodes: [],
   currentProvider: undefined,
@@ -156,7 +200,9 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   uploadSpeed: 0,
   downloadSpeed: 0,
   isTestingLatency: false,
+  latencyPendingByNodeId: {},
   refreshingIds: new Set<string>(),
+  nodeLatencyByKey: {},
 
   loadProviders: async () => {
     try {
@@ -217,7 +263,14 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     let currentProvider = get().currentProvider
     if (currentProvider?.id === id) currentProvider = undefined
     const sel = normalizeCurrentSubscriptionSelection(newProviders, currentProvider, get().currentNode)
-    set({ providers: newProviders, ...sel })
+    const prefix = `${id}:`
+    set((state) => {
+      const nodeLatencyByKey = { ...state.nodeLatencyByKey }
+      for (const k of Object.keys(nodeLatencyByKey)) {
+        if (k.startsWith(prefix)) delete nodeLatencyByKey[k]
+      }
+      return { providers: newProviders, ...sel, nodeLatencyByKey }
+    })
     // 删除订阅文件
     deleteSubscriptionFile(id).catch(() => {})
   },
@@ -247,6 +300,8 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   refreshSubscriptionNodesFromMihomo: async () => {
     const { currentProvider } = get()
     if (!currentProvider) return
+    // 一键测速进行中：避免 /proxies 里陈旧的 history.delay 写回列表，盖住正在重测的状态
+    if (get().isTestingLatency) return
     try {
       const raw = await getProxies()
       const leafNodes = mihomoProxiesToNodes(raw, currentProvider.id)
@@ -257,16 +312,28 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       } catch {
         // 内核尚未建好组时可忽略
       }
-      const prev = get().currentNode
+      const state = get()
+      const prevById = new Map(state.nodes.map((n) => [n.id, n]))
+      const cache = state.nodeLatencyByKey
+      const merged = leafNodes.map((n) => {
+        const old = prevById.get(n.id)
+        const cached = cache[nodeLatencyCacheKey(currentProvider.id, n.id)]
+        return {
+          ...n,
+          // 优先本会话内存 → 持久化测速缓存 → Mihomo history（history 常为陈旧值，不应覆盖用户刚测的结果）
+          delay: old?.delay ?? cached ?? n.delay,
+        }
+      })
+      const prev = state.currentNode
       let next: Node | undefined
-      if (prev && leafNodes.some((n) => n.id === prev.id)) {
-        next = leafNodes.find((n) => n.id === prev.id)!
-      } else if (groupNow && leafNodes.some((n) => n.id === groupNow)) {
-        next = leafNodes.find((n) => n.id === groupNow)!
-      } else if (leafNodes.length > 0) {
-        next = leafNodes[0]
+      if (prev && merged.some((n) => n.id === prev.id)) {
+        next = merged.find((n) => n.id === prev.id)!
+      } else if (groupNow && merged.some((n) => n.id === groupNow)) {
+        next = merged.find((n) => n.id === groupNow)!
+      } else if (merged.length > 0) {
+        next = merged[0]
       }
-      set({ nodes: leafNodes, currentNode: next })
+      set({ nodes: merged, currentNode: next })
       if (next && groupNow !== next.name) {
         try {
           await selectNodeForGroup(AURE_NODE_SELECTOR, next.name)
@@ -290,7 +357,14 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         state.currentNode?.id === nodeId
           ? { ...state.currentNode, delay }
           : state.currentNode
-      return { nodes, currentNode }
+      const cp = state.currentProvider
+      const nodeLatencyByKey = cp
+        ? {
+            ...state.nodeLatencyByKey,
+            [nodeLatencyCacheKey(cp.id, nodeId)]: delay,
+          }
+        : state.nodeLatencyByKey
+      return { nodes, currentNode, nodeLatencyByKey }
     }),
 
   connect: async () => {
@@ -391,7 +465,40 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   updateSpeeds: (upload, download) => set({ uploadSpeed: upload, downloadSpeed: download }),
 
   testLatency: async () => {
-    set({ isTestingLatency: true })
+    const currentProvider0 = get().currentProvider
+    const nodes0 = get().nodes
+    const list0 = currentProvider0
+      ? nodes0.filter((n) => n.providerId === currentProvider0.id && n.enabled)
+      : []
+    if (!currentProvider0 || list0.length === 0) return
+
+    const cpId = currentProvider0.id
+    const listIds = new Set(list0.map((n) => n.id))
+    set((state) => {
+      const nextKey = { ...state.nodeLatencyByKey }
+      for (const k of Object.keys(nextKey)) {
+        if (!k.startsWith(`${cpId}:`)) continue
+        const nodePart = k.slice(cpId.length + 1)
+        if (listIds.has(nodePart)) delete nextKey[k]
+      }
+      const nodes = state.nodes.map((n) =>
+        listIds.has(n.id) && n.providerId === cpId ? { ...n, delay: undefined } : n
+      )
+      let currentNode = state.currentNode
+      if (currentNode && listIds.has(currentNode.id)) {
+        currentNode = { ...currentNode, delay: undefined }
+      }
+      const initialPending: Record<string, boolean> = {}
+      for (const n of list0) initialPending[n.id] = true
+      return {
+        isTestingLatency: true,
+        latencyPendingByNodeId: initialPending,
+        nodes,
+        currentNode,
+        nodeLatencyByKey: nextKey,
+      }
+    })
+
     try {
       // 如果已连接，先测试内核组内的节点
       if (get().isConnected) {
@@ -403,16 +510,27 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
             false
           )
           set((state) => {
-            const nodes = state.nodes.map((n) => ({
-              ...n,
-              delay: delays[n.name] ?? n.delay,
-            }))
+            const cp = state.currentProvider
+            const nextCache = { ...state.nodeLatencyByKey }
+            const nodes = state.nodes.map((n) => {
+              const measured = delays[n.name] as number | undefined
+              const delay = measured ?? n.delay
+              if (cp && typeof measured === 'number') {
+                nextCache[nodeLatencyCacheKey(cp.id, n.id)] = measured
+              }
+              return { ...n, delay }
+            })
             const cur = state.currentNode
             const currentNode =
               cur && nodes.find((x) => x.id === cur.id)
                 ? { ...nodes.find((x) => x.id === cur.id)! }
                 : cur
-            return { nodes, currentNode }
+            // 不在此阶段取消 pending：内核 group 结果可能是陈旧延迟；各行仍以刷新图标等待逐节点 TCP 测速落盘后再展示
+            return {
+              nodes,
+              currentNode,
+              nodeLatencyByKey: nextCache,
+            }
           })
         } catch (groupError) {
           console.warn('Failed to test group latency:', groupError)
@@ -420,7 +538,6 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       }
 
       // 获取当前订阅的节点列表
-      const providers = get().providers
       const currentProvider = get().currentProvider
       const nodes = get().nodes
       const list = currentProvider
@@ -431,20 +548,41 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
       // 逐个测试每个节点并即时更新UI
       for (const node of list) {
+        set((state) => ({
+          latencyPendingByNodeId: { ...state.latencyPendingByNodeId, [node.id]: true },
+        }))
         try {
           const result = await testNodeLatency(node.id, node.server, node.port)
-          if (result.delay !== undefined) {
-            set((state) => ({
+          const cp = get().currentProvider
+          set((state) => {
+            const nextPending = { ...state.latencyPendingByNodeId }
+            delete nextPending[node.id]
+            if (result.delay === undefined) {
+              return { latencyPendingByNodeId: nextPending }
+            }
+            return {
               nodes: state.nodes.map((n) =>
                 n.id === node.id ? { ...n, delay: result.delay } : n
               ),
               currentNode: state.currentNode?.id === node.id
                 ? { ...state.currentNode, delay: result.delay }
-                : state.currentNode
-            }))
-          }
+                : state.currentNode,
+              nodeLatencyByKey: cp
+                ? {
+                    ...state.nodeLatencyByKey,
+                    [nodeLatencyCacheKey(cp.id, node.id)]: result.delay as number,
+                  }
+                : state.nodeLatencyByKey,
+              latencyPendingByNodeId: nextPending,
+            }
+          })
         } catch (nodeError) {
           console.warn(`Failed to test latency for node ${node.name}:`, nodeError)
+          set((state) => {
+            const nextPending = { ...state.latencyPendingByNodeId }
+            delete nextPending[node.id]
+            return { latencyPendingByNodeId: nextPending }
+          })
         }
 
         // 短暂延迟以改善用户体验
@@ -453,7 +591,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     } catch (e) {
       console.error('Failed to start latency testing:', e)
     } finally {
-      set({ isTestingLatency: false })
+      set({ isTestingLatency: false, latencyPendingByNodeId: {} })
     }
   },
 
@@ -536,4 +674,13 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       }
     }
   },
-}))
+  }),
+    {
+      name: 'aureproxy-node-latency-cache',
+      storage: latencyPersistStorage(),
+      partialize: (state) => ({
+        nodeLatencyByKey: state.nodeLatencyByKey,
+      }),
+    }
+  )
+)

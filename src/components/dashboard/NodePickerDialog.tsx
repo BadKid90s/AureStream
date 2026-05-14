@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Activity, Loader2 } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Activity, ArrowDown01, ArrowDownAZ, RefreshCw } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useProxyStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,8 @@ interface NodePickerDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+type NodeSortMode = 'name' | 'delay'
+
 export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) {
   const {
     nodes,
@@ -19,6 +21,7 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
     refreshSubscriptionNodesFromMihomo,
     testLatency,
     isTestingLatency,
+    latencyPendingByNodeId,
     isConnected,
   } = useProxyStore()
 
@@ -26,13 +29,67 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
     ? nodes.filter((n) => n.providerId === currentProvider.id && n.enabled)
     : []
 
+  const [sortBy, setSortBy] = useState<NodeSortMode>('delay')
+  /** 测速进行中固定行顺序，避免延迟逐个更新时列表跳动 */
+  const [frozenIds, setFrozenIds] = useState<string[] | null>(null)
+  const wasTestingRef = useRef(false)
+
+  const sortedList = useMemo(() => {
+    const arr = [...list]
+    if (sortBy === 'name') {
+      arr.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    } else {
+      arr.sort((a, b) => {
+        const da = a.delay
+        const db = b.delay
+        if (da === undefined && db === undefined) {
+          return a.name.localeCompare(b.name, 'zh-Hans-CN')
+        }
+        if (da === undefined) return 1
+        if (db === undefined) return -1
+        return da - db
+      })
+    }
+    return arr
+  }, [list, sortBy])
+
+  const displayList = useMemo(() => {
+    if (!isTestingLatency || !frozenIds?.length) return sortedList
+    const byId = new Map(list.map((n) => [n.id, n]))
+    return frozenIds
+      .map((id) => byId.get(id))
+      .filter((n): n is (typeof list)[number] => n != null)
+  }, [isTestingLatency, frozenIds, list, sortedList])
+
+  const sortedListRef = useRef(sortedList)
+  sortedListRef.current = sortedList
+
+  useLayoutEffect(() => {
+    if (isTestingLatency && !wasTestingRef.current) {
+      wasTestingRef.current = true
+      setFrozenIds(sortedListRef.current.map((n) => n.id))
+      return
+    }
+    if (!isTestingLatency && wasTestingRef.current) {
+      wasTestingRef.current = false
+      setFrozenIds(null)
+    }
+  }, [isTestingLatency])
+
+  useEffect(() => {
+    if (!open) {
+      wasTestingRef.current = false
+      setFrozenIds(null)
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open || !isConnected) return
     void refreshSubscriptionNodesFromMihomo()
   }, [open, isConnected, currentProvider?.id, refreshSubscriptionNodesFromMihomo])
 
   const handlePick = (id: string) => {
-    const node = list.find((n) => n.id === id)
+    const node = displayList.find((n) => n.id === id)
     if (node) void applyNodeSelection(node)
   }
 
@@ -40,8 +97,41 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg flex flex-col max-h-[min(85dvh,36rem)] p-0 gap-0 overflow-hidden border-border">
         <div className="border-b border-border p-6 pb-4">
-          <DialogHeader className="mb-0">
-            <DialogTitle>节点列表</DialogTitle>
+          <DialogHeader className="mb-0 space-y-1.5">
+            <div className="flex items-center justify-between gap-2 pr-10">
+              <DialogTitle className="leading-tight">节点列表</DialogTitle>
+              {list.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSortBy((s) => (s === 'name' ? 'delay' : 'name'))}
+                  disabled={isTestingLatency}
+                  title={
+                    isTestingLatency
+                      ? '测速结束后可切换排序'
+                      : sortBy === 'name'
+                        ? '当前按名称排序，点击切换为按延迟'
+                        : '当前按延迟排序，点击切换为按名称'
+                  }
+                  className={cn(
+                    'shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors',
+                    'bg-primary/10 text-primary ring-1 ring-primary/20 hover:bg-primary/15',
+                    'disabled:opacity-50 disabled:pointer-events-none'
+                  )}
+                >
+                  {sortBy === 'name' ? (
+                    <>
+                      <ArrowDownAZ className="size-3.5 shrink-0" aria-hidden />
+                      <span>名称</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDown01 className="size-3.5 shrink-0" aria-hidden />
+                      <span>延迟</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <DialogDescription className="text-xs">
               {currentProvider
                 ? isConnected
@@ -61,10 +151,11 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
             </p>
           ) : (
             <ul className="flex flex-col gap-1">
-              {list.map((node) => {
+              {displayList.map((node) => {
                 const active = currentNode?.id === node.id
                 const delayText =
                   node.delay !== undefined ? `${node.delay}ms` : '未测速'
+                const rowPending = Boolean(latencyPendingByNodeId[node.id])
                 return (
                   <li key={node.id}>
                     <button
@@ -96,8 +187,8 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
                         </div>
                       </div>
                       <span className="text-xs font-semibold tabular-nums shrink-0">
-                        {isTestingLatency ? (
-                          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                        {rowPending ? (
+                          <RefreshCw className="size-3.5 animate-spin text-muted-foreground" aria-hidden />
                         ) : (
                           <span className={getLatencyColor(node.delay)}>{delayText}</span>
                         )}
