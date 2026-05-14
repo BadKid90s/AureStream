@@ -1,4 +1,4 @@
-import { Package, RefreshCw, Pencil, Trash2, Clock, Loader2, HardDrive } from 'lucide-react'
+import { Package, RefreshCw, Pencil, Trash2, Clock, CalendarClock, Loader2, HardDrive } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Provider } from '@/types'
 
@@ -23,6 +23,20 @@ function formatExpiry(iso?: string): string {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
+  })
+}
+
+function formatLastSubscriptionUpdate(raw?: string): string {
+  if (!raw?.trim()) return '暂无'
+  const d = new Date(raw.trim())
+  if (Number.isNaN(d.getTime())) return raw.trim()
+  return d.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -120,6 +134,11 @@ export function ProviderCard({
 
         {/* 订阅信息行 */}
         <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-muted/40 text-[11px] text-muted-foreground">
+            <CalendarClock className="w-3 h-3 opacity-60 shrink-0" aria-hidden />
+            <span className="text-muted-foreground/85">更新订阅</span>
+            <span className="font-medium tabular-nums text-foreground/90">{formatLastSubscriptionUpdate(provider.lastUpdated)}</span>
+          </span>
           {provider.expiresAt && (
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-muted/40 text-[11px] text-muted-foreground">
               <Clock className="w-3 h-3 opacity-60" />
