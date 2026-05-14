@@ -1,3 +1,4 @@
+use crate::commands::mihomo_constants::{LATENCY_TEST_TCP_HOST, LATENCY_TEST_TCP_PORT};
 use crate::commands::{LatencyResult, Node, Provider};
 use crate::DbState;
 use tauri::State;
@@ -133,10 +134,9 @@ pub fn get_nodes_by_provider(
     Ok(nodes)
 }
 
-#[tauri::command]
-pub async fn test_node_latency(node_id: String, server: String, port: u16) -> LatencyResult {
+async fn tcp_latency_to_health_check_host() -> (Option<u32>, Option<String>) {
+    let addr = format!("{}:{}", LATENCY_TEST_TCP_HOST, LATENCY_TEST_TCP_PORT);
     let start = std::time::Instant::now();
-    let addr = format!("{}:{}", server, port);
 
     match tokio::time::timeout(
         std::time::Duration::from_secs(5),
@@ -144,21 +144,23 @@ pub async fn test_node_latency(node_id: String, server: String, port: u16) -> La
     )
     .await
     {
-        Ok(Ok(_)) => LatencyResult {
-            node_id,
-            delay: Some(start.elapsed().as_millis() as u32),
-            error: None,
-        },
-        Ok(Err(e)) => LatencyResult {
-            node_id,
-            delay: None,
-            error: Some(e.to_string()),
-        },
-        Err(_) => LatencyResult {
-            node_id,
-            delay: None,
-            error: Some("Connection timeout".to_string()),
-        },
+        Ok(Ok(_)) => (
+            Some(start.elapsed().as_millis() as u32),
+            None::<String>,
+        ),
+        Ok(Err(e)) => (None, Some(e.to_string())),
+        Err(_) => (None, Some("Connection timeout".to_string())),
+    }
+}
+
+#[tauri::command]
+#[allow(unused_variables)]
+pub async fn test_node_latency(node_id: String, server: String, port: u16) -> LatencyResult {
+    let (delay, error) = tcp_latency_to_health_check_host().await;
+    LatencyResult {
+        node_id,
+        delay,
+        error,
     }
 }
 
@@ -166,28 +168,31 @@ pub async fn test_node_latency(node_id: String, server: String, port: u16) -> La
 pub async fn test_all_nodes_latency(
     state: State<'_, DbState>,
 ) -> Result<Vec<LatencyResult>, String> {
-    let nodes_snapshot: Vec<(String, String, u16)> = {
+    let node_ids: Vec<String> = {
         let conn = state.0.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
-            .prepare("SELECT id, server, port FROM nodes WHERE enabled = 1")
+            .prepare("SELECT id FROM nodes WHERE enabled = 1")
             .map_err(|e| e.to_string())?;
-        let rows: Vec<(String, String, u16)> = stmt
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, i64>(2)? as u16,
-                ))
-            })
+        let rows = stmt
+            .query_map([], |row| row.get::<_, String>(0))
             .map_err(|e| e.to_string())?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
         rows
     };
 
-    let mut results = Vec::new();
-    for (node_id, server, port) in nodes_snapshot {
-        results.push(test_node_latency(node_id, server, port).await);
+    if node_ids.is_empty() {
+        return Ok(Vec::new());
     }
+
+    let (delay, error) = tcp_latency_to_health_check_host().await;
+    let results = node_ids
+        .into_iter()
+        .map(|node_id| LatencyResult {
+            node_id,
+            delay,
+            error: error.clone(),
+        })
+        .collect();
     Ok(results)
 }

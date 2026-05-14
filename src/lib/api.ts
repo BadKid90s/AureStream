@@ -108,12 +108,11 @@ export async function deleteSubscriptionFile(providerId: string): Promise<void> 
   return await invoke<void>('delete_subscription_file', { providerId })
 }
 
-/** 将订阅配置打补丁后与插件控制器对齐，返回运行用配置绝对路径 */
-export async function patchMihomoSubscription(subscriptionPath: string): Promise<string> {
-  return await invoke<string>('patch_mihomo_subscription', { subscriptionPath })
+export async function buildAureproxyMihomoConfig(providerId: string): Promise<string> {
+  return await invoke<string>('build_aureproxy_mihomo_config', { providerId })
 }
 
-/** 启动或重启 Mihomo sidecar 进程（使用已由 patch 生成的配置路径） */
+/** 启动或重启 Mihomo sidecar（使用 buildAureproxyMihomoConfig 生成的配置绝对路径） */
 export async function startMihomoKernel(patchedConfigPath: string): Promise<void> {
   return await invoke<void>('start_mihomo_kernel', { patchedConfigPath })
 }

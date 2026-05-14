@@ -11,11 +11,19 @@ import {
   deleteSubscriptionFile,
   getSubscriptionPath,
   testAllNodesLatency,
-  patchMihomoSubscription,
+  buildAureproxyMihomoConfig,
   startMihomoKernel,
-  stopMihomoKernel,
+  stopProxy,
 } from '@/lib/api'
-import { reloadConfig } from 'tauri-plugin-mihomo-api'
+import {
+  reloadConfig,
+  delayGroup,
+  getGroupByName,
+  getProxies,
+  selectNodeForGroup,
+} from 'tauri-plugin-mihomo-api'
+import { AURE_NODE_SELECTOR, MIHOMO_LATENCY_TEST_URL } from '@/constants/mihomo'
+import { mihomoProxiesToNodes } from '@/lib/mihomoSubscriptionNodes'
 
 interface AppStore {
   theme: 'light' | 'dark'
@@ -102,6 +110,10 @@ interface ProxyStore {
   deleteProvider: (id: string) => Promise<void>
   setCurrentProvider: (provider?: Provider) => void
   setCurrentNode: (node?: Node) => void
+  /** 选择节点并在已连接时同步到 Mihomo Selector */
+  applyNodeSelection: (node?: Node) => Promise<void>
+  /** 从内核 `/proxies` 拉取叶子代理，填充当前订阅的节点列表 */
+  refreshSubscriptionNodesFromMihomo: () => Promise<void>
   setNodes: (nodes: Node[]) => void
   updateNodeDelay: (nodeId: string, delay: number) => void
   connect: () => Promise<void>
@@ -208,6 +220,51 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
   setCurrentNode: (node) => set({ currentNode: node }),
 
+  applyNodeSelection: async (node) => {
+    set({ currentNode: node })
+    if (!node || !get().isConnected) return
+    try {
+      await selectNodeForGroup(AURE_NODE_SELECTOR, node.name)
+    } catch (e) {
+      console.error('切换节点失败:', e)
+    }
+  },
+
+  refreshSubscriptionNodesFromMihomo: async () => {
+    const { isConnected, currentProvider } = get()
+    if (!isConnected || !currentProvider) return
+    try {
+      const raw = await getProxies()
+      const leafNodes = mihomoProxiesToNodes(raw, currentProvider.id)
+      let groupNow: string | undefined
+      try {
+        const grp = await getGroupByName(AURE_NODE_SELECTOR)
+        groupNow = grp?.now
+      } catch {
+        // 内核尚未建好组时可忽略
+      }
+      const prev = get().currentNode
+      let next: Node | undefined
+      if (prev && leafNodes.some((n) => n.id === prev.id)) {
+        next = leafNodes.find((n) => n.id === prev.id)!
+      } else if (groupNow && leafNodes.some((n) => n.id === groupNow)) {
+        next = leafNodes.find((n) => n.id === groupNow)!
+      } else if (leafNodes.length > 0) {
+        next = leafNodes[0]
+      }
+      set({ nodes: leafNodes, currentNode: next })
+      if (next && groupNow !== next.name) {
+        try {
+          await selectNodeForGroup(AURE_NODE_SELECTOR, next.name)
+        } catch (e) {
+          console.warn('selectNodeForGroup 同步失败:', e)
+        }
+      }
+    } catch (e) {
+      console.error('从 Mihomo 刷新订阅节点失败:', e)
+    }
+  },
+
   setNodes: (nodes) => set({ nodes }),
 
   updateNodeDelay: (nodeId, delay) =>
@@ -233,8 +290,10 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       if (!path) throw new Error('订阅配置文件不存在，请先更新订阅')
 
       // 对齐 external-controller、启动 Mihomo sidecar（内部轮询 API 就绪）
-      const patchedPath = await patchMihomoSubscription(path)
-      await startMihomoKernel(patchedPath)
+      const runtimePath = await buildAureproxyMihomoConfig(currentProvider.id)
+      await startMihomoKernel(runtimePath)
+
+      await get().refreshSubscriptionNodesFromMihomo()
 
       set({
         isConnecting: false,
@@ -255,16 +314,33 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       // ignore cleanup errors
     }
     try {
-      await stopMihomoKernel()
+      await stopProxy()
     } catch {
       // ignore
     }
+    let dbNodes: Node[] = []
+    try {
+      const n = await getNodes()
+      if (Array.isArray(n)) dbNodes = n
+    } catch {
+      /* 忽略：测试环境或未初始化 DB */
+    }
+    const prevNode = get().currentNode
+    const cp = get().currentProvider
+    const nextNode =
+      prevNode &&
+      cp &&
+      dbNodes.some((x) => x.id === prevNode.id && x.providerId === cp.id)
+        ? dbNodes.find((x) => x.id === prevNode.id)
+        : undefined
     set({
       isConnected: false,
       connectedAt: undefined,
       connectedIp: undefined,
       uploadSpeed: 0,
       downloadSpeed: 0,
+      nodes: dbNodes,
+      currentNode: nextNode,
     })
   },
 
@@ -283,17 +359,38 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   testLatency: async () => {
     set({ isTestingLatency: true })
     try {
-      const results = await testAllNodesLatency()
-      const delayMap = new Map(results.map(r => [r.node_id, r.delay]))
-      set((state) => {
-        const nodes = state.nodes.map((n) =>
-          delayMap.has(n.id) ? { ...n, delay: delayMap.get(n.id) } : n
+      if (get().isConnected) {
+        const delays = await delayGroup(
+          AURE_NODE_SELECTOR,
+          MIHOMO_LATENCY_TEST_URL,
+          8000,
+          false
         )
-        const currentNode = state.currentNode
-          ? nodes.find((n) => n.id === state.currentNode!.id) ?? state.currentNode
-          : undefined
-        return { nodes, currentNode }
-      })
+        set((state) => {
+          const nodes = state.nodes.map((n) => ({
+            ...n,
+            delay: delays[n.name] ?? n.delay,
+          }))
+          const cur = state.currentNode
+          const currentNode =
+            cur && nodes.find((x) => x.id === cur.id)
+              ? { ...nodes.find((x) => x.id === cur.id)! }
+              : cur
+          return { nodes, currentNode }
+        })
+      } else {
+        const results = await testAllNodesLatency()
+        const delayMap = new Map(results.map(r => [r.node_id, r.delay]))
+        set((state) => {
+          const nodes = state.nodes.map((n) =>
+            delayMap.has(n.id) ? { ...n, delay: delayMap.get(n.id) } : n
+          )
+          const currentNode = state.currentNode
+            ? nodes.find((n) => n.id === state.currentNode!.id) ?? state.currentNode
+            : undefined
+          return { nodes, currentNode }
+        })
+      }
     } catch (e) {
       console.error('Failed to test latency:', e)
     } finally {
@@ -319,6 +416,20 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       }
       const sel = normalizeCurrentSubscriptionSelection(providers, currentProvider, get().currentNode)
       set({ providers, ...sel })
+
+      if (get().isConnected && get().currentProvider?.id === id) {
+        try {
+          const sp = await getSubscriptionPath(id)
+          if (sp) {
+            const runtimePath = await buildAureproxyMihomoConfig(id)
+            await reloadConfig(true, runtimePath)
+            await get().refreshSubscriptionNodesFromMihomo()
+          }
+        } catch (e) {
+          console.error('订阅更新后 reload 内核失败:', e)
+        }
+      }
+
       return { success: true }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
@@ -339,9 +450,10 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     try {
       const path = await getSubscriptionPath(provider.id)
       if (path) {
-        const patchedPath = await patchMihomoSubscription(path)
+        const runtimePath = await buildAureproxyMihomoConfig(provider.id)
         if (get().isConnected) {
-          await reloadConfig(true, patchedPath)
+          await reloadConfig(true, runtimePath)
+          await get().refreshSubscriptionNodesFromMihomo()
         }
       }
     } catch (e) {

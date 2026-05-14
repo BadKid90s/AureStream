@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Activity } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useProxyStore } from '@/stores/appStore'
@@ -14,18 +15,25 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
     nodes,
     currentProvider,
     currentNode,
-    setCurrentNode,
+    applyNodeSelection,
+    refreshSubscriptionNodesFromMihomo,
     testLatency,
     isTestingLatency,
+    isConnected,
   } = useProxyStore()
 
   const list = currentProvider
     ? nodes.filter((n) => n.providerId === currentProvider.id && n.enabled)
     : []
 
+  useEffect(() => {
+    if (!open || !isConnected) return
+    void refreshSubscriptionNodesFromMihomo()
+  }, [open, isConnected, currentProvider?.id, refreshSubscriptionNodesFromMihomo])
+
   const handlePick = (id: string) => {
     const node = list.find((n) => n.id === id)
-    if (node) setCurrentNode(node)
+    if (node) void applyNodeSelection(node)
   }
 
   return (
@@ -35,7 +43,11 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
           <DialogHeader className="mb-0">
             <DialogTitle>节点列表</DialogTitle>
             <DialogDescription className="text-xs">
-              {currentProvider ? '选择要使用的节点' : '请先选择供应商'}
+              {currentProvider
+                ? isConnected
+                  ? '选择要使用的节点，测速结果为当前组内节点的延迟'
+                  : '请先连接代理以从内核查阅订阅节点'
+                : '请先选择供应商'}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -43,7 +55,9 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
         <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2">
           {list.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8 px-4">
-              暂无可用节点
+              {currentProvider && !isConnected
+                ? '连接代理后将从订阅加载节点列表'
+                : '暂无可用节点'}
             </p>
           ) : (
             <ul className="flex flex-col gap-1">
@@ -78,7 +92,7 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{node.name}</div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {node.server}:{node.port}
+                          {node.server ? `${node.server}:${node.port}` : node.type}
                         </div>
                       </div>
                       <span

@@ -6,12 +6,23 @@ interface NodeSelectProps {
 }
 
 export function NodeSelect({ onSelect }: NodeSelectProps) {
-  const { nodes, currentNode, currentProvider, setCurrentNode } = useProxyStore()
+  const {
+    nodes,
+    currentNode,
+    currentProvider,
+    applyNodeSelection,
+    isConnected,
+  } = useProxyStore()
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const node = nodes.find(n => n.id === e.target.value)
-    setCurrentNode(node)
-    onSelect?.(e.target.value)
+  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value
+    if (!v) {
+      await applyNodeSelection(undefined)
+      return
+    }
+    const node = nodes.find((n) => n.id === v)
+    await applyNodeSelection(node)
+    if (node) onSelect?.(node.id)
   }
 
   const availableNodes = currentProvider
@@ -42,7 +53,11 @@ export function NodeSelect({ onSelect }: NodeSelectProps) {
       </div>
       {availableNodes.length === 0 && (
         <p className="text-xs text-muted-foreground">
-          {currentProvider ? '该服务商暂无节点' : '请先选择服务商'}
+          {currentProvider
+            ? isConnected
+              ? '暂无节点，可在仪表板打开节点选择器刷新'
+              : '连接后可从内核加载订阅节点'
+            : '请先选择服务商'}
         </p>
       )}
     </div>

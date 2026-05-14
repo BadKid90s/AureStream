@@ -3,9 +3,8 @@ mod db;
 
 use std::sync::Mutex;
 
-use commands::mihomo_kernel::{
-    patch_mihomo_subscription, start_mihomo_kernel, stop_mihomo_kernel, MihomoKernelState,
-};
+use commands::builtin_config::build_aureproxy_mihomo_config;
+use commands::mihomo_kernel::{start_mihomo_kernel, stop_mihomo_kernel, MihomoKernelState};
 use commands::proxy::{get_proxy_config, get_proxy_status, set_current_node, start_proxy, stop_proxy, update_proxy_config, ProxyState};
 use commands::provider::{add_provider, delete_provider, get_nodes, get_nodes_by_provider, get_providers, test_all_nodes_latency, test_node_latency, update_provider};
 use commands::subscription::{delete_subscription_file, download_subscription, get_subscription_path};
@@ -44,10 +43,18 @@ pub fn run() {
             download_subscription,
             get_subscription_path,
             delete_subscription_file,
-            patch_mihomo_subscription,
+            build_aureproxy_mihomo_config,
             start_mihomo_kernel,
             stop_mihomo_kernel,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                use commands::mihomo_kernel::{stop_mihomo_sidecar, MihomoKernelState};
+                if let Some(mihomo) = app_handle.try_state::<MihomoKernelState>() {
+                    let _ = tauri::async_runtime::block_on(stop_mihomo_sidecar(&*mihomo));
+                }
+            }
+        });
 }

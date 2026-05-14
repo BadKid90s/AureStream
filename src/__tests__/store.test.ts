@@ -9,8 +9,12 @@ vi.mock('@tauri-apps/api/core', () => ({
 vi.mock('tauri-plugin-mihomo-api', () => ({
   reloadConfig: vi.fn().mockResolvedValue(undefined),
   getVersion: vi.fn().mockResolvedValue({ meta: false, version: 'v1.19.24' }),
-  getProxies: vi.fn().mockResolvedValue({}),
+  getProxies: vi.fn().mockResolvedValue({ proxies: {} }),
   getGroups: vi.fn().mockResolvedValue({}),
+  getGroupByName: vi.fn().mockResolvedValue({ name: 'Aure_Node_Selector', now: undefined }),
+  selectNodeForGroup: vi.fn().mockResolvedValue(undefined),
+  delayGroup: vi.fn().mockResolvedValue({}),
+  closeAllConnections: vi.fn().mockResolvedValue(undefined),
 }))
 
 // Mock api.ts — 沿用真实导出，仅为新增内核命令提供 stub（避免测试中启动进程）
@@ -18,9 +22,9 @@ vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>()
   return {
     ...actual,
-    patchMihomoSubscription: vi.fn().mockResolvedValue('/mock/runtime/aureproxy-mihomo.yaml'),
+    buildAureproxyMihomoConfig: vi.fn().mockResolvedValue('/mock/runtime/aureproxy-mihomo.yaml'),
     startMihomoKernel: vi.fn().mockResolvedValue(undefined),
-    stopMihomoKernel: vi.fn().mockResolvedValue(undefined),
+    stopProxy: vi.fn().mockResolvedValue('ok'),
   }
 })
 

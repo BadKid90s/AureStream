@@ -2,15 +2,30 @@
 
 ## 行为概要
 
-点击「连接」时，前端会：
+运行时配置由 **`build_aureproxy_mihomo_config(providerId)`** 生成：内置规则与 `Aure_Node_Selector`，**`proxy-providers.Aure_Sub`** 为 **`type: file`**。Mihomo 只允许 `path` 位于内核 `-d`（即 **`mihomo-work`**）之下，因此会从应用配置里的 **`subscriptions/<provider_id>.yaml`** 复制到 **`mihomo-work/subscriptions/`**，再在生成 YAML 中写入该镜像的绝对路径（每次连接前同步）。`external-controller` 为 **`127.0.0.1:9090`**。
 
-1. 调用 `patch_mihomo_subscription`：读取当前订阅 YAML，写入 `external-controller: 127.0.0.1:9090` 并清空本地 `secret`（与 `tauri-plugin-mihomo` 默认控制器一致），保存到应用配置目录下的 `runtime/aureproxy-mihomo.yaml`。
-2. 调用 `start_mihomo_kernel`：通过 Tauri Shell 启动 `bundle.externalBin` 中的 `mihomo` sidecar（参数 `-f` 为上述补丁文件，`-d` 为本地数据目录下的 `mihomo-work`），并轮询 `http://127.0.0.1:9090/version` 直至就绪。
+连接流程：
 
-断开连接时先尝试 `closeAllConnections`（插件 API），再调用 `stop_mihomo_kernel` 结束由本应用拉起的进程。
+1. 校验本地订阅文件存在（`get_subscription_path`）。
+2. **`build_aureproxy_mihomo_config(providerId)`** 写出 `runtime/aureproxy-mihomo.yaml`。
+3. **`start_mihomo_kernel`**：`-f` 上述文件，`-d` 为 **`mihomo-work`**，轮询 `GET 127.0.0.1:9090/version`（启动后先有短缓冲；墙钟最长约 **90 秒**：首次 GEOIP/GEOSITE 拉取 geodata 可能较慢）；若超时则终止 sidecar，避免长期占用端口。
+
+断开：先 **`closeAllConnections`**，再 **`stop_proxy`**（终止 sidecar；并尝试关闭本应用开启的系统代理，见下节）——节点列表会恢复为 SQLite 中的旧数据若有。
+
+## 系统代理（macOS）
+
+连接成功（Mihomo API 就绪）后，应用会读取本次运行配置中的 **`mixed-port`**（或 **`port`** + **`socks-port`**），并对当前网络位置下已启用的网络服务执行 `networksetup`，将 **HTTP / HTTPS / SOCKS** 指向 Mihomo（`bind-address` 为 `0.0.0.0` 等时写入系统仍使用 **127.0.0.1**，与仅本机使用一致）。
+
+断开或应用退出并正常结束 sidecar 时，会尝试将上述代理**全部关闭**。若 `networksetup` 失败，终端会打印 `[system-proxy]` 日志，需用户在 **系统设置 › 网络 › 详情 › 代理** 中手动恢复。
+
+**限制**：非 macOS 平台当前不修改系统代理；异常崩溃或未走正常断开流程时，系统代理可能残留；本实现不保存用户原有的代理设置（会在连接时被覆盖）。
+
+节点选择（连接成功后）：
+- **`getProxies`** 筛出叶子代理写入 Zustand `nodes`，`id/name` 与内核代理名一致；副标题若无 `server/port`（API 不提供）则显示协议类型；
+- 「一键测速」对已连接：**`delayGroup('Aure_Node_Selector', …)`**，与内置模板测速 URL 对齐；
+- 点选：**`selectNodeForGroup('Aure_Node_Selector', 节点名)`**；
+- 打开「节点列表」弹层时会 **`refreshSubscriptionNodesFromMihomo`** 做一次列表同步。组名常量见 **`src/constants/mihomo.ts`**（`Aure_Node_Selector`）。
 
 ## 开发前准备
 
-在 `src-tauri` 侧已声明 `externalBin: ["binaries/mihomo"]`。开发/打包前需将对应平台的可执行文件放到 `src-tauri/binaries/`，命名需符合 Tauri 规范（可用仓库内 `scripts/download-mihomo.sh` 下载）。
-
-若 sidecar 缺失或 9090 端口被占用，连接会失败并在 Rust 侧返回明确错误信息。
+`tauri.conf.json` 声明 `externalBin: ["binaries/mihomo"]`。需将 sidecar 二进制放入 `src-tauri/binaries/`（可用 `scripts/download-mihomo.sh`）。
