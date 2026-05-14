@@ -393,7 +393,36 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   testLatency: async () => {
     set({ isTestingLatency: true })
     try {
+      // 如果已连接，先测试内核组内的节点
+      if (get().isConnected) {
+        try {
+          const delays = await delayGroup(
+            AURE_NODE_SELECTOR,
+            MIHOMO_LATENCY_TEST_URL,
+            8000,
+            false
+          )
+          set((state) => {
+            const nodes = state.nodes.map((n) => ({
+              ...n,
+              delay: delays[n.name] ?? n.delay,
+            }))
+            const cur = state.currentNode
+            const currentNode =
+              cur && nodes.find((x) => x.id === cur.id)
+                ? { ...nodes.find((x) => x.id === cur.id)! }
+                : cur
+            return { nodes, currentNode }
+          })
+        } catch (groupError) {
+          console.warn('Failed to test group latency:', groupError)
+        }
+      }
+
       // 获取当前订阅的节点列表
+      const providers = get().providers
+      const currentProvider = get().currentProvider
+      const nodes = get().nodes
       const list = currentProvider
         ? nodes.filter((n) => n.providerId === currentProvider.id && n.enabled)
         : []
@@ -420,32 +449,6 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
         // 短暂延迟以改善用户体验
         await new Promise(resolve => setTimeout(resolve, 150))
-      }
-
-      // 如果已连接，也测试内核组内的节点
-      if (get().isConnected) {
-        try {
-          const delays = await delayGroup(
-            AURE_NODE_SELECTOR,
-            MIHOMO_LATENCY_TEST_URL,
-            8000,
-            false
-          )
-          set((state) => {
-            const nodes = state.nodes.map((n) => ({
-              ...n,
-              delay: delays[n.name] ?? n.delay,
-            }))
-            const cur = state.currentNode
-            const currentNode =
-              cur && nodes.find((x) => x.id === cur.id)
-                ? { ...nodes.find((x) => x.id === cur.id)! }
-                : cur
-            return { nodes, currentNode }
-          })
-        } catch (groupError) {
-          console.warn('Failed to test group latency:', groupError)
-        }
       }
     } catch (e) {
       console.error('Failed to start latency testing:', e)
