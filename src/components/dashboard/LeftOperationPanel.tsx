@@ -126,7 +126,7 @@ export function LeftOperationPanel({
             type="button"
             variant="outline"
             onClick={onOpenNodePicker}
-            className="animate-fade-in-up group flex w-full max-w-[28rem] items-center justify-between gap-2 rounded-full px-3 sm:px-4 h-12 sm:h-14 text-left font-normal"
+            className="animate-fade-in-up group flex w-full max-w-[28rem] items-center justify-between gap-2 rounded-full px-3 sm:px-4 h-14 sm:h-16 text-left font-normal"
           >
             <div className="flex w-[80%] items-center gap-2">
   <span className="text-xl leading-none shrink-0" aria-hidden>{nodeLine.flag}</span>
