@@ -129,32 +129,34 @@ export function LeftOperationPanel({
             className="animate-fade-in-up group flex w-full max-w-[28rem] items-center justify-between gap-2 rounded-full px-3 sm:px-4 h-14 sm:h-16 text-left font-normal"
           >
             <div className="flex w-[80%] items-center gap-2">
-  <span className="text-xl leading-none shrink-0" aria-hidden>{nodeLine.flag}</span>
-  <div className="min-w-0 flex-1">
-    <span className="text-xs sm:text-sm font-semibold text-foreground truncate leading-tight block">
-      {nodeLine.primary}
-    </span>
-    {nodeLine.secondary && (
-      <span className="text-[9px] sm:text-[10px] text-muted-foreground truncate leading-tight block">
-        · {nodeLine.secondary}
-      </span>
-    )}
-  </div>
-</div>
+              <span className="text-xl leading-none shrink-0" aria-hidden>
+                {nodeLine.flag}
+              </span>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs sm:text-sm font-semibold text-foreground truncate leading-tight block">
+                  {nodeLine.primary}
+                </span>
+                {nodeLine.secondary && (
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground truncate leading-tight block">
+                    · {nodeLine.secondary}
+                  </span>
+                )}
+              </div>
+            </div>
 
             <div className="flex w-[20%] items-center gap-1 justify-end">
-  {currentNode?.delay != null ? (
-    <span className={cn('text-[10px] font-semibold tabular-nums', getLatencyColor(currentNode.delay))}>
-      {currentNode.delay} ms
-    </span>
-  ) : (
-    <span className="text-[9px] text-muted-foreground">未测速</span>
-  )}
-  <ChevronRight
-    className="size-3 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
-    aria-hidden
-  />
-</div>
+              {currentNode?.delay != null ? (
+                <span className={cn('text-[10px] font-semibold tabular-nums', getLatencyColor(currentNode.delay))}>
+                  {currentNode.delay} ms
+                </span>
+              ) : (
+                <span className="text-[9px] text-muted-foreground">未测速</span>
+              )}
+              <ChevronRight
+                className="size-3 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
+                aria-hidden
+              />
+            </div>
           </Button>
         ) : (
           <div className="animate-fade-in-up flex w-full flex-col gap-2 px-2">
