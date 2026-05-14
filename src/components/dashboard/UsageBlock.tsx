@@ -6,9 +6,12 @@ const VIEW_H = 56
 const PAD_X = 4
 const PAD_Y = 6
 
-function formatTrafficGB(gb?: number): string {
-  if (gb == null || !Number.isFinite(gb)) return '0 GB'
-  return `${gb.toFixed(1)} GB`
+function formatVolumeGb(gb?: number): string {
+  if (gb == null || !Number.isFinite(gb)) return '暂无'
+  if (gb < 0) return '暂无'
+  if (gb < 1 / 1024) return `${(gb * 1024 * 1024).toFixed(0)} KB`
+  if (gb < 1) return `${(gb * 1024).toFixed(1)} MB`
+  return `${gb.toFixed(2)} GB`
 }
 
 /** 将数据点转为平滑曲线 path — 使用 Catmull-Rom → 三次贝塞尔 */
@@ -119,7 +122,8 @@ export function UsageBlock({
   downloadSeries: number[]
   className?: string
 }) {
-  const total = (uploadTotal ?? 0) + (downloadTotal ?? 0)
+  const hasVolume = uploadTotal != null || downloadTotal != null
+  const total = hasVolume ? (uploadTotal ?? 0) + (downloadTotal ?? 0) : undefined
   const downloadArea = buildSmoothPath(downloadSeries, VIEW_W, VIEW_H)
   const uploadArea = buildSmoothPath(uploadSeries, VIEW_W, VIEW_H)
   const downloadLine = buildSmoothLine(downloadSeries, VIEW_W, VIEW_H)
@@ -128,36 +132,49 @@ export function UsageBlock({
 
   return (
     <div className={cn('flex flex-col gap-4', className)}>
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-start gap-2.5">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <ChartBar className="size-4 text-primary" strokeWidth={1.75} />
         </div>
-        <span className="text-sm font-semibold text-foreground">用量信息</span>
+        <div className="min-w-0 flex flex-col gap-0.5">
+          <span className="text-sm font-semibold text-foreground">用量信息</span>
+          <span className="text-[10px] leading-tight text-muted-foreground">内核本会话累计（非订阅账单）</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <div className="flex flex-col gap-0.5 rounded-lg bg-muted/40 px-3 py-2">
           <span className="text-[10px] text-muted-foreground">上传</span>
           <span className="text-xs font-semibold tabular-nums text-foreground">
-            {formatTrafficGB(uploadTotal)}
+            {formatVolumeGb(uploadTotal)}
           </span>
         </div>
         <div className="flex flex-col gap-0.5 rounded-lg bg-muted/40 px-3 py-2">
           <span className="text-[10px] text-muted-foreground">下载</span>
           <span className="text-xs font-semibold tabular-nums text-foreground">
-            {formatTrafficGB(downloadTotal)}
+            {formatVolumeGb(downloadTotal)}
           </span>
         </div>
         <div className="flex flex-col gap-0.5 rounded-lg bg-muted/40 px-3 py-2">
           <span className="text-[10px] text-muted-foreground">总计</span>
           <span className="text-xs font-semibold tabular-nums text-foreground">
-            {formatTrafficGB(total)}
+            {formatVolumeGb(total)}
           </span>
         </div>
       </div>
 
       {/* 波浪面积图 — 固定高度防抖 */}
       <div className="overflow-hidden rounded-lg border border-border bg-muted/25 px-2 py-3">
+        <div className="mb-2 flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block size-2 rounded-full bg-primary" aria-hidden />
+            下载
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block size-2 rounded-full bg-emerald-500" aria-hidden />
+            上传
+          </span>
+        </div>
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           className="h-[4.5rem] w-full"
@@ -201,16 +218,6 @@ export function UsageBlock({
             </>
           )}
         </svg>
-        <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block size-2 rounded-full bg-primary" aria-hidden />
-            下载
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block size-2 rounded-full bg-emerald-500" aria-hidden />
-            上传
-          </span>
-        </div>
       </div>
     </div>
   )

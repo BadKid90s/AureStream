@@ -25,6 +25,8 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
     connectedIp,
     uploadSpeed,
     downloadSpeed,
+    sessionUploadBytes,
+    sessionDownloadBytes,
   } = useProxyStore()
 
   const [nodeDialogOpen, setNodeDialogOpen] = useState(false)
@@ -63,7 +65,8 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
   /** 内核由订阅 YAML 驱动；nodes 表可能未写入，不因「零节点」禁止连接 */
   const canConnect = Boolean(currentProvider)
 
-  const trafficUsed = currentProvider?.trafficUsedGB
+  const sessionUploadGb = isConnected ? sessionUploadBytes / (1024 ** 3) : undefined
+  const sessionDownloadGb = isConnected ? sessionDownloadBytes / (1024 ** 3) : undefined
 
   return (
     <PageShell fillHeight className="max-w-7xl" title="首页">
@@ -106,8 +109,8 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
             <NetworkBlock connectedIp={connectedIp} />
             <div className="border-t border-border/20" />
             <UsageBlock
-              uploadTotal={trafficUsed != null ? trafficUsed * 0.25 : undefined}
-              downloadTotal={trafficUsed}
+              uploadTotal={sessionUploadGb}
+              downloadTotal={sessionDownloadGb}
               uploadSeries={uploadSeries}
               downloadSeries={downloadSeries}
             />

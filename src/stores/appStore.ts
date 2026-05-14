@@ -129,7 +129,7 @@ function stopMihomoTrafficPoll() {
   mihomoTrafficSnap = { uploadTotal: 0, downloadTotal: 0, t: 0, primed: false }
 }
 
-function startMihomoTrafficPoll(updateSpeeds: (up: number, down: number) => void) {
+function startMihomoTrafficPoll(get: () => ProxyStore) {
   stopMihomoTrafficPoll()
   const tick = async () => {
     try {
@@ -140,7 +140,7 @@ function startMihomoTrafficPoll(updateSpeeds: (up: number, down: number) => void
       const down = Number(c.downloadTotal ?? 0)
       if (!mihomoTrafficSnap.primed) {
         mihomoTrafficSnap = { uploadTotal: up, downloadTotal: down, t: now, primed: true }
-        updateSpeeds(0, 0)
+        get().applyMihomoTrafficTick(0, 0, up, down)
         return
       }
       const dt = (now - mihomoTrafficSnap.t) / 1000
@@ -149,10 +149,11 @@ function startMihomoTrafficPoll(updateSpeeds: (up: number, down: number) => void
       let dl = (down - mihomoTrafficSnap.downloadTotal) / dt
       if (!Number.isFinite(ul) || ul < 0) ul = 0
       if (!Number.isFinite(dl) || dl < 0) dl = 0
-      updateSpeeds(ul, dl)
+      get().applyMihomoTrafficTick(ul, dl, up, down)
       mihomoTrafficSnap = { uploadTotal: up, downloadTotal: down, t: now, primed: true }
     } catch {
-      updateSpeeds(0, 0)
+      const st = get()
+      st.applyMihomoTrafficTick(0, 0, st.sessionUploadBytes, st.sessionDownloadBytes)
     }
   }
   void tick()
@@ -197,6 +198,10 @@ interface ProxyStore {
   connectedIp?: string
   uploadSpeed: number
   downloadSpeed: number
+  /** 当前 Mihomo 会话累计上传量（字节，来自 getConnections.uploadTotal） */
+  sessionUploadBytes: number
+  /** 当前 Mihomo 会话累计下载量（字节，来自 getConnections.downloadTotal） */
+  sessionDownloadBytes: number
   isTestingLatency: boolean
   /** 本轮一键测速尚未完成的节点 id（用于每行显示刷新动画，含已有旧延迟的重测） */
   latencyPendingByNodeId: Record<string, boolean>
@@ -223,6 +228,13 @@ interface ProxyStore {
   setConnectStatus: (isConnected: boolean) => void
   setConnectingStatus: (isConnecting: boolean) => void
   updateSpeeds: (upload: number, download: number) => void
+  /** 由 Mihomo 流量轮询一次性写入速率与本会话累计字节 */
+  applyMihomoTrafficTick: (
+    upBps: number,
+    downBps: number,
+    sessionUpBytes: number,
+    sessionDownBytes: number
+  ) => void
   testLatency: () => Promise<void>
   /** 下载订阅配置文件并更新 provider 元数据 */
   fetchAndSaveSubscription: (id: string) => Promise<{ success: boolean; error?: string }>
@@ -246,6 +258,8 @@ export const useProxyStore = create<ProxyStore>()(
   connectedIp: undefined,
   uploadSpeed: 0,
   downloadSpeed: 0,
+  sessionUploadBytes: 0,
+  sessionDownloadBytes: 0,
   isTestingLatency: false,
   latencyPendingByNodeId: {},
   refreshingIds: new Set<string>(),
@@ -440,7 +454,7 @@ export const useProxyStore = create<ProxyStore>()(
       await get().refreshSubscriptionNodesFromMihomo()
 
       stopMihomoTrafficPoll()
-      startMihomoTrafficPoll((u, d) => get().updateSpeeds(u, d))
+      startMihomoTrafficPoll(get)
 
       set({
         isConnecting: false,
@@ -496,6 +510,8 @@ export const useProxyStore = create<ProxyStore>()(
         connectedIp: undefined,
         uploadSpeed: 0,
         downloadSpeed: 0,
+        sessionUploadBytes: 0,
+        sessionDownloadBytes: 0,
         nodes: dbNodes,
         currentNode: nextNode,
       })
@@ -510,13 +526,21 @@ export const useProxyStore = create<ProxyStore>()(
       isConnected,
       connectedAt: isConnected ? s.connectedAt ?? Date.now() : undefined,
       connectedIp: isConnected ? s.connectedIp : undefined,
-      ...(!isConnected ? { uploadSpeed: 0, downloadSpeed: 0 } : {}),
+      ...(!isConnected ? { uploadSpeed: 0, downloadSpeed: 0, sessionUploadBytes: 0, sessionDownloadBytes: 0 } : {}),
     }))
   },
 
   setConnectingStatus: (isConnecting) => set({ isConnecting }),
 
   updateSpeeds: (upload, download) => set({ uploadSpeed: upload, downloadSpeed: download }),
+
+  applyMihomoTrafficTick: (upBps, downBps, sessionUpBytes, sessionDownBytes) =>
+    set({
+      uploadSpeed: upBps,
+      downloadSpeed: downBps,
+      sessionUploadBytes: sessionUpBytes,
+      sessionDownloadBytes: sessionDownBytes,
+    }),
 
   testLatency: async () => {
     const currentProvider0 = get().currentProvider

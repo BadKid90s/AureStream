@@ -52,6 +52,8 @@ describe('ProxyStore - Provider CRUD', () => {
       nodes: [],
       isConnecting: false,
       isDisconnecting: false,
+      sessionUploadBytes: 0,
+      sessionDownloadBytes: 0,
       nodeLatencyByKey: {},
       latencyPendingByNodeId: {},
     })
@@ -143,6 +145,8 @@ describe('ProxyStore - setCurrentProvider', () => {
       nodes: [],
       isConnecting: false,
       isDisconnecting: false,
+      sessionUploadBytes: 0,
+      sessionDownloadBytes: 0,
       nodeLatencyByKey: {},
       latencyPendingByNodeId: {},
     })
