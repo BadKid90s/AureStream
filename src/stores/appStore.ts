@@ -393,40 +393,62 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   testLatency: async () => {
     set({ isTestingLatency: true })
     try {
+      // 获取当前订阅的节点列表
+      const list = currentProvider
+        ? nodes.filter((n) => n.providerId === currentProvider.id && n.enabled)
+        : []
+
+      if (list.length === 0) return
+
+      // 逐个测试每个节点并即时更新UI
+      for (const node of list) {
+        try {
+          const result = await testNodeLatency(node.id, node.server, node.port)
+          if (result.delay !== undefined) {
+            set((state) => ({
+              nodes: state.nodes.map((n) =>
+                n.id === node.id ? { ...n, delay: result.delay } : n
+              ),
+              currentNode: state.currentNode?.id === node.id
+                ? { ...state.currentNode, delay: result.delay }
+                : state.currentNode
+            }))
+          }
+        } catch (nodeError) {
+          console.warn(`Failed to test latency for node ${node.name}:`, nodeError)
+        }
+
+        // 短暂延迟以改善用户体验
+        await new Promise(resolve => setTimeout(resolve, 150))
+      }
+
+      // 如果已连接，也测试内核组内的节点
       if (get().isConnected) {
-        const delays = await delayGroup(
-          AURE_NODE_SELECTOR,
-          MIHOMO_LATENCY_TEST_URL,
-          8000,
-          false
-        )
-        set((state) => {
-          const nodes = state.nodes.map((n) => ({
-            ...n,
-            delay: delays[n.name] ?? n.delay,
-          }))
-          const cur = state.currentNode
-          const currentNode =
-            cur && nodes.find((x) => x.id === cur.id)
-              ? { ...nodes.find((x) => x.id === cur.id)! }
-              : cur
-          return { nodes, currentNode }
-        })
-      } else {
-        const results = await testAllNodesLatency()
-        const delayMap = new Map(results.map(r => [r.node_id, r.delay]))
-        set((state) => {
-          const nodes = state.nodes.map((n) =>
-            delayMap.has(n.id) ? { ...n, delay: delayMap.get(n.id) } : n
+        try {
+          const delays = await delayGroup(
+            AURE_NODE_SELECTOR,
+            MIHOMO_LATENCY_TEST_URL,
+            8000,
+            false
           )
-          const currentNode = state.currentNode
-            ? nodes.find((n) => n.id === state.currentNode!.id) ?? state.currentNode
-            : undefined
-          return { nodes, currentNode }
-        })
+          set((state) => {
+            const nodes = state.nodes.map((n) => ({
+              ...n,
+              delay: delays[n.name] ?? n.delay,
+            }))
+            const cur = state.currentNode
+            const currentNode =
+              cur && nodes.find((x) => x.id === cur.id)
+                ? { ...nodes.find((x) => x.id === cur.id)! }
+                : cur
+            return { nodes, currentNode }
+          })
+        } catch (groupError) {
+          console.warn('Failed to test group latency:', groupError)
+        }
       }
     } catch (e) {
-      console.error('Failed to test latency:', e)
+      console.error('Failed to start latency testing:', e)
     } finally {
       set({ isTestingLatency: false })
     }
