@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
-import { useSeedProxyStore } from '@/hooks/useSeedProxyStore'
 import { Dashboard } from '@/pages/Dashboard'
 import { Providers } from '@/pages/Providers'
 import { Settings } from '@/pages/Settings'
 import { useAppStore, useProxyStore } from '@/stores/appStore'
+import { Toaster } from '@/components/ui/sonner'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const { theme } = useAppStore()
+  const loadProviders = useProxyStore((s) => s.loadProviders)
   const initAutoUpdateTimers = useProxyStore((s) => s.initAutoUpdateTimers)
-  useSeedProxyStore()
 
   useEffect(() => {
-    initAutoUpdateTimers()
-  }, [initAutoUpdateTimers])
+    loadProviders().then(() => initAutoUpdateTimers())
+  }, [loadProviders, initAutoUpdateTimers])
 
   const openProviders = () => setCurrentPage('providers')
 
@@ -51,6 +51,7 @@ function App() {
       <MainContent scrollBody={currentPage !== 'dashboard'}>
         {renderPage()}
       </MainContent>
+      <Toaster richColors />
     </div>
   )
 }

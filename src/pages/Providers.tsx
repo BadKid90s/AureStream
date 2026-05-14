@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Package, Plus } from 'lucide-react'
+import { toast } from 'sonner'
 import { ProviderCard } from '@/components/provider/ProviderCard'
 import { ProviderModal } from '@/components/provider/ProviderModal'
 import {
@@ -35,25 +36,34 @@ export function Providers() {
     ? providers.find((p) => p.id === deleteTargetId)
     : undefined
 
-  const handleSave = (providerData: Omit<Provider, 'id' | 'nodeCount' | 'lastUpdated'>) => {
+  const handleSave = async (providerData: Omit<Provider, 'id' | 'nodeCount' | 'lastUpdated'>) => {
     const id = editingProvider?.id || crypto.randomUUID()
     const lastUpdated = new Date().toISOString()
 
-    if (editingProvider) {
-      updateProvider(editingProvider.id, {
-        ...editingProvider,
-        ...providerData,
-      })
-    } else {
-      const newProvider: Provider = {
-        ...providerData,
-        id,
-        nodeCount: 0,
-        lastUpdated,
+    try {
+      if (editingProvider) {
+        await updateProvider(editingProvider.id, {
+          ...editingProvider,
+          ...providerData,
+        })
+        toast.success(`「${providerData.name}」已更新`)
+      } else {
+        const newProvider: Provider = {
+          ...providerData,
+          id,
+          nodeCount: 0,
+          lastUpdated,
+        }
+        await addProvider(newProvider)
+        const result = await fetchAndSaveSubscription(id)
+        if (result.success) {
+          toast.success(`「${providerData.name}」订阅添加成功`)
+        } else {
+          toast.error(`「${providerData.name}」订阅下载失败：${result.error}`)
+        }
       }
-      addProvider(newProvider)
-      // 添加后自动下载订阅
-      fetchAndSaveSubscription(id)
+    } catch (e) {
+      toast.error(`操作失败：${e instanceof Error ? e.message : String(e)}`)
     }
 
     setEditingProvider(null)
@@ -75,8 +85,14 @@ export function Providers() {
     setDeleteTargetId(null)
   }
 
-  const handleRefresh = (id: string) => {
-    fetchAndSaveSubscription(id)
+  const handleRefresh = async (id: string) => {
+    const name = providers.find(p => p.id === id)?.name ?? '未知'
+    const result = await fetchAndSaveSubscription(id)
+    if (result.success) {
+      toast.success(`「${name}」订阅已更新`)
+    } else {
+      toast.error(`「${name}」更新失败：${result.error}`)
+    }
   }
 
   const handleSetActive = (provider: Provider) => {
@@ -99,9 +115,17 @@ export function Providers() {
           </div>
           <p className="text-sm sm:text-base text-muted-foreground font-medium">暂无服务商</p>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">点击下方按钮添加您的第一个订阅</p>
+          <button
+            type="button"
+            onClick={handleAddNew}
+            className="mt-4 sm:mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            <Plus className="w-4 h-4" />
+            添加服务商
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {providers.map((provider) => (
             <ProviderCard
               key={provider.id}

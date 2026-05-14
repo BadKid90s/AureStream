@@ -82,9 +82,18 @@ export async function testAllNodesLatency(): Promise<LatencyResult[]> {
 
 // --- Subscription management ---
 
+export interface SubscriptionMeta {
+  upload_bytes?: number
+  download_bytes?: number
+  total_bytes?: number
+  expire_timestamp?: number
+}
+
 export interface DownloadResult {
   path: string
-  content_length: number
+  contentLength: number
+  meta?: SubscriptionMeta
+  debugHeaders?: [string, string][]
 }
 
 export async function downloadSubscription(providerId: string, url: string): Promise<DownloadResult> {

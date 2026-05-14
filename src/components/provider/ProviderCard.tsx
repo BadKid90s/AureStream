@@ -1,4 +1,4 @@
-import { Package, RefreshCw, Pencil, Trash2, Clock, Loader2, ArrowUpRight, HardDrive } from 'lucide-react'
+import { Package, RefreshCw, Pencil, Trash2, Clock, Loader2, HardDrive } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Provider } from '@/types'
 
@@ -48,11 +48,54 @@ export function ProviderCard({
 
   return (
     <div
+      onClick={() => onSetActive(provider)}
       className={cn(
-        'glass rounded-2xl overflow-hidden transition-all duration-300 h-full',
+        'glass rounded-2xl overflow-hidden transition-all duration-300 h-full relative cursor-pointer',
         isActive ? 'ring-1 ring-primary/30 shadow-[0_0_24px_rgba(59,130,246,0.1)]' : 'hover:shadow-[var(--shadow-glass-hover)]',
       )}
     >
+      {/* 使用中 - 左上角 45° 斜贴条 */}
+      {isActive && (
+        <div className="absolute top-3 -left-8 z-10 pointer-events-none">
+          <div className="bg-gradient-to-r from-primary to-indigo-500 text-white text-[10px] font-medium py-1 px-10 rotate-[-45deg] shadow-md">
+            使用中
+          </div>
+        </div>
+      )}
+
+      {/* 右上角操作按钮 */}
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRefresh(provider.id) }}
+          disabled={isRefreshing}
+          className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors touch-manipulation disabled:opacity-50"
+          aria-label="刷新订阅"
+        >
+          {isRefreshing ? (
+            <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" strokeWidth={2.5} />
+          ) : (
+            <RefreshCw className="w-4 h-4 text-muted-foreground" strokeWidth={2.5} />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onEdit(provider) }}
+          className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors touch-manipulation"
+          aria-label="编辑"
+        >
+          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete(provider.id) }}
+          className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors touch-manipulation"
+          aria-label="删除"
+        >
+          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+        </button>
+      </div>
+
       {/* 顶部装饰条 */}
       <div className={cn(
         'h-1 transition-colors duration-300',
@@ -62,24 +105,17 @@ export function ProviderCard({
       )} />
 
       <div className="p-4 sm:p-5 flex flex-col gap-3.5 h-full">
-        {/* 头部：名称 + 状态 */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className={cn(
-              'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300',
-              isActive ? 'bg-primary/15' : 'bg-muted/50',
-            )}>
-              <Package className={cn('w-4.5 h-4.5', isActive ? 'text-primary' : 'text-muted-foreground')} strokeWidth={1.75} />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-sm truncate text-foreground">{provider.name}</h3>
-            </div>
+        {/* 头部：名称 */}
+        <div className="flex items-center gap-2.5 min-w-0 pt-1">
+          <div className={cn(
+            'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300',
+            isActive ? 'bg-primary/15' : 'bg-muted/50',
+          )}>
+            <Package className={cn('w-4.5 h-4.5', isActive ? 'text-primary' : 'text-muted-foreground')} strokeWidth={1.75} />
           </div>
-          {isActive && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
-              使用中
-            </span>
-          )}
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm truncate text-foreground">{provider.name}</h3>
+          </div>
         </div>
 
         {/* 订阅信息行 */}
@@ -98,7 +134,7 @@ export function ProviderCard({
           )}
         </div>
 
-        {/* 流量信息 — flex-1 填充剩余空间，按钮固定在底部 */}
+        {/* 流量信息 */}
         <div className="flex-1 flex flex-col justify-center">
         {trafficTotal != null ? (
           <div className="flex flex-col gap-2">
@@ -106,8 +142,8 @@ export function ProviderCard({
               <span className="text-[11px] text-muted-foreground">流量使用</span>
               <span className="text-xs tabular-nums">
                 <span className="font-semibold text-foreground">{formatTrafficGB(trafficUsed)}</span>
-                <span className="text-muted-foreground"> / </span>
-                <span className="text-muted-foreground">{formatTrafficGB(trafficTotal)} GB</span>
+                <span> GB / </span>
+                <span className="text-foreground">{formatTrafficGB(trafficTotal)} GB</span>
               </span>
             </div>
             <div className="relative h-1.5 w-full rounded-full bg-muted/50 overflow-hidden">
@@ -137,52 +173,6 @@ export function ProviderCard({
         )}
         </div>
 
-        {/* 分割线 */}
-        <div className="border-t border-border/30" />
-
-        {/* 操作区 */}
-        <div className="flex items-center gap-2">
-          {isActive ? (
-            <button
-              type="button"
-              onClick={() => onRefresh(provider.id)}
-              disabled={isRefreshing}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/15 transition-colors touch-manipulation disabled:opacity-50"
-            >
-              {isRefreshing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
-              {isRefreshing ? '更新中...' : '更新订阅'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onSetActive(provider)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98] touch-manipulation"
-            >
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              设为当前
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => onEdit(provider)}
-            className="p-2 rounded-xl hover:bg-muted/50 transition-colors touch-manipulation"
-            aria-label="编辑"
-          >
-            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(provider.id)}
-            className="p-2 rounded-xl hover:bg-red-500/10 transition-colors touch-manipulation"
-            aria-label="删除"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-red-400" />
-          </button>
-        </div>
       </div>
     </div>
   )

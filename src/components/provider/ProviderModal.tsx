@@ -14,7 +14,7 @@ import type { Provider } from '@/types'
 interface ProviderModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (provider: Omit<Provider, 'id' | 'nodeCount' | 'lastUpdated'>) => void
+  onSave: (provider: Omit<Provider, 'id' | 'nodeCount' | 'lastUpdated'>) => void | Promise<void>
   editingProvider?: Provider | null
 }
 
@@ -82,7 +82,7 @@ export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: P
     setIsLoading(true)
 
     try {
-      onSave({
+      await onSave({
         name: name.trim(),
         url: url.trim(),
         autoUpdateInterval,
@@ -153,7 +153,7 @@ export function ProviderModal({ open, onOpenChange, onSave, editingProvider }: P
                   setAutoUpdateInterval(e.target.value ? Number(e.target.value) : undefined)
                 }
                 disabled={isLoading}
-                className="h-10 rounded-xl border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-10 rounded-xl border border-input bg-background text-foreground px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {AUTO_UPDATE_OPTIONS.map((opt) => (
                   <option key={opt.label} value={opt.value ?? ''}>

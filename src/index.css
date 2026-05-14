@@ -65,6 +65,16 @@
   border-color: var(--color-border);
 }
 
+select {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+select option {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
