@@ -96,7 +96,7 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
                         </div>
                       </div>
                       <span className="text-xs font-semibold tabular-nums shrink-0">
-                        {useProxyStore.getState().isTestingLatency ? (
+                        {isTestingLatency ? (
                           <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
                         ) : (
                           <span className={getLatencyColor(node.delay)}>{delayText}</span>
