@@ -120,7 +120,7 @@ export function LeftOperationPanel({
       </div>
 
       {/* 区域 4：代理模式 ↔ 节点信息 — 固定高度，起始位置一致 */}
-      <div className="flex shrink-0 items-center justify-center h-[7rem] w-full">
+      <div className="flex shrink-0 items-center justify-center min-h-[5.5rem] w-full">
         {isConnected ? (
           <Button
             type="button"
