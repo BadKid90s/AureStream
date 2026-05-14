@@ -114,7 +114,7 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => testLatency()}
+              onClick={() => void testLatency()}
               disabled={isTestingLatency || list.length === 0}
               className="flex-1 py-2.5 rounded-xl bg-accent text-accent-foreground font-medium text-sm hover:bg-primary/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
