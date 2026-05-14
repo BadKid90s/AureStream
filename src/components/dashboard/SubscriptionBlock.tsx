@@ -1,3 +1,4 @@
+import { CreditCard } from 'lucide-react'
 import { TrafficUsageRing } from '@/components/dashboard/TrafficUsageRing'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -42,9 +43,12 @@ export function SubscriptionBlock({
     <div className={cn('flex flex-col gap-4', className)}>
       {provider ? (
         <div className="flex flex-col gap-3 min-h-[9rem] sm:min-h-[10rem] lg:min-h-[12rem]">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-semibold text-foreground">
-              <span className="text-sm font-semibold text-foreground"> {provider.name?.trim() || '—'}</span>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <CreditCard className="size-4 text-primary" strokeWidth={1.75} />
+            </div>
+            <p className="min-w-0 truncate text-sm font-semibold text-foreground">
+              {provider.name?.trim() || '—'}
             </p>
           </div>
 

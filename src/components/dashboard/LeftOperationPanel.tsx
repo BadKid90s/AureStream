@@ -81,71 +81,109 @@ export function LeftOperationPanel({
   const nodeLine = parseNodeLabels(currentNode)
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 sm:gap-4 px-4">
-      {/* 区域 1：连接时长 — 固定高度，未连接时透明 */}
-      <div className="flex h-[3rem] shrink-0 items-center justify-center">
+    <div className="flex h-full flex-col items-center justify-start gap-7 sm:gap-9 px-4 pt-6 sm:pt-9">
+      {/* 区域 1：连接时长 / 未连接提示 — 同一占位，仅切换显隐 */}
+      <div className="relative flex h-[3rem] w-full max-w-[28rem] shrink-0 items-center justify-center px-2">
         <p
           className={cn(
-            'text-2xl sm:text-3xl lg:text-[2.5rem] font-semibold tabular-nums leading-none tracking-tight text-foreground transition-opacity duration-300',
-            isConnected ? 'opacity-100' : 'opacity-0',
+            'absolute inset-0 flex items-center justify-center text-2xl font-semibold tabular-nums leading-none tracking-tight text-foreground transition-opacity duration-300 sm:text-3xl lg:text-[2.5rem]',
+            isConnected ? 'z-10 opacity-100' : 'z-0 pointer-events-none opacity-0',
           )}
+          aria-hidden={!isConnected}
         >
           {formatDuration(elapsedSec)}
         </p>
+        <p
+          className={cn(
+            'absolute inset-0 flex items-center justify-center px-1 text-center text-xs leading-snug text-muted-foreground transition-opacity duration-300 sm:text-sm',
+            !isConnected ? 'z-10 opacity-100' : 'z-0 pointer-events-none opacity-0',
+          )}
+          aria-hidden={isConnected}
+        >
+          你好，连接成功后，我会在这里帮你记录本次在线时长～
+        </p>
       </div>
 
-      {/* 区域 2：连接按钮 + 文字 — 固定高度，始终可见 */}
-      <div className="flex h-[11rem] sm:h-[13rem] shrink-0 items-center justify-center mt-8 sm:mt-10">
-        <ConnectButton disabled={!canConnect} size="sm" className="sm:hidden" proxyMode={isConnected ? proxyMode : undefined} />
-        <ConnectButton disabled={!canConnect} size="default" className="hidden sm:flex" proxyMode={isConnected ? proxyMode : undefined} />
+      {/* 区域 2：连接按钮 + 文字 — 预留更大纵向空间，大屏使用 lg 尺寸 */}
+      <div className="flex h-[14rem] sm:h-[17rem] lg:h-[20rem] shrink-0 items-center justify-center">
+        <ConnectButton
+          disabled={!canConnect}
+          size="default"
+          className="flex lg:hidden"
+          proxyMode={proxyMode}
+        />
+        <ConnectButton
+          disabled={!canConnect}
+          size="lg"
+          className="hidden lg:flex"
+          proxyMode={proxyMode}
+        />
       </div>
 
-      {/* 区域 3：网速 — 固定高度，未连接时透明 */}
-      <div className="flex h-[2.5rem] shrink-0 items-center justify-center ">
+      {/* 区域 3：实时速率 / 未连接提示 — 同一占位，仅切换显隐 */}
+      <div className="relative flex h-[2.5rem] w-full max-w-[28rem] shrink-0 items-center justify-center px-2">
         <div
           className={cn(
-            'inline-flex items-center gap-2.5 sm:gap-3 rounded-full border border-border/70 bg-muted/45 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm tabular-nums text-muted-foreground transition-opacity duration-300',
-            isConnected ? 'opacity-100' : 'opacity-0',
+            'absolute inset-0 flex items-center justify-center transition-opacity duration-300',
+            isConnected ? 'z-10 opacity-100' : 'z-0 pointer-events-none opacity-0',
           )}
+          aria-hidden={!isConnected}
         >
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-foreground/70" aria-hidden>↓</span>
-            <span className="font-medium text-foreground">{formatSpeed(downloadSpeed)}</span>
-          </span>
-          <Separator orientation="vertical" className="h-4 bg-border/80" decorative />
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-foreground/70" aria-hidden>↑</span>
-            <span className="font-medium text-foreground">{formatSpeed(uploadSpeed)}</span>
-          </span>
+          <div className="inline-flex items-center gap-2.5 rounded-full border border-border/70 bg-muted/45 px-3 py-1.5 text-xs tabular-nums text-muted-foreground sm:gap-3 sm:px-4 sm:py-2 sm:text-sm">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-foreground/70" aria-hidden>↓</span>
+              <span className="font-medium text-foreground">{formatSpeed(downloadSpeed)}</span>
+            </span>
+            <Separator orientation="vertical" className="h-4 bg-border/80" decorative />
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-foreground/70" aria-hidden>↑</span>
+              <span className="font-medium text-foreground">{formatSpeed(uploadSpeed)}</span>
+            </span>
+          </div>
         </div>
+        <p
+          className={cn(
+            'absolute inset-0 flex items-center justify-center px-1 text-center text-[11px] leading-snug text-muted-foreground transition-opacity duration-300 sm:text-xs',
+            !isConnected ? 'z-10 opacity-100' : 'z-0 pointer-events-none opacity-0',
+          )}
+          aria-hidden={isConnected}
+        >
+          你好，连上之后就能在这里看到实时上下行速率啦～
+        </p>
       </div>
 
-      {/* 区域 4：代理模式 ↔ 节点信息 — 固定高度，起始位置一致 */}
-      <div className="flex shrink-0 items-center justify-center min-h-[5.5rem] w-full">
-        {isConnected ? (
+      {/* 区域 4：代理模式 ↔ 节点信息 — 同一占位，仅切换显隐 */}
+      <div className="relative flex h-[5.5rem] w-full max-w-[28rem] shrink-0 items-center justify-center">
+        <div
+          className={cn(
+            'absolute inset-0 flex items-center justify-center px-2 transition-opacity duration-300',
+            isConnected ? 'z-10 opacity-100' : 'pointer-events-none z-0 opacity-0',
+          )}
+          aria-hidden={!isConnected}
+        >
           <Button
             type="button"
             variant="outline"
             onClick={onOpenNodePicker}
-            className="animate-fade-in-up group flex w-full max-w-[28rem] items-center justify-between gap-2 rounded-full px-3 sm:px-4 h-14 sm:h-16 text-left font-normal"
+            className="group flex h-14 w-full max-w-[28rem] items-center justify-between gap-2 rounded-full px-3 text-left font-normal sm:h-16 sm:px-4"
           >
             <div className="flex w-[80%] items-center gap-2">
               <span className="text-xl leading-none shrink-0" aria-hidden>
                 {nodeLine.flag}
               </span>
               <div className="min-w-0 flex-1">
-                <span className="text-xs sm:text-sm font-semibold text-foreground truncate leading-tight block">
+                <span className="block truncate text-xs font-semibold leading-tight text-foreground sm:text-sm">
                   {nodeLine.primary}
                 </span>
                 {nodeLine.secondary && (
-                  <span className="text-[9px] sm:text-[10px] text-muted-foreground truncate leading-tight block">
+                  <span className="block truncate text-[9px] leading-tight text-muted-foreground sm:text-[10px]">
                     · {nodeLine.secondary}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="flex w-[20%] items-center gap-1 justify-end">
+            <div className="flex w-[20%] items-center justify-end gap-1">
               {useProxyStore.getState().isTestingLatency ? (
                 <Loader2 className="size-3 animate-spin text-muted-foreground" />
               ) : currentNode?.delay != null ? (
@@ -161,17 +199,24 @@ export function LeftOperationPanel({
               />
             </div>
           </Button>
-        ) : (
-          <div className="animate-fade-in-up flex w-full flex-col gap-2 px-2">
+        </div>
+
+        <div
+          className={cn(
+            'absolute inset-0 flex items-center justify-center px-2 transition-opacity duration-300',
+            isConnected ? 'pointer-events-none z-0 opacity-0' : 'z-10 opacity-100',
+          )}
+          aria-hidden={isConnected}
+        >
+          <div className="flex w-full flex-col gap-2">
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {PROXY_OPTIONS.map(({ mode, icon: Icon}) => (
+              {PROXY_OPTIONS.map(({ mode, icon: Icon }) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => onProxyModeChange(mode)}
                   className={cn(
-                    'flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 transition-all duration-200',
-                    'cursor-pointer',
+                    'flex cursor-pointer items-center justify-center gap-2 rounded-xl px-3 py-2.5 transition-all duration-200',
                     proxyMode === mode
                       ? 'bg-primary/12 text-foreground ring-1 ring-primary/30'
                       : 'bg-muted/35 text-muted-foreground hover:bg-muted/55 hover:text-foreground',
@@ -179,13 +224,12 @@ export function LeftOperationPanel({
                   aria-pressed={proxyMode === mode}
                 >
                   <Icon className="size-4 shrink-0" strokeWidth={1.75} />
-                  <span className="text-xs font-semibold truncate">{mode}</span>
-
+                  <span className="truncate text-xs font-semibold">{mode}</span>
                 </button>
               ))}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

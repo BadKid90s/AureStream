@@ -6,25 +6,25 @@ import { toast } from 'sonner'
 
 const SIZE_MAP = {
   sm: {
-    glow: 'w-[7rem] h-[7rem]',
-    outer: 'w-[6rem] h-[6rem]',
-    inner: 'w-[4rem] h-[4rem]',
-    icon: 'w-7 h-7',
-    caption: 'text-sm',
+    glow: 'w-[7.5rem] h-[7.5rem]',
+    outer: 'w-[7.5rem] aspect-square',
+    inner: 'w-[5rem] aspect-square gap-0.5 p-1',
+    icon: 'w-6 h-6',
+    captionInner: 'text-[9px] font-semibold leading-tight',
   },
   default: {
-    glow: 'w-[10rem] h-[10rem]',
-    outer: 'w-[8.5rem] h-[8.5rem]',
-    inner: 'w-[5.5rem] h-[5.5rem]',
-    icon: 'w-10 h-10',
-    caption: 'text-base',
+    glow: 'w-[10.25rem] h-[10.25rem]',
+    outer: 'w-[10.25rem] aspect-square',
+    inner: 'w-[6.5rem] aspect-square gap-1 p-1.5',
+    icon: 'w-9 h-9',
+    captionInner: 'text-[10px] sm:text-[11px] font-semibold leading-tight',
   },
   lg: {
-    glow: 'w-[14rem] h-[14rem]',
-    outer: 'w-[12rem] h-[12rem]',
-    inner: 'w-[7.5rem] h-[7.5rem]',
-    icon: 'w-12 h-12',
-    caption: 'text-lg',
+    glow: 'w-[13.5rem] h-[13.5rem]',
+    outer: 'w-[13.5rem] aspect-square',
+    inner: 'w-[9rem] aspect-square gap-1 p-2',
+    icon: 'w-11 h-11',
+    captionInner: 'text-xs sm:text-sm font-semibold leading-tight',
   },
 } as const
 
@@ -91,7 +91,7 @@ export function ConnectButton({
         aria-disabled={(!isConnected && (disabledOuter || isConnecting)) || (isConnected && busy)}
         title={disabledOuter && !isConnected ? '请先选择服务商' : undefined}
         className={cn(
-          'relative z-10 flex items-center justify-center rounded-full transition-all duration-700 ease-in-out',
+          'relative z-10 flex flex-col items-center justify-center rounded-full transition-all duration-700 ease-in-out',
           'enabled:cursor-pointer disabled:cursor-not-allowed',
           dims.outer,
           'glass-strong group',
@@ -122,10 +122,9 @@ export function ConnectButton({
           </svg>
         )}
 
-        {/* 内部圆形 — 同一元素，仅渐变随状态过渡 */}
         <div
           className={cn(
-            'relative flex items-center justify-center rounded-full transition-all duration-700 ease-in-out',
+            'relative z-10 flex shrink-0 flex-col items-center justify-center rounded-full transition-all duration-700 ease-in-out',
             dims.inner,
             isConnected && !isDisconnecting
               ? 'bg-gradient-to-br from-primary to-blue-500 shadow-lg'
@@ -136,16 +135,27 @@ export function ConnectButton({
         >
           <Power
             className={cn(
-              'relative z-10 transition-all duration-700 ease-in-out',
+              'relative z-10 shrink-0 transition-all duration-700 ease-in-out',
               dims.icon,
               isConnected && !isDisconnecting
                 ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]'
                 : busy
-                  ? 'text-white/80'
+                  ? 'text-white/90'
                   : 'text-gray-500 dark:text-gray-400',
             )}
             strokeWidth={2}
           />
+          <p
+            className={cn(
+              'max-w-[95%] text-center transition-all duration-700 ease-in-out',
+              dims.captionInner,
+              busy && 'text-white/85',
+              !busy && isConnected && 'text-white/95',
+              !busy && !isConnected && 'text-gray-600 dark:text-gray-300',
+            )}
+          >
+            {isDisconnecting ? '断开中' : isConnecting ? '连接中' : isConnected ? '已连接' : '未连接'}
+          </p>
         </div>
 
         {/* 已连接 — 外层脉动波纹 */}
@@ -165,24 +175,12 @@ export function ConnectButton({
         />
       </button>
 
-      {/* 文字区 — 同一结构，仅文本/颜色随状态过渡 */}
-      <div className="flex min-h-[2rem] flex-col items-center justify-center gap-0.5 text-center">
-        <p
-          className={cn(
-            'min-h-[1.5em] font-semibold transition-all duration-700 ease-in-out',
-            dims.caption,
-            busy && 'text-muted-foreground',
-            !busy && !isConnected && 'text-muted-foreground',
-            !busy && isConnected && 'text-primary',
-          )}
-        >
-          {isDisconnecting ? '断开中...' : isConnecting ? '连接中...' : isConnected ? '已连接' : '点击连接'}
-        </p>
+      {/* 代理模式说明（已连接时显示） */}
+      <div className="flex min-h-[1.25rem] flex-col items-center justify-center text-center">
         <div
           className={cn(
-            'flex h-[1.25rem] items-center justify-center gap-1.5 text-[11px] transition-all duration-700 ease-in-out',
-            isConnected && !isDisconnecting ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1',
-            (!isConnected || isDisconnecting) && 'pointer-events-none select-none',
+            'flex h-[1.25rem] items-center justify-center gap-1.5 text-[11px] transition-opacity duration-700 ease-in-out',
+            isConnected && !isDisconnecting ? 'opacity-100' : 'pointer-events-none select-none opacity-0',
           )}
           aria-hidden={!isConnected || isDisconnecting}
         >

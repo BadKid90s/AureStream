@@ -87,7 +87,7 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
         {/* 黄金分割双栏 */}
         <div className="relative grid w-full grid-cols-1 gap-4 md:grid-cols-[55%_45%] md:gap-0 lg:grid-cols-[61.8%_38.2%]">
           {/* 左栏：操作区 */}
-          <section className="flex min-h-0 flex-col justify-center md:pr-6 lg:pr-8">
+          <section className="flex min-h-0 flex-col justify-start md:pr-6 lg:pr-8">
             <LeftOperationPanel
               isConnected={isConnected}
               canConnect={canConnect}
