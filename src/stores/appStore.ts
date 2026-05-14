@@ -11,6 +11,9 @@ import {
   deleteSubscriptionFile,
   getSubscriptionPath,
   testAllNodesLatency,
+  patchMihomoSubscription,
+  startMihomoKernel,
+  stopMihomoKernel,
 } from '@/lib/api'
 import { reloadConfig } from 'tauri-plugin-mihomo-api'
 
@@ -50,6 +53,25 @@ function setupAutoUpdateTimer(providerId: string, intervalMinutes: number, refre
     refreshFn(providerId)
   }, intervalMinutes * 60 * 1000)
   autoUpdateTimers.set(providerId, timer)
+}
+
+/** 仅有一个（或零个）订阅时默认不按「使用中」选中；多于一个时校正无效引用 */
+function normalizeCurrentSubscriptionSelection(
+  providers: Provider[],
+  currentProvider: Provider | undefined,
+  currentNode: Node | undefined,
+): { currentProvider: Provider | undefined; currentNode: Node | undefined } {
+  if (providers.length <= 1) {
+    return { currentProvider: undefined, currentNode: undefined }
+  }
+  if (currentProvider && !providers.some(p => p.id === currentProvider.id)) {
+    return { currentProvider: undefined, currentNode: undefined }
+  }
+  const nodeOk =
+    currentNode && currentProvider && currentNode.providerId === currentProvider.id
+      ? currentNode
+      : undefined
+  return { currentProvider, currentNode: nodeOk }
 }
 
 interface ProxyStore {
@@ -110,7 +132,12 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         getProviders(),
         getNodes(),
       ])
-      set({ providers, nodes })
+      const cur = normalizeCurrentSubscriptionSelection(
+        providers,
+        get().currentProvider,
+        get().currentNode,
+      )
+      set({ providers, nodes, ...cur })
     } catch (e) {
       console.error('Failed to load providers from DB:', e)
     }
@@ -152,7 +179,8 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     const newProviders = get().providers.filter((p) => p.id !== id)
     let currentProvider = get().currentProvider
     if (currentProvider?.id === id) currentProvider = undefined
-    set({ providers: newProviders, currentProvider })
+    const sel = normalizeCurrentSubscriptionSelection(newProviders, currentProvider, get().currentNode)
+    set({ providers: newProviders, ...sel })
     // 删除订阅文件
     deleteSubscriptionFile(id).catch(() => {})
   },
@@ -193,8 +221,9 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       const path = await getSubscriptionPath(currentProvider.id)
       if (!path) throw new Error('订阅配置文件不存在，请先更新订阅')
 
-      // 通知 mihomo 加载配置并启动
-      await reloadConfig(true, path)
+      // 对齐 external-controller、启动 Mihomo sidecar（内部轮询 API 就绪）
+      const patchedPath = await patchMihomoSubscription(path)
+      await startMihomoKernel(patchedPath)
 
       set({
         isConnecting: false,
@@ -213,6 +242,11 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       await closeAllConnections()
     } catch {
       // ignore cleanup errors
+    }
+    try {
+      await stopMihomoKernel()
+    } catch {
+      // ignore
     }
     set({
       isConnected: false,
@@ -267,12 +301,13 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     try {
       await downloadSubscription(id, provider.url)
       const providers = await getProviders()
-      set({ providers })
-      const currentProvider = get().currentProvider
+      let currentProvider = get().currentProvider
       if (currentProvider?.id === id) {
         const fresh = providers.find(p => p.id === id)
-        if (fresh) set({ currentProvider: fresh })
+        if (fresh) currentProvider = fresh
       }
+      const sel = normalizeCurrentSubscriptionSelection(providers, currentProvider, get().currentNode)
+      set({ providers, ...sel })
       return { success: true }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
@@ -289,11 +324,14 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     set({ currentProvider: provider, currentNode: undefined })
     if (!provider) return
 
-    // 确保订阅文件存在，然后通知 mihomo 加载
+    // 确保订阅文件存在；已连接时对运行中的内核发送 reload（使用补丁后的路径）
     try {
       const path = await getSubscriptionPath(provider.id)
       if (path) {
-        await reloadConfig(true, path)
+        const patchedPath = await patchMihomoSubscription(path)
+        if (get().isConnected) {
+          await reloadConfig(true, patchedPath)
+        }
       }
     } catch (e) {
       console.error('Failed to reload mihomo config:', e)
