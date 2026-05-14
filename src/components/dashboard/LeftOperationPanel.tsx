@@ -1,10 +1,11 @@
-import { ChevronRight, ArrowLeftRight, Globe, Zap } from 'lucide-react'
+import { ChevronRight, ArrowLeftRight, Globe, Zap, Loader2 } from 'lucide-react'
 import { ConnectButton } from '@/components/dashboard/ConnectButton'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { getLatencyColor } from '@/types'
 import type { Node } from '@/types'
+import { useProxyStore } from '@/stores/appStore'
 
 type ProxyMode = '规则' | '全局' | '直连'
 
@@ -145,7 +146,9 @@ export function LeftOperationPanel({
             </div>
 
             <div className="flex w-[20%] items-center gap-1 justify-end">
-              {currentNode?.delay != null ? (
+              {useProxyStore.getState().isTestingLatency ? (
+                <Loader2 className="size-3 animate-spin text-muted-foreground" />
+              ) : currentNode?.delay != null ? (
                 <span className={cn('text-[10px] font-semibold tabular-nums', getLatencyColor(currentNode.delay))}>
                   {currentNode.delay} ms
                 </span>
