@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Activity } from 'lucide-react'
+import { Activity, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useProxyStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
@@ -95,13 +95,12 @@ export function NodePickerDialog({ open, onOpenChange }: NodePickerDialogProps) 
                           {node.server ? `${node.server}:${node.port}` : node.type}
                         </div>
                       </div>
-                      <span
-                        className={cn(
-                          'text-xs font-semibold tabular-nums shrink-0',
-                          getLatencyColor(node.delay)
+                      <span className="text-xs font-semibold tabular-nums shrink-0">
+                        {useProxyStore.getState().isTestingLatency ? (
+                          <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                        ) : (
+                          <span className={getLatencyColor(node.delay)}>{delayText}</span>
                         )}
-                      >
-                        {delayText}
                       </span>
                     </button>
                   </li>
