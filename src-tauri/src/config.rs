@@ -1,3 +1,4 @@
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -100,7 +101,7 @@ impl AureConfigState {
             let text = std::fs::read_to_string(&path)
                 .map_err(|e| format!("读取配置文件失败: {}", e))?;
             serde_yaml::from_str(&text).unwrap_or_else(|e| {
-                eprintln!("[config] 解析 aureproxy.yaml 失败，使用默认值: {}", e);
+                warn!("[config] 解析 aureproxy.yaml 失败，使用默认值: {}", e);
                 AureConfig::default()
             })
         } else {

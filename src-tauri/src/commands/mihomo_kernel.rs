@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use log::{error, info, warn};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_shell::{process::CommandEvent, ShellExt};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 
 use crate::commands::proxy::ProxyState;
@@ -36,21 +38,21 @@ pub async fn download_geodata(app: AppHandle) -> Result<(), String> {
         if dest.exists() {
             continue;
         }
-        eprintln!("[geodata] 下载 {} ...", filename);
+        info!("[geodata] 下载 {} ...", filename);
         match client.get(*url).send().await {
             Ok(resp) => {
                 if !resp.status().is_success() {
-                    eprintln!("[geodata] 下载 {} 失败: HTTP {}", filename, resp.status());
+                    warn!("[geodata] 下载 {} 失败: HTTP {}", filename, resp.status());
                     continue;
                 }
                 let bytes = resp.bytes().await.map_err(|e| format!("读取 {} 失败: {}", filename, e))?;
                 tokio::fs::write(&dest, &bytes)
                     .await
                     .map_err(|e| format!("写入 {} 失败: {}", filename, e))?;
-                eprintln!("[geodata] {} 下载完成 ({} bytes)", filename, bytes.len());
+                info!("[geodata] {} 下载完成 ({} bytes)", filename, bytes.len());
             }
             Err(e) => {
-                eprintln!("[geodata] 下载 {} 失败: {}", filename, e);
+                error!("[geodata] 下载 {} 失败: {}", filename, e);
             }
         }
     }
@@ -163,17 +165,43 @@ pub async fn start_mihomo_kernel(
         .spawn()
         .map_err(|e| format!("启动 Mihomo 进程失败: {}", e))?;
 
+    // Mihomo 日志写入独立文件
+    let mihomo_log_dir = PathBuf::from(
+        std::env::var("LOCALAPPDATA")
+            .or_else(|_| std::env::var("APPDATA"))
+            .unwrap_or_else(|_| ".".to_string()),
+    )
+    .join("com.root.aureproxy")
+    .join("logs");
+    let _ = tokio::fs::create_dir_all(&mihomo_log_dir).await;
+    let mihomo_log_file = mihomo_log_dir.join("mihomo.log");
+
     tauri::async_runtime::spawn(async move {
+        let mut log_file = tokio::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&mihomo_log_file)
+            .await
+            .ok();
+
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Stderr(line) => {
-                    eprintln!("[mihomo] {}", String::from_utf8_lossy(&line));
+                    let text = String::from_utf8_lossy(&line);
+                    if let Some(ref mut f) = log_file {
+                        let _ = f.write_all(format!("[stderr] {}\n", text).as_bytes()).await;
+                    }
                 }
                 CommandEvent::Stdout(line) => {
-                    eprintln!("[mihomo] {}", String::from_utf8_lossy(&line));
+                    let text = String::from_utf8_lossy(&line);
+                    if let Some(ref mut f) = log_file {
+                        let _ = f.write_all(format!("[stdout] {}\n", text).as_bytes()).await;
+                    }
                 }
                 CommandEvent::Error(err) => {
-                    eprintln!("[mihomo] {err}");
+                    if let Some(ref mut f) = log_file {
+                        let _ = f.write_all(format!("[error] {}\n", err).as_bytes()).await;
+                    }
                 }
                 _ => {}
             }
@@ -210,12 +238,12 @@ pub async fn start_mihomo_kernel(
                 .store(true, Ordering::SeqCst);
         }
         Ok(Err(err)) => {
-            eprintln!(
+            warn!(
                 "[system-proxy] 未能启用系统代理: {}（Mihomo 已运行，可在系统设置中手动配置）",
                 err
             );
         }
-        Err(join_err) => eprintln!("[system-proxy] 启用任务失败: {:?}", join_err),
+        Err(join_err) => error!("[system-proxy] 启用任务失败: {:?}", join_err),
     }
 
     if let Ok(mut status) = proxy_state.status.lock() {
@@ -245,11 +273,11 @@ pub(crate) async fn stop_mihomo_sidecar(state: &MihomoKernelState) -> Result<(),
                     .system_proxy_managed
                     .store(false, Ordering::SeqCst);
             }
-            Ok(Err(e)) => eprintln!(
+            Ok(Err(e)) => warn!(
                 "[system-proxy] 关闭系统代理失败: {}（请在系统「网络」设置中手动关闭代理）",
                 e
             ),
-            Err(e) => eprintln!("[system-proxy] 清除系统代理任务失败: {:?}", e),
+            Err(e) => error!("[system-proxy] 清除系统代理任务失败: {:?}", e),
         }
     }
 

@@ -8,6 +8,8 @@ use commands::provider::{add_provider, delete_provider, get_nodes, get_nodes_by_
 use commands::settings::{load_app_settings, load_latency_cache, save_app_settings, save_latency_cache};
 use commands::subscription::{delete_subscription_file, download_subscription, get_subscription_path};
 use config::AureConfigState;
+use log::info;
+use std::path::PathBuf;
 use tauri::Manager;
 
 /// `tauri-plugin-mihomo` 内用 reqwest 访问 `127.0.0.1:9090`；若进程继承系统代理（指向本机 mixed-port），
@@ -44,15 +46,46 @@ fn ensure_loopback_in_no_proxy_env() {
 pub fn run() {
     ensure_loopback_in_no_proxy_env();
 
+    // 日志目录：优先 %LOCALAPPDATA%，回退 %APPDATA%
+    let log_dir = PathBuf::from(
+        std::env::var("LOCALAPPDATA")
+            .or_else(|_| std::env::var("APPDATA"))
+            .unwrap_or_else(|_| ".".to_string()),
+    )
+    .join("com.root.aureproxy")
+    .join("logs");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_mihomo::Builder::new().build())
-        .setup(|app| {
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    // 应用日志写入文件（排除 mihomo 标签的输出）
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Folder {
+                        path: log_dir.clone(),
+                        file_name: Some("aureproxy".to_string()),
+                    })
+                    .filter(|metadata| metadata.target() != "mihomo"),
+                    // 控制台输出（dev 模式可见，排除 mihomo）
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout)
+                        .filter(|metadata| metadata.target() != "mihomo"),
+                ])
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .max_file_size(5_000_000)
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
+        .setup(move |app| {
+            // 打印日志目录，方便定位
+            eprintln!("[aureproxy] 日志目录: {}", log_dir.display());
+            info!("AureProxy 启动中...");
             let config_state = AureConfigState::load(app.handle())?;
             app.manage(config_state);
             app.manage(ProxyState::default());
             app.manage(MihomoKernelState::default());
+            info!("应用状态初始化完成");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

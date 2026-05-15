@@ -1,5 +1,6 @@
 use crate::config::AureConfigState;
 use base64::Engine;
+use log::{debug, info};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
@@ -165,7 +166,7 @@ pub async fn download_subscription(
             // Resolve relative URLs against the current URL
             let resolved = current_url.join(location_str)
                 .map_err(|e| format!("Failed to resolve redirect URL: {}", e))?;
-            eprintln!("[subscription] Redirect {} -> {}", response.status(), resolved);
+            info!("[subscription] Redirect {} -> {}", response.status(), resolved);
             response = client
                 .get(resolved.clone())
                 .header("User-Agent", "clash-verge/v2.2.3")
@@ -208,19 +209,18 @@ pub async fn download_subscription(
     // Use header meta, or fall back to parsing YAML content
     let meta = header_meta.or_else(|| parse_yaml_meta(&content));
 
-    // Debug logging
-    eprintln!("[subscription] URL: {}", url);
-    eprintln!("[subscription] Redirects followed: {}", redirect_count);
-    eprintln!("[subscription] All headers collected:");
+    debug!("[subscription] URL: {}", url);
+    debug!("[subscription] Redirects followed: {}", redirect_count);
+    debug!("[subscription] All headers collected:");
     for (k, v) in &debug_headers {
-        eprintln!("[subscription]   {} = {}", k, v);
+        debug!("[subscription]   {} = {}", k, v);
     }
-    eprintln!("[subscription] header_meta: {:?}", meta);
-    eprintln!("[subscription] content length: {} bytes", content.len());
+    debug!("[subscription] header_meta: {:?}", meta);
+    debug!("[subscription] content length: {} bytes", content.len());
     if content.len() > 200 {
-        eprintln!("[subscription] content preview: {}", String::from_utf8_lossy(&content[..200]));
+        debug!("[subscription] content preview: {}", String::from_utf8_lossy(&content[..200]));
     } else {
-        eprintln!("[subscription] content: {}", String::from_utf8_lossy(&content));
+        debug!("[subscription] content: {}", String::from_utf8_lossy(&content));
     }
 
     // Update provider metadata in config if we got subscription info
@@ -236,7 +236,7 @@ pub async fn download_subscription(
             dt.to_rfc3339()
         });
 
-        eprintln!("[subscription] provider_id={}, traffic_total={:?}, traffic_used={:?}, expires_at={:?}", provider_id, traffic_total, traffic_used, expires_at);
+        info!("[subscription] provider_id={}, traffic_total={:?}, traffic_used={:?}, expires_at={:?}", provider_id, traffic_total, traffic_used, expires_at);
 
         state.get_mut_and_save(|cfg| {
             if let Some(provider) = cfg.providers.iter_mut().find(|p| p.id == provider_id) {
@@ -261,7 +261,7 @@ pub async fn download_subscription(
         meta,
         debug_headers,
     };
-    eprintln!("[subscription] Returning DownloadResult: meta={:?}", result.meta);
+    info!("[subscription] Returning DownloadResult: meta={:?}", result.meta);
     Ok(result)
 }
 

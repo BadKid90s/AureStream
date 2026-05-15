@@ -30,21 +30,15 @@ impl Default for ProxyConfig {
     }
 }
 
-/// 分配一个高位随机可用端口（优先 49152+），用于本地回环监听。
+/// 分配一个随机可用端口，用于本地回环监听。
 pub(crate) fn allocate_high_random_port() -> Result<u16, String> {
-    for _ in 0..32 {
-        let listener = TcpListener::bind(("127.0.0.1", 0))
-            .map_err(|e| format!("分配本地端口失败: {}", e))?;
-        let port = listener
-            .local_addr()
-            .map_err(|e| format!("读取本地端口失败: {}", e))?
-            .port();
-        drop(listener);
-        if port >= 49_152 {
-            return Ok(port);
-        }
-    }
-    Err("未获取到高位随机端口，请稍后重试".to_string())
+    let listener = TcpListener::bind(("127.0.0.1", 0))
+        .map_err(|e| format!("分配本地端口失败: {}", e))?;
+    let port = listener
+        .local_addr()
+        .map_err(|e| format!("读取本地端口失败: {}", e))?
+        .port();
+    Ok(port)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
