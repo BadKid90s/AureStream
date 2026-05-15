@@ -121,3 +121,33 @@ export async function startMihomoKernel(patchedConfigPath: string): Promise<void
 export async function stopMihomoKernel(): Promise<void> {
   return await invoke<void>('stop_mihomo_kernel')
 }
+
+/** 预下载 GeoIP/GeoSite 文件到 mihomo 工作目录 */
+export async function downloadGeodata(): Promise<void> {
+  return await invoke<void>('download_geodata')
+}
+
+// --- App settings & latency cache ---
+
+export interface AppSettings {
+  theme: 'light' | 'dark'
+  proxyBypassDomains: string
+  autoStart: boolean
+  autoConnect: boolean
+}
+
+export async function loadAppSettings(): Promise<AppSettings> {
+  return await invoke<AppSettings>('load_app_settings')
+}
+
+export async function saveAppSettings(settings: AppSettings): Promise<void> {
+  return await invoke<void>('save_app_settings', { settings })
+}
+
+export async function loadLatencyCache(): Promise<Record<string, number>> {
+  return await invoke<Record<string, number>>('load_latency_cache')
+}
+
+export async function saveLatencyCache(cache: Record<string, number>): Promise<void> {
+  return await invoke<void>('save_latency_cache', { cache })
+}

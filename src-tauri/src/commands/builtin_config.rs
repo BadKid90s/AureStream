@@ -48,6 +48,28 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
         Value::String(String::new()),
     );
 
+    let mut geox_url = Mapping::new();
+    geox_url.insert(
+        Value::String("geoip".to_string()),
+        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db".to_string()),
+    );
+    geox_url.insert(
+        Value::String("geoip-lite".to_string()),
+        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.db".to_string()),
+    );
+    geox_url.insert(
+        Value::String("mmdb".to_string()),
+        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb".to_string()),
+    );
+    geox_url.insert(
+        Value::String("geosite".to_string()),
+        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat".to_string()),
+    );
+    root.insert(
+        Value::String("geox-url".to_string()),
+        Value::Mapping(geox_url),
+    );
+
     let mut hc = Mapping::new();
     hc.insert(Value::String("enable".to_string()), Value::Bool(true));
     hc.insert(
@@ -168,7 +190,12 @@ pub async fn build_aureproxy_mihomo_config(
     let absolute = dest
         .canonicalize()
         .map_err(|e| format!("无法解析 mihomo-work 内订阅路径: {}", e))?;
-    let abs_str = absolute.to_string_lossy().to_string();
+    // Windows canonicalize() 会加 \\?\ 前缀，mihomo 不识别，需去掉
+    let abs_str = absolute
+        .to_string_lossy()
+        .strip_prefix("\\\\?\\")
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| absolute.to_string_lossy().to_string());
 
     let yaml_value = build_config_value(&abs_str, &listen, mixed_port);
 

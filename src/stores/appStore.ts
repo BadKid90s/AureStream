@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Provider, Node } from '@/types'
 import {
   addProvider as addProviderIpc,
@@ -17,6 +16,10 @@ import {
   startMihomoKernel,
   stopProxy,
   updateProxyConfig,
+  loadAppSettings,
+  saveAppSettings,
+  loadLatencyCache,
+  saveLatencyCache,
 } from '@/lib/api'
 import {
   reloadConfig,
@@ -37,61 +40,71 @@ function nodeLatencyCacheKey(providerId: string, nodeId: string): string {
   return `${providerId}:${nodeId}`
 }
 
-/** Vitest 等环境下 global localStorage 可能无 setItem；提供内存后备以免 persist 崩溃 */
-function createMemoryLocalStorage(): Storage {
-  const m = new Map<string, string>()
-  return {
-    get length() {
-      return m.size
-    },
-    clear: () => m.clear(),
-    getItem: (key) => m.get(key) ?? null,
-    key: (index) => Array.from(m.keys())[index] ?? null,
-    removeItem: (key) => {
-      m.delete(key)
-    },
-    setItem: (key, value) => {
-      m.set(key, value)
-    },
-  } as Storage
-}
-
-let memoryLocalStorageSingleton: Storage | null = null
-
-function getBrowserOrMemoryStorage(): Storage {
-  if (typeof globalThis.localStorage?.setItem === 'function') {
-    return globalThis.localStorage
-  }
-  memoryLocalStorageSingleton ??= createMemoryLocalStorage()
-  return memoryLocalStorageSingleton
-}
-
-function latencyPersistStorage() {
-  return createJSONStorage(() => getBrowserOrMemoryStorage())
-}
-
 interface AppStore {
   theme: 'light' | 'dark'
   proxyBypassDomains: string
+  autoStart: boolean
+  autoConnect: boolean
+  /** 从后端 YAML 加载设置 */
+  loadSettings: () => Promise<void>
   setTheme: (theme: 'light' | 'dark') => void
   setProxyBypassDomains: (value: string) => void
   toggleTheme: () => void
+  setAutoStart: (value: boolean) => void
+  setAutoConnect: (value: boolean) => void
 }
 
-export const useAppStore = create<AppStore>()(
-  persist(
-    (set, get) => ({
-      theme: 'light',
-      proxyBypassDomains: DEFAULT_PROXY_BYPASS_DOMAINS,
-      setTheme: (theme) => set({ theme }),
-      setProxyBypassDomains: (value) => set({ proxyBypassDomains: value }),
-      toggleTheme: () => set({ theme: get().theme === 'light' ? 'dark' : 'light' }),
-    }),
-    {
-      name: 'aureproxy-app-store',
+export const useAppStore = create<AppStore>()((set, get) => ({
+  theme: 'light',
+  proxyBypassDomains: DEFAULT_PROXY_BYPASS_DOMAINS,
+  autoStart: false,
+  autoConnect: false,
+
+  loadSettings: async () => {
+    try {
+      const settings = await loadAppSettings()
+      set({
+        theme: settings.theme as 'light' | 'dark',
+        proxyBypassDomains: settings.proxyBypassDomains,
+        autoStart: settings.autoStart,
+        autoConnect: settings.autoConnect,
+      })
+    } catch (e) {
+      console.error('Failed to load app settings:', e)
     }
-  )
-)
+  },
+
+  setTheme: (theme) => {
+    set({ theme })
+    const s = get()
+    saveAppSettings({ theme, proxyBypassDomains: s.proxyBypassDomains, autoStart: s.autoStart, autoConnect: s.autoConnect }).catch(console.error)
+  },
+
+  setProxyBypassDomains: (value) => {
+    set({ proxyBypassDomains: value })
+    const s = get()
+    saveAppSettings({ theme: s.theme, proxyBypassDomains: value, autoStart: s.autoStart, autoConnect: s.autoConnect }).catch(console.error)
+  },
+
+  toggleTheme: () => {
+    const next = get().theme === 'light' ? 'dark' : 'light'
+    set({ theme: next })
+    const s = get()
+    saveAppSettings({ theme: next, proxyBypassDomains: s.proxyBypassDomains, autoStart: s.autoStart, autoConnect: s.autoConnect }).catch(console.error)
+  },
+
+  setAutoStart: (value) => {
+    set({ autoStart: value })
+    const s = get()
+    saveAppSettings({ theme: s.theme, proxyBypassDomains: s.proxyBypassDomains, autoStart: value, autoConnect: s.autoConnect }).catch(console.error)
+  },
+
+  setAutoConnect: (value) => {
+    set({ autoConnect: value })
+    const s = get()
+    saveAppSettings({ theme: s.theme, proxyBypassDomains: s.proxyBypassDomains, autoStart: s.autoStart, autoConnect: value }).catch(console.error)
+  },
+}))
 
 // --- Auto-update timers (not persisted, managed in memory) ---
 const autoUpdateTimers = new Map<string, ReturnType<typeof setInterval>>()
@@ -210,6 +223,8 @@ interface ProxyStore {
   /** 上次一键测速结果（按订阅+节点缓存，持久化以便再次打开列表仍显示） */
   nodeLatencyByKey: Record<string, number>
 
+  /** 从后端 YAML 加载延迟缓存 */
+  loadCache: () => Promise<void>
   /** 从数据库加载所有 provider 和 node */
   loadProviders: () => Promise<void>
   addProvider: (provider: Provider) => Promise<void>
@@ -244,9 +259,7 @@ interface ProxyStore {
   initAutoUpdateTimers: () => void
 }
 
-export const useProxyStore = create<ProxyStore>()(
-  persist(
-    (set, get) => ({
+export const useProxyStore = create<ProxyStore>()((set, get) => ({
   providers: [],
   nodes: [],
   currentProvider: undefined,
@@ -264,6 +277,15 @@ export const useProxyStore = create<ProxyStore>()(
   latencyPendingByNodeId: {},
   refreshingIds: new Set<string>(),
   nodeLatencyByKey: {},
+
+  loadCache: async () => {
+    try {
+      const cache = await loadLatencyCache()
+      set({ nodeLatencyByKey: cache })
+    } catch (e) {
+      console.error('Failed to load latency cache:', e)
+    }
+  },
 
   loadProviders: async () => {
     try {
@@ -332,6 +354,7 @@ export const useProxyStore = create<ProxyStore>()(
       }
       return { providers: newProviders, ...sel, nodeLatencyByKey }
     })
+    saveLatencyCache(get().nodeLatencyByKey).catch(console.error)
     // 删除订阅文件
     deleteSubscriptionFile(id).catch(() => {})
   },
@@ -409,7 +432,7 @@ export const useProxyStore = create<ProxyStore>()(
 
   setNodes: (nodes) => set({ nodes }),
 
-  updateNodeDelay: (nodeId, delay) =>
+  updateNodeDelay: (nodeId, delay) => {
     set((state) => {
       const nodes = state.nodes.map((n) =>
         n.id === nodeId ? { ...n, delay } : n
@@ -426,7 +449,9 @@ export const useProxyStore = create<ProxyStore>()(
           }
         : state.nodeLatencyByKey
       return { nodes, currentNode, nodeLatencyByKey }
-    }),
+    })
+    saveLatencyCache(get().nodeLatencyByKey).catch(console.error)
+  },
 
   connect: async () => {
     const { currentProvider } = get()
@@ -451,7 +476,12 @@ export const useProxyStore = create<ProxyStore>()(
       const runtimePath = await buildAureproxyMihomoConfig(currentProvider.id)
       await startMihomoKernel(runtimePath)
 
-      await get().refreshSubscriptionNodesFromMihomo()
+      // 刷新节点列表，若首次为空（provider 尚未加载），重试最多 5 次
+      for (let i = 0; i < 5; i++) {
+        await get().refreshSubscriptionNodesFromMihomo()
+        if (get().nodes.length > 0) break
+        await new Promise(r => setTimeout(r, 500))
+      }
 
       stopMihomoTrafficPoll()
       startMihomoTrafficPoll(get)
@@ -670,6 +700,7 @@ export const useProxyStore = create<ProxyStore>()(
       console.error('Failed to start latency testing:', e)
     } finally {
       set({ isTestingLatency: false, latencyPendingByNodeId: {} })
+      saveLatencyCache(get().nodeLatencyByKey).catch(console.error)
     }
   },
 
@@ -752,13 +783,4 @@ export const useProxyStore = create<ProxyStore>()(
       }
     }
   },
-  }),
-    {
-      name: 'aureproxy-node-latency-cache',
-      storage: latencyPersistStorage(),
-      partialize: (state) => ({
-        nodeLatencyByKey: state.nodeLatencyByKey,
-      }),
-    }
-  )
-)
+}))

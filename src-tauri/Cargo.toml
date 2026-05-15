@@ -26,7 +26,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 tokio = { version = "1", features = ["full"] }
-rusqlite = { version = "0.31", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 serde_yaml = "0.9"
 base64 = "0.22"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winreg = "0.52"

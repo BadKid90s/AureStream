@@ -1,6 +1,7 @@
 pub mod builtin_config;
 pub mod mihomo_constants;
 pub mod mihomo_kernel;
+pub mod settings;
 mod system_proxy;
 pub mod proxy;
 pub mod provider;
@@ -8,6 +9,9 @@ pub mod subscription;
 
 use serde::{Deserialize, Serialize};
 use std::net::TcpListener;
+
+pub const DEFAULT_PROXY_BYPASS_DOMAINS: &str =
+    "localhost,127.*,10.*,172.16.*,172.17.*,172.18.*,172.19.*,172.20.*,172.21.*,172.22.*,172.23.*,172.24.*,172.25.*,172.26.*,172.27.*,172.28.*,172.29.*,172.30.*,172.31.*,192.168.*,<local>";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProxyConfig {
@@ -21,7 +25,7 @@ impl Default for ProxyConfig {
         Self {
             listen: "127.0.0.1".to_string(),
             mixed_port: 0,
-            bypass_domains: "localhost,127.*,10.*,172.16.*,172.17.*,172.18.*,172.19.*,172.20.*,172.21.*,172.22.*,172.23.*,172.24.*,172.25.*,172.26.*,172.27.*,172.28.*,172.29.*,172.30.*,172.31.*,192.168.*,<local>".to_string(),
+            bypass_domains: DEFAULT_PROXY_BYPASS_DOMAINS.to_string(),
         }
     }
 }

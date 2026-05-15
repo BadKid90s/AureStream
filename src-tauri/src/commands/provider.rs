@@ -1,137 +1,120 @@
 use crate::commands::mihomo_constants::{LATENCY_TEST_TCP_HOST, LATENCY_TEST_TCP_PORT};
 use crate::commands::{LatencyResult, Node, Provider};
-use crate::DbState;
+use crate::config::{AureConfigState, NodeEntry, ProviderEntry};
 use tauri::State;
 
-fn row_to_provider(row: &rusqlite::Row) -> rusqlite::Result<Provider> {
-    Ok(Provider {
-        id: row.get("id")?,
-        name: row.get("name")?,
-        url: row.get("url")?,
-        last_updated: row.get("last_updated")?,
-        node_count: row.get::<_, i64>("node_count")? as usize,
-        traffic_total_gb: row.get("traffic_total_gb")?,
-        traffic_used_gb: row.get("traffic_used_gb")?,
-        expires_at: row.get("expires_at")?,
-        auto_update_interval: row.get::<_, Option<i64>>("auto_update_interval")?.map(|v| v as u32),
-    })
+fn provider_entry_to_provider(entry: &ProviderEntry) -> Provider {
+    Provider {
+        id: entry.id.clone(),
+        name: entry.name.clone(),
+        url: entry.url.clone(),
+        last_updated: entry.last_updated.clone(),
+        node_count: entry.node_count,
+        traffic_total_gb: entry.traffic_total_gb,
+        traffic_used_gb: entry.traffic_used_gb,
+        expires_at: entry.expires_at.clone(),
+        auto_update_interval: entry.auto_update_interval,
+    }
 }
 
-fn row_to_node(row: &rusqlite::Row) -> rusqlite::Result<Node> {
-    Ok(Node {
-        id: row.get("id")?,
-        name: row.get("name")?,
-        provider_id: row.get("provider_id")?,
-        r#type: row.get("type")?,
-        server: row.get("server")?,
-        port: row.get::<_, i64>("port")? as u16,
-        delay: row.get::<_, Option<i64>>("delay")?.map(|v| v as u32),
-        enabled: row.get::<_, i64>("enabled")? != 0,
-    })
+fn provider_to_entry(p: &Provider) -> ProviderEntry {
+    ProviderEntry {
+        id: p.id.clone(),
+        name: p.name.clone(),
+        url: p.url.clone(),
+        last_updated: p.last_updated.clone(),
+        node_count: p.node_count,
+        traffic_total_gb: p.traffic_total_gb,
+        traffic_used_gb: p.traffic_used_gb,
+        expires_at: p.expires_at.clone(),
+        auto_update_interval: p.auto_update_interval,
+        nodes: Vec::new(),
+    }
+}
+
+fn node_entry_to_node(entry: &NodeEntry, provider_id: &str) -> Node {
+    Node {
+        id: entry.id.clone(),
+        name: entry.name.clone(),
+        provider_id: provider_id.to_string(),
+        r#type: entry.node_type.clone(),
+        server: entry.server.clone(),
+        port: entry.port,
+        delay: entry.delay,
+        enabled: entry.enabled,
+    }
 }
 
 #[tauri::command]
-pub fn add_provider(state: State<DbState>, provider: Provider) -> Result<(), String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    conn.execute(
-        "INSERT INTO providers (id, name, url, last_updated, node_count, traffic_total_gb, traffic_used_gb, expires_at, auto_update_interval)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-        rusqlite::params![
-            provider.id,
-            provider.name,
-            provider.url,
-            provider.last_updated,
-            provider.node_count as i64,
-            provider.traffic_total_gb,
-            provider.traffic_used_gb,
-            provider.expires_at,
-            provider.auto_update_interval.map(|v| v as i64),
-        ],
-    )
-    .map_err(|e| format!("Failed to add provider: {}", e))?;
-    Ok(())
+pub fn add_provider(state: State<AureConfigState>, provider: Provider) -> Result<(), String> {
+    state.get_mut_and_save(|cfg| {
+        cfg.providers.push(provider_to_entry(&provider));
+    })
 }
 
 #[tauri::command]
 pub fn update_provider(
-    state: State<DbState>,
+    state: State<AureConfigState>,
     id: String,
     updates: Provider,
 ) -> Result<(), String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    conn.execute(
-        "UPDATE providers SET name=?1, url=?2, last_updated=?3, node_count=?4,
-         traffic_total_gb=?5, traffic_used_gb=?6, expires_at=?7, auto_update_interval=?8
-         WHERE id=?9",
-        rusqlite::params![
-            updates.name,
-            updates.url,
-            updates.last_updated,
-            updates.node_count as i64,
-            updates.traffic_total_gb,
-            updates.traffic_used_gb,
-            updates.expires_at,
-            updates.auto_update_interval.map(|v| v as i64),
-            id,
-        ],
-    )
-    .map_err(|e| format!("Failed to update provider: {}", e))?;
-    Ok(())
+    state.get_mut_and_save(|cfg| {
+        if let Some(p) = cfg.providers.iter_mut().find(|p| p.id == id) {
+            p.name = updates.name;
+            p.url = updates.url;
+            p.last_updated = updates.last_updated;
+            p.node_count = updates.node_count;
+            p.traffic_total_gb = updates.traffic_total_gb;
+            p.traffic_used_gb = updates.traffic_used_gb;
+            p.expires_at = updates.expires_at;
+            p.auto_update_interval = updates.auto_update_interval;
+        }
+    })
 }
 
 #[tauri::command]
-pub fn delete_provider(state: State<DbState>, id: String) -> Result<(), String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM nodes WHERE provider_id = ?1", [&id])
-        .map_err(|e| format!("Failed to delete nodes: {}", e))?;
-    conn.execute("DELETE FROM providers WHERE id = ?1", [&id])
-        .map_err(|e| format!("Failed to delete provider: {}", e))?;
-    Ok(())
+pub fn delete_provider(state: State<AureConfigState>, id: String) -> Result<(), String> {
+    state.get_mut_and_save(|cfg| {
+        cfg.providers.retain(|p| p.id != id);
+        // Clean up latency cache entries for this provider
+        let prefix = format!("{}:", id);
+        cfg.latency_cache.retain(|k, _| !k.starts_with(&prefix));
+    })
 }
 
 #[tauri::command]
-pub fn get_providers(state: State<DbState>) -> Result<Vec<Provider>, String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare("SELECT id, name, url, last_updated, node_count, traffic_total_gb, traffic_used_gb, expires_at, auto_update_interval FROM providers")
-        .map_err(|e| format!("Failed to prepare statement: {}", e))?;
-    let providers = stmt
-        .query_map([], row_to_provider)
-        .map_err(|e| format!("Failed to query providers: {}", e))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("Failed to collect providers: {}", e))?;
-    Ok(providers)
+pub fn get_providers(state: State<AureConfigState>) -> Result<Vec<Provider>, String> {
+    let cfg = state.get();
+    Ok(cfg.providers.iter().map(provider_entry_to_provider).collect())
 }
 
 #[tauri::command]
-pub fn get_nodes(state: State<DbState>) -> Result<Vec<Node>, String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare("SELECT id, name, provider_id, type, server, port, delay, enabled FROM nodes")
-        .map_err(|e| format!("Failed to prepare statement: {}", e))?;
-    let nodes = stmt
-        .query_map([], row_to_node)
-        .map_err(|e| format!("Failed to query nodes: {}", e))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("Failed to collect nodes: {}", e))?;
+pub fn get_nodes(state: State<AureConfigState>) -> Result<Vec<Node>, String> {
+    let cfg = state.get();
+    let mut nodes = Vec::new();
+    for provider in &cfg.providers {
+        for node in &provider.nodes {
+            nodes.push(node_entry_to_node(node, &provider.id));
+        }
+    }
     Ok(nodes)
 }
 
 #[tauri::command]
 pub fn get_nodes_by_provider(
-    state: State<DbState>,
+    state: State<AureConfigState>,
     provider_id: String,
 ) -> Result<Vec<Node>, String> {
-    let conn = state.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare("SELECT id, name, provider_id, type, server, port, delay, enabled FROM nodes WHERE provider_id = ?1")
-        .map_err(|e| format!("Failed to prepare statement: {}", e))?;
-    let nodes = stmt
-        .query_map([&provider_id], row_to_node)
-        .map_err(|e| format!("Failed to query nodes: {}", e))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("Failed to collect nodes: {}", e))?;
-    Ok(nodes)
+    let cfg = state.get();
+    if let Some(provider) = cfg.providers.iter().find(|p| p.id == provider_id) {
+        Ok(provider
+            .nodes
+            .iter()
+            .map(|n| node_entry_to_node(n, &provider.id))
+            .collect())
+    } else {
+        Ok(Vec::new())
+    }
 }
 
 async fn tcp_latency_to_health_check_host() -> (Option<u32>, Option<String>) {
@@ -166,19 +149,16 @@ pub async fn test_node_latency(node_id: String, server: String, port: u16) -> La
 
 #[tauri::command]
 pub async fn test_all_nodes_latency(
-    state: State<'_, DbState>,
+    state: State<'_, AureConfigState>,
 ) -> Result<Vec<LatencyResult>, String> {
     let node_ids: Vec<String> = {
-        let conn = state.0.lock().map_err(|e| e.to_string())?;
-        let mut stmt = conn
-            .prepare("SELECT id FROM nodes WHERE enabled = 1")
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([], |row| row.get::<_, String>(0))
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-        rows
+        let cfg = state.get();
+        cfg.providers
+            .iter()
+            .flat_map(|p| &p.nodes)
+            .filter(|n| n.enabled)
+            .map(|n| n.id.clone())
+            .collect()
     };
 
     if node_ids.is_empty() {

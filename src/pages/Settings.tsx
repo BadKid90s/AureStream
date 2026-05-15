@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils'
 import { getVersion, type MihomoVersion } from 'tauri-plugin-mihomo-api'
 
 export function Settings() {
-  const { theme, toggleTheme, proxyBypassDomains, setProxyBypassDomains } = useAppStore()
+  const { theme, toggleTheme, proxyBypassDomains, setProxyBypassDomains,
+          autoStart, autoConnect, setAutoStart, setAutoConnect } = useAppStore()
   const [kernelVersion, setKernelVersion] = useState<MihomoVersion | null>(null)
   const [kernelError, setKernelError] = useState(false)
 
@@ -109,8 +110,8 @@ export function Settings() {
           </div>
           <div className="space-y-3">
             {[
-              { label: '开机自启动', desc: '应用启动时自动运行' },
-              { label: '自动连接', desc: '启动时自动连接上次使用的节点' },
+              { label: '开机自启动', desc: '应用启动时自动运行', checked: autoStart, onChange: setAutoStart },
+              { label: '自动连接', desc: '启动时自动连接上次使用的节点', checked: autoConnect, onChange: setAutoConnect },
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between py-1">
                 <div>
@@ -118,7 +119,12 @@ export function Settings() {
                   <div className="text-xs text-muted-foreground">{item.desc}</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" />
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={item.checked}
+                    onChange={(e) => item.onChange(e.target.checked)}
+                  />
                   <div className="w-10 h-6 rounded-full bg-black/10 dark:bg-white/10 peer-checked:bg-primary transition-colors duration-200" />
                   <div className="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 peer-checked:translate-x-4" />
                 </label>

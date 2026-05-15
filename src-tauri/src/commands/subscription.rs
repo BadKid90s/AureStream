@@ -1,4 +1,4 @@
-use crate::DbState;
+use crate::config::AureConfigState;
 use base64::Engine;
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
@@ -112,7 +112,7 @@ fn try_decode_base64(content: &[u8]) -> Option<Vec<u8>> {
 #[tauri::command]
 pub async fn download_subscription(
     app: AppHandle,
-    state: State<'_, DbState>,
+    state: State<'_, AureConfigState>,
     provider_id: String,
     url: String,
 ) -> Result<DownloadResult, String> {
@@ -223,7 +223,7 @@ pub async fn download_subscription(
         eprintln!("[subscription] content: {}", String::from_utf8_lossy(&content));
     }
 
-    // Update provider metadata in database if we got subscription info
+    // Update provider metadata in config if we got subscription info
     if let Some(ref meta) = meta {
         let traffic_total = meta.total_bytes.map(|b| b as f64 / (1024.0 * 1024.0 * 1024.0));
         let traffic_used = match (meta.upload_bytes, meta.download_bytes) {
@@ -231,27 +231,28 @@ pub async fn download_subscription(
             _ => None,
         };
         let expires_at = meta.expire_timestamp.map(|ts| {
-            // Convert Unix timestamp to ISO 8601 string
             let dt = chrono::DateTime::from_timestamp(ts as i64, 0)
                 .unwrap_or_default();
             dt.to_rfc3339()
         });
 
-        let conn = state.0.lock().map_err(|e| e.to_string())?;
-        let rows = conn.execute(
-            "UPDATE providers SET last_updated = datetime('now'), traffic_total_gb = ?1, traffic_used_gb = ?2, expires_at = ?3 WHERE id = ?4",
-            rusqlite::params![traffic_total, traffic_used, expires_at, provider_id],
-        )
-        .map_err(|e| format!("Failed to update provider metadata: {}", e))?;
-        eprintln!("[subscription] DB UPDATE rows_affected={}, provider_id={}, traffic_total={:?}, traffic_used={:?}, expires_at={:?}", rows, provider_id, traffic_total, traffic_used, expires_at);
+        eprintln!("[subscription] provider_id={}, traffic_total={:?}, traffic_used={:?}, expires_at={:?}", provider_id, traffic_total, traffic_used, expires_at);
+
+        state.get_mut_and_save(|cfg| {
+            if let Some(provider) = cfg.providers.iter_mut().find(|p| p.id == provider_id) {
+                provider.last_updated = chrono::Utc::now().to_rfc3339();
+                provider.traffic_total_gb = traffic_total;
+                provider.traffic_used_gb = traffic_used;
+                provider.expires_at = expires_at;
+            }
+        })?;
     } else {
         // Just update last_updated even if no metadata
-        let conn = state.0.lock().map_err(|e| e.to_string())?;
-        conn.execute(
-            "UPDATE providers SET last_updated = datetime('now') WHERE id = ?1",
-            [&provider_id],
-        )
-        .map_err(|e| format!("Failed to update provider: {}", e))?;
+        state.get_mut_and_save(|cfg| {
+            if let Some(provider) = cfg.providers.iter_mut().find(|p| p.id == provider_id) {
+                provider.last_updated = chrono::Utc::now().to_rfc3339();
+            }
+        })?;
     }
 
     let result = DownloadResult {

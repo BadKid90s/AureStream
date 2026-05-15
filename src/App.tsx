@@ -5,17 +5,31 @@ import { Dashboard } from '@/pages/Dashboard'
 import { Providers } from '@/pages/Providers'
 import { Settings } from '@/pages/Settings'
 import { useAppStore, useProxyStore } from '@/stores/appStore'
+import { downloadGeodata } from '@/lib/api'
 import { Toaster } from '@/components/ui/sonner'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const { theme } = useAppStore()
-  const loadProviders = useProxyStore((s) => s.loadProviders)
-  const initAutoUpdateTimers = useProxyStore((s) => s.initAutoUpdateTimers)
 
   useEffect(() => {
-    loadProviders().then(() => initAutoUpdateTimers())
-  }, [loadProviders, initAutoUpdateTimers])
+    // Load UI settings from YAML, then apply theme
+    useAppStore.getState().loadSettings().then(() => {
+      const { theme } = useAppStore.getState()
+      const root = document.documentElement
+      if (theme === 'dark') {
+        root.classList.add('dark')
+      } else {
+        root.classList.remove('dark')
+      }
+    })
+    // Load latency cache, then providers, then auto-update timers
+    useProxyStore.getState().loadCache()
+      .then(() => useProxyStore.getState().loadProviders())
+      .then(() => useProxyStore.getState().initAutoUpdateTimers())
+    // Pre-download GeoIP/GeoSite files (fire-and-forget, non-blocking)
+    downloadGeodata().catch((e) => console.warn('GeoIP 预下载失败:', e))
+  }, [])
 
   const openProviders = () => setCurrentPage('providers')
 

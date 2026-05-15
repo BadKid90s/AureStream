@@ -7,6 +7,57 @@ use tokio::sync::Mutex;
 
 use crate::commands::proxy::ProxyState;
 
+const GEODATA_URLS: &[(&str, &str)] = &[
+    ("geoip.db", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db"),
+    ("geoip-lite.db", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.db"),
+    ("country.mmdb", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"),
+    ("geosite.dat", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"),
+];
+
+/// 预下载 GeoIP/GeoSite 文件到 mihomo 工作目录，避免首次连接时内核阻塞下载。
+#[tauri::command]
+pub async fn download_geodata(app: AppHandle) -> Result<(), String> {
+    let work_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("无法获取本地数据目录: {}", e))?
+        .join("mihomo-work");
+    tokio::fs::create_dir_all(&work_dir)
+        .await
+        .map_err(|e| format!("创建工作目录失败: {}", e))?;
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("构建 HTTP 客户端失败: {}", e))?;
+
+    for (filename, url) in GEODATA_URLS {
+        let dest = work_dir.join(filename);
+        if dest.exists() {
+            continue;
+        }
+        eprintln!("[geodata] 下载 {} ...", filename);
+        match client.get(*url).send().await {
+            Ok(resp) => {
+                if !resp.status().is_success() {
+                    eprintln!("[geodata] 下载 {} 失败: HTTP {}", filename, resp.status());
+                    continue;
+                }
+                let bytes = resp.bytes().await.map_err(|e| format!("读取 {} 失败: {}", filename, e))?;
+                tokio::fs::write(&dest, &bytes)
+                    .await
+                    .map_err(|e| format!("写入 {} 失败: {}", filename, e))?;
+                eprintln!("[geodata] {} 下载完成 ({} bytes)", filename, bytes.len());
+            }
+            Err(e) => {
+                eprintln!("[geodata] 下载 {} 失败: {}", filename, e);
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub struct MihomoKernelState {
     inner: Mutex<Option<MihomoChild>>,
     /// 若为 true，表示上次成功连接时已由本应用开启系统代理，断开时应尝试关闭。
