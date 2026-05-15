@@ -5,7 +5,7 @@ export interface PageShellProps {
   children: React.ReactNode
   className?: string
   contentClassName?: string
-  /** 与仪表盘单页布局配合：占用 MainContent 内剩余高度并沿用 min-h-0 传递 */
+  /** 首页等：至少铺满主内容可视高度，超出部分交由 MainContent 滚动层滚动 */
   fillHeight?: boolean
   title?: string
   subtitle?: string
@@ -23,9 +23,9 @@ export function PageShell({
   return (
     <div
       className={cn(
-        'w-full max-w-4xl mx-auto',
-        fillHeight && 'flex flex-1 min-h-0 flex-col h-full',
-        className
+        'mx-auto w-full max-w-4xl',
+        fillHeight ? 'flex min-h-full flex-col' : '',
+        className,
       )}
     >
       {showHeader && (
@@ -41,8 +41,8 @@ export function PageShell({
       )}
       <div
         className={cn(
-          fillHeight && 'flex flex-1 min-h-0 flex-col overflow-hidden',
-          contentClassName
+          fillHeight && 'flex w-full flex-col',
+          contentClassName,
         )}
       >
         {children}

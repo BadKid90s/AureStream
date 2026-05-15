@@ -70,7 +70,7 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
 
   return (
     <PageShell fillHeight className="max-w-7xl" title="首页">
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex w-full min-h-0 overflow-hidden">
         {/* 中轴光晕背景 */}
         <div
           className={cn(
@@ -103,7 +103,7 @@ export function Dashboard({ onOpenProviders }: { onOpenProviders?: () => void })
           </section>
 
           {/* 右栏：信息展示区 */}
-          <section className="flex min-h-0 flex-col gap-3 overflow-y-auto px-4 md:border-l md:border-border/30 md:pl-6 lg:gap-4 lg:pl-8">
+          <section className="flex min-h-0 flex-col gap-3 px-4 md:border-l md:border-border/30 md:pl-6 lg:gap-4 lg:pl-8">
             <SubscriptionBlock provider={currentProvider} onOpenProviders={onOpenProviders} />
             <div className="border-t border-border/20" />
             <NetworkBlock connectedIp={connectedIp} />

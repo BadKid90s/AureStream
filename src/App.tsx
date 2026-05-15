@@ -48,9 +48,7 @@ function App() {
   return (
     <div className="flex h-screen bg-background overflow-hidden gap-3 pr-3">
       <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-      <MainContent scrollBody={currentPage !== 'dashboard'}>
-        {renderPage()}
-      </MainContent>
+      <MainContent>{renderPage()}</MainContent>
       <Toaster richColors />
     </div>
   )

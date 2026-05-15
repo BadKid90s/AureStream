@@ -44,25 +44,27 @@ export function Settings() {
       <div className="space-y-6">
         <div className="space-y-3">
         <SettingRow icon={Monitor} title="外观主题" description="选择浅色或深色模式">
-          <div className="flex rounded-xl bg-black/5 dark:bg-white/5 p-1 gap-1">
+          <div className="flex rounded-xl bg-muted p-1 gap-1">
             <button
+              type="button"
               onClick={() => theme !== 'light' && toggleTheme()}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border',
                 theme === 'light'
-                  ? "bg-white dark:bg-gray-800 shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? 'bg-card text-foreground shadow-sm border-border/50'
+                  : 'border-transparent text-muted-foreground hover:text-foreground',
               )}
             >
               <Sun className="w-3.5 h-3.5" /> 浅色
             </button>
             <button
+              type="button"
               onClick={() => theme !== 'dark' && toggleTheme()}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border',
                 theme === 'dark'
-                  ? "bg-white dark:bg-gray-800 shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? 'bg-card text-foreground shadow-sm border-border/50'
+                  : 'border-transparent text-muted-foreground hover:text-foreground',
               )}
             >
               <Moon className="w-3.5 h-3.5" /> 深色
