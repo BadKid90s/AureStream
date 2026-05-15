@@ -33,6 +33,11 @@
     ],
     "externalBin": [
       "binaries/mihomo"
-    ]
+    ],
+    "windows": {
+      "wix": {
+        "language": "zh-CN"
+      }
+    }
   }
 }

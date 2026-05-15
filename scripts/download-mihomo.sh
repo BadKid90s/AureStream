@@ -6,7 +6,7 @@ REPO="MetaCubeX/mihomo"
 BINARIES_DIR="$(cd "$(dirname "$0")/../src-tauri/binaries" && pwd)"
 
 # Mirror URL: set MIHOMO_MIRROR env to override (e.g. https://mirror.ghproxy.com)
-MIRROR="${MIHOMO_MIRROR:-https://github.com}"
+MIRROR="${MIHOMO_MIRROR:-https://gh-proxy.org/https://github.com}"
 BASE_URL="${MIRROR}/${REPO}/releases/download/${MIHOMO_VERSION}"
 
 detect_platform() {
