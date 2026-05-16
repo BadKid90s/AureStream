@@ -1,14 +1,14 @@
-import * as React from 'react'
-import { cn } from '@/lib/utils'
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 export interface PageShellProps {
-  children: React.ReactNode
-  className?: string
-  contentClassName?: string
+  children: React.ReactNode;
+  className?: string;
+  contentClassName?: string;
   /** 首页等：至少铺满主内容可视高度，超出部分交由 MainContent 滚动层滚动 */
-  fillHeight?: boolean
-  title?: string
-  subtitle?: string
+  fillHeight?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
 export function PageShell({
@@ -18,12 +18,12 @@ export function PageShell({
   fillHeight,
   title,
 }: PageShellProps) {
-  const showHeader = Boolean(title)
+  const showHeader = Boolean(title);
 
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-4xl flex flex-col h-full min-h-0',
+        "mx-auto w-full max-w-4xl flex flex-col h-full min-h-0",
         className,
       )}
     >
@@ -40,13 +40,13 @@ export function PageShell({
       )}
       <div
         className={cn(
-          'flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable] [padding-bottom:max(2rem,env(safe-area-inset-bottom,0px)+0.75rem)] sm:[padding-bottom:max(3rem,env(safe-area-inset-bottom,0px)+0.75rem)]',
-          fillHeight && 'flex w-full flex-col',
+          "flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable] [padding-bottom:max(2rem,env(safe-area-inset-bottom,0px)+0.75rem)] sm:[padding-bottom:max(3rem,env(safe-area-inset-bottom,0px)+0.75rem)]",
+          fillHeight && "flex w-full flex-col",
           contentClassName,
         )}
       >
         {children}
       </div>
     </div>
-  )
+  );
 }

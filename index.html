@@ -8,8 +8,15 @@
   </head>
 
   <style>
-    body { margin: 0; background-color: #fafafa; }
-    @media (prefers-color-scheme: dark) { body { background-color: #09090b; } }
+    body {
+      margin: 0;
+      background-color: #fafafa;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #09090b;
+      }
+    }
     #root:empty {
       display: flex;
       justify-content: center;
@@ -25,7 +32,11 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
   </style>
   <body>
     <div id="root"></div>

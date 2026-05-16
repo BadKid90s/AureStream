@@ -28,8 +28,9 @@
 1. **主出口组** `mainGroupName`：在 Mihomo 里作为用户选节点的挂载点（每次用户切换节点 → 对该组调用 `selectNodeForGroup`）。
 2. **扁平列表**：只展示「叶子代理」（可连的那类 `type`），不展示组。
 3. **数据双轨（择一为主，另一兜底）**：
-  - **优先 A（推荐）**：内核已启动并成功 `reload` 当前订阅后，用 `**getProxies()` / `getGroups()`** 拉取实时结构，推导叶子代理与合法 `nodeName`。
-  - **兜底 B**：订阅下载保存 YAML 后，在 Rust 侧解析 `proxies:` 段落，写入本地 `nodes` 表，供未连接时展示与测速（与现有 `Node` 类型对齐）；连接后再以 A 校准名称。
+
+- **优先 A（推荐）**：内核已启动并成功 `reload` 当前订阅后，用 `**getProxies()` / `getGroups()`\*\* 拉取实时结构，推导叶子代理与合法 `nodeName`。
+- **兜底 B**：订阅下载保存 YAML 后，在 Rust 侧解析 `proxies:` 段落，写入本地 `nodes` 表，供未连接时展示与测速（与现有 `Node` 类型对齐）；连接后再以 A 校准名称。
 
 这样与现有 **Zustand `currentNode` + `NodePickerDialog`** 一致，只需把 **列表数据源** 从「空表」改为「API 或解析结果」。
 
@@ -40,14 +41,16 @@
 订阅差异大，建议 **多级回退**（按顺序尝试，成功则锁定到本次运行或持久化到本地设置）：
 
 1. **用户设置（最高优先级）**
-  设置页增加可选项：「主策略组名称」，高级用户手动填 Mihomo 里真实组名（如 `🔰 节点选择`、`PROXY`）。
+   设置页增加可选项：「主策略组名称」，高级用户手动填 Mihomo 里真实组名（如 `🔰 节点选择`、`PROXY`）。
 2. **规则推断**
-  对当前配置调用 `getRules()`（若插件/API 暴露）或读取已加载配置的 rules，找到 `**MATCH`** 所指的那一项，若为 `Selector`，其名字可作为 `mainGroupName` 候选。
-3. `**getGroups()` 推断**
-  - 优先：`type === Selector`（或等价）且 `**all`** 中包含最多「叶子代理名」的组；  
-  - 或：名称命中常见关键字（如 `SELECT`、`节点选择`、`PROXY`，可配置同义词表）。
+   对当前配置调用 `getRules()`（若插件/API 暴露）或读取已加载配置的 rules，找到 `**MATCH`\*\* 所指的那一项，若为 `Selector`，其名字可作为 `mainGroupName` 候选。
+3. `**getGroups()` 推断\*\*
+
+- 优先：`type === Selector`（或等价）且 `**all`\*\* 中包含最多「叶子代理名」的组；
+- 或：名称命中常见关键字（如 `SELECT`、`节点选择`、`PROXY`，可配置同义词表）。
+
 4. **硬编码默认**
-  最后尝试 `PROXY`、`Proxy`、`GLOBAL` 等（易误伤，仅作兜底）。
+   最后尝试 `PROXY`、`Proxy`、`GLOBAL` 等（易误伤，仅作兜底）。
 
 **持久化**：解析成功后把 `mainGroupName` 存 `appStore` + 可选 `localStorage`/Rust settings，下次启动直接用；若 `selectNodeForGroup` 返回错误则重新走推断。
 
@@ -73,14 +76,12 @@
 
 ## 5. 与现有 UI / 状态的对齐
 
-
-| 现有能力               | 调整                                                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `NodePickerDialog` | `list` 改为来自 **API 或解析** 的扁平列表；`handlePick` 内除 `setCurrentNode` 外，若 **已连接** 则 `await selectNodeForGroup(mainGroupName, node.name)`。    |
-| 左栏节点胶囊             | 仍绑定 `currentNode`；展示名、延迟与插件 `delayProxyByName` 或本地缓存一致。                                                                               |
-| 一键测速               | 对已连接：对当前列表逐个 `delayProxyByName(name, testUrl, timeout)`，写回 store；未连接可只对 YAML 解析出的 server:port 做 TCP 测速（现有 `test_node_latency`）或提示先连接。 |
-| `connect()`        | 连接成功并 `reload` 后：**解析 `mainGroupName`**；若尚无 `currentNode`，可默认选列表第一项或上次记忆；并执行一次 `selectNodeForGroup`。                                  |
-
+| 现有能力           | 调整                                                                                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NodePickerDialog` | `list` 改为来自 **API 或解析** 的扁平列表；`handlePick` 内除 `setCurrentNode` 外，若 **已连接** 则 `await selectNodeForGroup(mainGroupName, node.name)`。                     |
+| 左栏节点胶囊       | 仍绑定 `currentNode`；展示名、延迟与插件 `delayProxyByName` 或本地缓存一致。                                                                                                  |
+| 一键测速           | 对已连接：对当前列表逐个 `delayProxyByName(name, testUrl, timeout)`，写回 store；未连接可只对 YAML 解析出的 server:port 做 TCP 测速（现有 `test_node_latency`）或提示先连接。 |
+| `connect()`        | 连接成功并 `reload` 后：**解析 `mainGroupName`**；若尚无 `currentNode`，可默认选列表第一项或上次记忆；并执行一次 `selectNodeForGroup`。                                       |
 
 ---
 
@@ -108,7 +109,7 @@
 
 - **订阅自定义组名**：无设置时推断可能失败 → 必须有设置项与清晰错误文案（「请在设置中填写主策略组名称」）。
 - **代理名重复**：极少见；以 Mihomo 内部唯一名为准。
-- `**URLTest` 组**：产品若完全隐藏组，用户选叶子后仍应对 **Selector** 类主组操作；不要将 `URLTest` 当成用户直接切换对象，除非只做只读展示自动结果（首版可不展示）。
+- `**URLTest` 组**：产品若完全隐藏组，用户选叶子后仍应对 **Selector\*\* 类主组操作；不要将 `URLTest` 当成用户直接切换对象，除非只做只读展示自动结果（首版可不展示）。
 
 ---
 

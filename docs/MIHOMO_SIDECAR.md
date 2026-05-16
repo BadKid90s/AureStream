@@ -21,6 +21,7 @@
 **限制**：非 macOS 平台当前不修改系统代理；异常崩溃或未走正常断开流程时，系统代理可能残留；本实现不保存用户原有的代理设置（会在连接时被覆盖）。
 
 节点选择（连接成功后）：
+
 - **`getProxies`** 筛出叶子代理写入 Zustand `nodes`，`id/name` 与内核代理名一致；副标题若无 `server/port`（API 不提供）则显示协议类型；
 - 「一键测速」对已连接：**`delayGroup('Aure_Node_Selector', …)`**，与内置模板测速 URL 对齐；
 - 点选：**`selectNodeForGroup('Aure_Node_Selector', 节点名)`**；

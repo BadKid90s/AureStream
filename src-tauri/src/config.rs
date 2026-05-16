@@ -93,13 +93,12 @@ impl AureConfigState {
             .app_config_dir()
             .map_err(|e| format!("无法获取配置目录: {}", e))?;
 
-        std::fs::create_dir_all(&config_dir)
-            .map_err(|e| format!("创建配置目录失败: {}", e))?;
+        std::fs::create_dir_all(&config_dir).map_err(|e| format!("创建配置目录失败: {}", e))?;
 
         let path = config_dir.join("aureway.yaml");
         let config = if path.exists() {
-            let text = std::fs::read_to_string(&path)
-                .map_err(|e| format!("读取配置文件失败: {}", e))?;
+            let text =
+                std::fs::read_to_string(&path).map_err(|e| format!("读取配置文件失败: {}", e))?;
             serde_yaml::from_str(&text).unwrap_or_else(|e| {
                 warn!("[config] 解析 aureway.yaml 失败，使用默认值: {}", e);
                 AureConfig::default()
@@ -125,14 +124,12 @@ impl AureConfigState {
     }
 
     fn save_inner(&self, config: &AureConfig) -> Result<(), String> {
-        let text = serde_yaml::to_string(config)
-            .map_err(|e| format!("序列化配置失败: {}", e))?;
+        let text = serde_yaml::to_string(config).map_err(|e| format!("序列化配置失败: {}", e))?;
 
         let tmp_path = self.path.with_extension("yaml.tmp");
         std::fs::write(&tmp_path, text.as_bytes())
             .map_err(|e| format!("写入配置文件失败: {}", e))?;
-        std::fs::rename(&tmp_path, &self.path)
-            .map_err(|e| format!("重命名配置文件失败: {}", e))?;
+        std::fs::rename(&tmp_path, &self.path).map_err(|e| format!("重命名配置文件失败: {}", e))?;
 
         Ok(())
     }

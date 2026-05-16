@@ -1,7 +1,7 @@
-import * as React from "react"
+import * as React from "react";
 
 interface MainContentProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 /** 所有页面统一在本层（#root 主内容壳内的 div.relative）纵向滚动，避免 body/嵌套区域双滚动条。 */
@@ -13,5 +13,5 @@ export function MainContent({ children }: MainContentProps) {
         {children}
       </div>
     </div>
-  )
+  );
 }

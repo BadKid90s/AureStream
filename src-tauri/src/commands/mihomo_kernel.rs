@@ -10,10 +10,22 @@ use tokio::sync::Mutex;
 use crate::commands::proxy::ProxyState;
 
 const GEODATA_URLS: &[(&str, &str)] = &[
-    ("geoip.db", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db"),
-    ("geoip-lite.db", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.db"),
-    ("country.mmdb", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"),
-    ("geosite.dat", "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"),
+    (
+        "geoip.db",
+        "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db",
+    ),
+    (
+        "geoip-lite.db",
+        "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.db",
+    ),
+    (
+        "country.mmdb",
+        "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb",
+    ),
+    (
+        "geosite.dat",
+        "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat",
+    ),
 ];
 
 /// 预下载 GeoIP/GeoSite 文件到 mihomo 工作目录，避免首次连接时内核阻塞下载。
@@ -45,7 +57,10 @@ pub async fn download_geodata(app: AppHandle) -> Result<(), String> {
                     warn!("[geodata] 下载 {} 失败: HTTP {}", filename, resp.status());
                     continue;
                 }
-                let bytes = resp.bytes().await.map_err(|e| format!("读取 {} 失败: {}", filename, e))?;
+                let bytes = resp
+                    .bytes()
+                    .await
+                    .map_err(|e| format!("读取 {} 失败: {}", filename, e))?;
                 tokio::fs::write(&dest, &bytes)
                     .await
                     .map_err(|e| format!("写入 {} 失败: {}", filename, e))?;
@@ -97,11 +112,7 @@ async fn wait_for_controller_ready() -> Result<(), String> {
         if std::time::Instant::now() >= deadline {
             break;
         }
-        match client
-            .get("http://127.0.0.1:9090/version")
-            .send()
-            .await
-        {
+        match client.get("http://127.0.0.1:9090/version").send().await {
             Ok(r) if r.status().is_success() => return Ok(()),
             _ => tokio::time::sleep(std::time::Duration::from_millis(250)).await,
         }
@@ -158,7 +169,12 @@ pub async fn start_mihomo_kernel(
     let sidecar = app
         .shell()
         .sidecar("mihomo")
-        .map_err(|e| format!("加载 Mihomo sidecar 失败: {}（开发环境请确认已下载 binaries）", e))?
+        .map_err(|e| {
+            format!(
+                "加载 Mihomo sidecar 失败: {}（开发环境请确认已下载 binaries）",
+                e
+            )
+        })?
         .args(["-f", &cfg_str, "-d", &work_str]);
 
     let (mut rx, child) = sidecar
@@ -166,7 +182,10 @@ pub async fn start_mihomo_kernel(
         .map_err(|e| format!("启动 Mihomo 进程失败: {}", e))?;
 
     // Mihomo 日志写入独立文件
-    let mihomo_log_dir = app.path().app_log_dir().map_err(|e| format!("无法获取日志目录: {}", e))?;
+    let mihomo_log_dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|e| format!("无法获取日志目录: {}", e))?;
     let _ = tokio::fs::create_dir_all(&mihomo_log_dir).await;
     let mihomo_log_file = mihomo_log_dir.join("mihomo.log");
 
@@ -223,13 +242,13 @@ pub async fn start_mihomo_kernel(
         .lock()
         .map_err(|e| e.to_string())?
         .clone();
-    match tokio::task::spawn_blocking(move || crate::commands::system_proxy::apply_platform(&proxy_config))
+    match tokio::task::spawn_blocking(move || {
+        crate::commands::system_proxy::apply_platform(&proxy_config)
+    })
     .await
     {
         Ok(Ok(())) => {
-            state
-                .system_proxy_managed
-                .store(true, Ordering::SeqCst);
+            state.system_proxy_managed.store(true, Ordering::SeqCst);
         }
         Ok(Err(err)) => {
             warn!(
@@ -261,11 +280,10 @@ pub(crate) async fn stop_mihomo_sidecar(state: &MihomoKernelState) -> Result<(),
     };
 
     if kill_result.is_ok() && state.system_proxy_managed.load(Ordering::SeqCst) {
-        match tokio::task::spawn_blocking(|| crate::commands::system_proxy::clear_platform()).await {
+        match tokio::task::spawn_blocking(|| crate::commands::system_proxy::clear_platform()).await
+        {
             Ok(Ok(())) => {
-                state
-                    .system_proxy_managed
-                    .store(false, Ordering::SeqCst);
+                state.system_proxy_managed.store(false, Ordering::SeqCst);
             }
             Ok(Err(e)) => warn!(
                 "[system-proxy] 关闭系统代理失败: {}（请在系统「网络」设置中手动关闭代理）",

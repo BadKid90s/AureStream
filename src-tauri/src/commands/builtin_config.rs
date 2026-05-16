@@ -1,9 +1,9 @@
 //! 内置 Clash/Mihomo 运行时配置：`proxy-providers` 使用本地 YAML（type: file）+ 固定规则与单一 Selector。
 //! Mihomo 要求 `path` 必须位于 `-d` 工作目录（及其 SAFE_PATHS）之下，因此从应用配置目录的订阅文件**复制**到 `mihomo-work/subscriptions/` 再写入配置。
 
+use super::allocate_high_random_port;
 use super::mihomo_constants::LATENCY_TEST_URL;
 use super::proxy::ProxyState;
-use super::allocate_high_random_port;
 use serde_yaml::{Mapping, Value};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State};
@@ -23,10 +23,7 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
         Value::String("mixed-port".to_string()),
         Value::Number(mixed_port.into()),
     );
-    root.insert(
-        Value::String("ipv6".to_string()),
-        Value::Bool(false),
-    );
+    root.insert(Value::String("ipv6".to_string()), Value::Bool(false));
     root.insert(
         Value::String("mode".to_string()),
         Value::String("rule".to_string()),
@@ -35,10 +32,7 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
         Value::String("log-level".to_string()),
         Value::String("info".to_string()),
     );
-    root.insert(
-        Value::String("allow-lan".to_string()),
-        Value::Bool(false),
-    );
+    root.insert(Value::String("allow-lan".to_string()), Value::Bool(false));
     root.insert(
         Value::String("external-controller".to_string()),
         Value::String(EXTERNAL_CONTROLLER.to_string()),
@@ -51,19 +45,31 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
     let mut geox_url = Mapping::new();
     geox_url.insert(
         Value::String("geoip".to_string()),
-        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db".to_string()),
+        Value::String(
+            "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db"
+                .to_string(),
+        ),
     );
     geox_url.insert(
         Value::String("geoip-lite".to_string()),
-        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.db".to_string()),
+        Value::String(
+            "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.db"
+                .to_string(),
+        ),
     );
     geox_url.insert(
         Value::String("mmdb".to_string()),
-        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb".to_string()),
+        Value::String(
+            "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+                .to_string(),
+        ),
     );
     geox_url.insert(
         Value::String("geosite".to_string()),
-        Value::String("https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat".to_string()),
+        Value::String(
+            "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+                .to_string(),
+        ),
     );
     root.insert(
         Value::String("geox-url".to_string()),
@@ -94,7 +100,10 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
         Value::String("interval".to_string()),
         Value::Number(3600.into()),
     );
-    prov.insert(Value::String("health-check".to_string()), Value::Mapping(hc));
+    prov.insert(
+        Value::String("health-check".to_string()),
+        Value::Mapping(hc),
+    );
 
     let mut providers = Mapping::new();
     providers.insert(

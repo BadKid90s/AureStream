@@ -104,7 +104,9 @@ fn try_decode_base64(content: &[u8]) -> Option<Vec<u8>> {
     if trimmed.starts_with('{') || trimmed.starts_with('-') || trimmed.contains(':') {
         return None;
     }
-    let decoded = base64::engine::general_purpose::STANDARD.decode(trimmed).ok()?;
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(trimmed)
+        .ok()?;
     // Verify the decoded content is valid UTF-8
     std::str::from_utf8(&decoded).ok()?;
     Some(decoded)
@@ -136,8 +138,7 @@ pub async fn download_subscription(
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let base_url = reqwest::Url::parse(&url)
-        .map_err(|e| format!("Invalid URL: {}", e))?;
+    let base_url = reqwest::Url::parse(&url).map_err(|e| format!("Invalid URL: {}", e))?;
 
     let mut response = client
         .get(url.clone())
@@ -162,11 +163,18 @@ pub async fn download_subscription(
     let mut current_url = base_url;
     while response.status().is_redirection() && redirect_count < 10 {
         if let Some(location) = response.headers().get("location") {
-            let location_str = location.to_str().map_err(|e| format!("Invalid redirect location: {}", e))?;
+            let location_str = location
+                .to_str()
+                .map_err(|e| format!("Invalid redirect location: {}", e))?;
             // Resolve relative URLs against the current URL
-            let resolved = current_url.join(location_str)
+            let resolved = current_url
+                .join(location_str)
                 .map_err(|e| format!("Failed to resolve redirect URL: {}", e))?;
-            info!("[subscription] Redirect {} -> {}", response.status(), resolved);
+            info!(
+                "[subscription] Redirect {} -> {}",
+                response.status(),
+                resolved
+            );
             response = client
                 .get(resolved.clone())
                 .header("User-Agent", "clash-verge/v2.2.3")
@@ -218,25 +226,35 @@ pub async fn download_subscription(
     debug!("[subscription] header_meta: {:?}", meta);
     debug!("[subscription] content length: {} bytes", content.len());
     if content.len() > 200 {
-        debug!("[subscription] content preview: {}", String::from_utf8_lossy(&content[..200]));
+        debug!(
+            "[subscription] content preview: {}",
+            String::from_utf8_lossy(&content[..200])
+        );
     } else {
-        debug!("[subscription] content: {}", String::from_utf8_lossy(&content));
+        debug!(
+            "[subscription] content: {}",
+            String::from_utf8_lossy(&content)
+        );
     }
 
     // Update provider metadata in config if we got subscription info
     if let Some(ref meta) = meta {
-        let traffic_total = meta.total_bytes.map(|b| b as f64 / (1024.0 * 1024.0 * 1024.0));
+        let traffic_total = meta
+            .total_bytes
+            .map(|b| b as f64 / (1024.0 * 1024.0 * 1024.0));
         let traffic_used = match (meta.upload_bytes, meta.download_bytes) {
             (Some(up), Some(down)) => Some((up + down) as f64 / (1024.0 * 1024.0 * 1024.0)),
             _ => None,
         };
         let expires_at = meta.expire_timestamp.map(|ts| {
-            let dt = chrono::DateTime::from_timestamp(ts as i64, 0)
-                .unwrap_or_default();
+            let dt = chrono::DateTime::from_timestamp(ts as i64, 0).unwrap_or_default();
             dt.to_rfc3339()
         });
 
-        info!("[subscription] provider_id={}, traffic_total={:?}, traffic_used={:?}, expires_at={:?}", provider_id, traffic_total, traffic_used, expires_at);
+        info!(
+            "[subscription] provider_id={}, traffic_total={:?}, traffic_used={:?}, expires_at={:?}",
+            provider_id, traffic_total, traffic_used, expires_at
+        );
 
         state.get_mut_and_save(|cfg| {
             if let Some(provider) = cfg.providers.iter_mut().find(|p| p.id == provider_id) {
@@ -261,7 +279,10 @@ pub async fn download_subscription(
         meta,
         debug_headers,
     };
-    info!("[subscription] Returning DownloadResult: meta={:?}", result.meta);
+    info!(
+        "[subscription] Returning DownloadResult: meta={:?}",
+        result.meta
+    );
     Ok(result)
 }
 
@@ -287,10 +308,7 @@ pub async fn get_subscription_path(
 }
 
 #[tauri::command]
-pub async fn delete_subscription_file(
-    app: AppHandle,
-    provider_id: String,
-) -> Result<(), String> {
+pub async fn delete_subscription_file(app: AppHandle, provider_id: String) -> Result<(), String> {
     let config_dir = app
         .path()
         .app_config_dir()

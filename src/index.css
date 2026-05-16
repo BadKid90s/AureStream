@@ -26,9 +26,12 @@
   --color-glass-medium: rgba(255, 255, 255, 0.65);
   --color-glass-light: rgba(255, 255, 255, 0.4);
   --color-glass-border: rgba(255, 255, 255, 0.6);
-  --shadow-glass: 0 8px 32px rgba(59, 130, 246, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-glass-hover: 0 12px 40px rgba(59, 130, 246, 0.14), 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.28), 0 0 80px rgba(59, 130, 246, 0.1);
+  --shadow-glass:
+    0 8px 32px rgba(59, 130, 246, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-glass-hover:
+    0 12px 40px rgba(59, 130, 246, 0.14), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-glow:
+    0 0 40px rgba(59, 130, 246, 0.28), 0 0 80px rgba(59, 130, 246, 0.1);
 }
 
 .dark {
@@ -55,8 +58,10 @@
   --color-glass-light: rgba(10, 10, 10, 0.4);
   --color-glass-border: rgba(255, 255, 255, 0.08);
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-glass-hover: 0 12px 40px rgba(59, 130, 246, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.15), 0 0 80px rgba(59, 130, 246, 0.04);
+  --shadow-glass-hover:
+    0 12px 40px rgba(59, 130, 246, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-glow:
+    0 0 40px rgba(59, 130, 246, 0.15), 0 0 80px rgba(59, 130, 246, 0.04);
 }
 
 * {
@@ -84,7 +89,12 @@ body {
   color: var(--color-foreground);
   margin: 0;
   min-height: 100vh;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   overflow: hidden;
 }
 
@@ -151,44 +161,73 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-  .glass-hover:hover {
-    box-shadow: var(--shadow-glass-hover);
-    border-color: rgba(59, 130, 246, 0.3);
-    transform: translateY(-1px);
-  }
-
+.glass-hover:hover {
+  box-shadow: var(--shadow-glass-hover);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+}
 
 /* Background gradient decor */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(79, 70, 229, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.03) 0%, transparent 40%);
+    radial-gradient(
+      ellipse at 20% 20%,
+      rgba(59, 130, 246, 0.04) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 80%,
+      rgba(79, 70, 229, 0.03) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(59, 130, 246, 0.03) 0%,
+      transparent 40%
+    );
   pointer-events: none;
   z-index: -1;
 }
 
 .dark body::before {
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(30, 58, 138, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 0%, rgba(15, 23, 42, 0.2) 0%, transparent 40%);
+    radial-gradient(
+      ellipse at 20% 20%,
+      rgba(59, 130, 246, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 80%,
+      rgba(30, 58, 138, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(15, 23, 42, 0.2) 0%,
+      transparent 40%
+    );
 }
 
 /* Smooth transition for theme switching */
-*, *::before, *::after {
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* Breathing animations for ConnectButton */
 @keyframes breathing-idle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.12;
     transform: translate(-50%, -50%) scale(0.95);
   }
@@ -199,7 +238,8 @@ body::before {
 }
 
 @keyframes breathing-active {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.18;
     transform: translate(-50%, -50%) scale(0.95);
   }
@@ -219,13 +259,23 @@ body::before {
 
 /* Center-axis glow — radiates outward from the ConnectButton */
 @keyframes axis-glow-idle {
-  0%, 100% { opacity: 0.03; }
-  50% { opacity: 0.08; }
+  0%,
+  100% {
+    opacity: 0.03;
+  }
+  50% {
+    opacity: 0.08;
+  }
 }
 
 @keyframes axis-glow-active {
-  0%, 100% { opacity: 0.06; }
-  50% { opacity: 0.15; }
+  0%,
+  100% {
+    opacity: 0.06;
+  }
+  50% {
+    opacity: 0.15;
+  }
 }
 
 .animate-axis-glow-idle {
@@ -238,13 +288,25 @@ body::before {
 
 /* State transition animations for left panel content */
 @keyframes fade-in-down {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in-down {

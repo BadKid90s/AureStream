@@ -60,10 +60,7 @@ pub fn set_current_node(state: State<ProxyState>, node_name: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn update_proxy_config(
-    state: State<ProxyState>,
-    config: ProxyConfig,
-) -> Result<(), String> {
+pub fn update_proxy_config(state: State<ProxyState>, config: ProxyConfig) -> Result<(), String> {
     let mut current_config = state.config.lock().map_err(|e| e.to_string())?;
     *current_config = config;
     Ok(())
@@ -82,14 +79,22 @@ pub fn update_tray_menu(
     is_connected: bool,
 ) -> Result<(), String> {
     let tray = app.tray_by_id("main").ok_or("Tray not found")?;
-    
-    let show_i = tauri::menu::MenuItem::with_id(&app, "show", "显示主界面", true, None::<&str>).map_err(|e| e.to_string())?;
-    let quit_i = tauri::menu::MenuItem::with_id(&app, "quit", "退出应用", true, None::<&str>).map_err(|e| e.to_string())?;
+
+    let show_i = tauri::menu::MenuItem::with_id(&app, "show", "显示主界面", true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let quit_i = tauri::menu::MenuItem::with_id(&app, "quit", "退出应用", true, None::<&str>)
+        .map_err(|e| e.to_string())?;
 
     let mut all_items: Vec<tauri::menu::MenuItem<tauri::Wry>> = Vec::new();
     if is_connected {
         for node in &nodes {
-            if let Ok(item) = tauri::menu::MenuItem::with_id(&app, format!("node_{}", node.id), node.name.clone(), true, None::<&str>) {
+            if let Ok(item) = tauri::menu::MenuItem::with_id(
+                &app,
+                format!("node_{}", node.id),
+                node.name.clone(),
+                true,
+                None::<&str>,
+            ) {
                 all_items.push(item);
             }
         }
@@ -108,13 +113,15 @@ pub fn update_tray_menu(
                 let start = i * 30 + 1;
                 let end = start + chunk.len() - 1;
                 let group_name = format!("节点 {} - {}", start, end);
-                
+
                 let mut chunk_refs: Vec<&dyn tauri::menu::IsMenuItem<_>> = Vec::new();
                 for item in chunk {
                     chunk_refs.push(item as &dyn tauri::menu::IsMenuItem<_>);
                 }
-                
-                if let Ok(submenu) = tauri::menu::Submenu::with_items(&app, group_name, true, &chunk_refs) {
+
+                if let Ok(submenu) =
+                    tauri::menu::Submenu::with_items(&app, group_name, true, &chunk_refs)
+                {
                     group_submenus.push(submenu);
                 }
             }
@@ -124,10 +131,16 @@ pub fn update_tray_menu(
         }
     }
 
-    let switch_title = if is_connected { "切换节点" } else { "尚未连接" };
-    let switch_i = tauri::menu::Submenu::with_items(&app, switch_title, is_connected, &refs).map_err(|e| e.to_string())?;
-    
-    let menu = tauri::menu::Menu::with_items(&app, &[&show_i, &switch_i, &quit_i]).map_err(|e| e.to_string())?;
+    let switch_title = if is_connected {
+        "切换节点"
+    } else {
+        "尚未连接"
+    };
+    let switch_i = tauri::menu::Submenu::with_items(&app, switch_title, is_connected, &refs)
+        .map_err(|e| e.to_string())?;
+
+    let menu = tauri::menu::Menu::with_items(&app, &[&show_i, &switch_i, &quit_i])
+        .map_err(|e| e.to_string())?;
     tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
 
     Ok(())

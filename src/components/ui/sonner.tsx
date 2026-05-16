@@ -1,10 +1,10 @@
-import { Toaster as Sonner } from "sonner"
-import { useAppStore } from "@/stores/appStore"
+import { Toaster as Sonner } from "sonner";
+import { useAppStore } from "@/stores/appStore";
 
-type ToasterProps = React.ComponentProps<typeof Sonner>
+type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const theme = useAppStore((s) => s.theme)
+  const theme = useAppStore((s) => s.theme);
 
   return (
     <Sonner
@@ -24,7 +24,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       {...props}
     />
-  )
-}
+  );
+};
 
-export { Toaster }
+export { Toaster };

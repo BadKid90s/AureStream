@@ -1,11 +1,11 @@
 pub mod builtin_config;
 pub mod mihomo_constants;
 pub mod mihomo_kernel;
-pub mod settings;
-mod system_proxy;
-pub mod proxy;
 pub mod provider;
+pub mod proxy;
+pub mod settings;
 pub mod subscription;
+mod system_proxy;
 
 use serde::{Deserialize, Serialize};
 use std::net::TcpListener;
@@ -32,8 +32,8 @@ impl Default for ProxyConfig {
 
 /// 分配一个随机可用端口，用于本地回环监听。
 pub(crate) fn allocate_high_random_port() -> Result<u16, String> {
-    let listener = TcpListener::bind(("127.0.0.1", 0))
-        .map_err(|e| format!("分配本地端口失败: {}", e))?;
+    let listener =
+        TcpListener::bind(("127.0.0.1", 0)).map_err(|e| format!("分配本地端口失败: {}", e))?;
     let port = listener
         .local_addr()
         .map_err(|e| format!("读取本地端口失败: {}", e))?

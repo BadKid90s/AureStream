@@ -85,7 +85,11 @@ pub fn delete_provider(state: State<AureConfigState>, id: String) -> Result<(), 
 #[tauri::command]
 pub fn get_providers(state: State<AureConfigState>) -> Result<Vec<Provider>, String> {
     let cfg = state.get();
-    Ok(cfg.providers.iter().map(provider_entry_to_provider).collect())
+    Ok(cfg
+        .providers
+        .iter()
+        .map(provider_entry_to_provider)
+        .collect())
 }
 
 #[tauri::command]
@@ -127,10 +131,7 @@ async fn tcp_latency_to_health_check_host() -> (Option<u32>, Option<String>) {
     )
     .await
     {
-        Ok(Ok(_)) => (
-            Some(start.elapsed().as_millis() as u32),
-            None::<String>,
-        ),
+        Ok(Ok(_)) => (Some(start.elapsed().as_millis() as u32), None::<String>),
         Ok(Err(e)) => (None, Some(e.to_string())),
         Err(_) => (None, Some("Connection timeout".to_string())),
     }
