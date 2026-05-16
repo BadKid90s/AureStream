@@ -112,11 +112,11 @@ export async function deleteSubscriptionFile(providerId: string): Promise<void> 
   return await invoke<void>('delete_subscription_file', { providerId })
 }
 
-export async function buildAureproxyMihomoConfig(providerId: string): Promise<string> {
-  return await invoke<string>('build_aureproxy_mihomo_config', { providerId })
+export async function buildAurewayMihomoConfig(providerId: string): Promise<string> {
+  return await invoke<string>('build_aureway_mihomo_config', { providerId })
 }
 
-/** 启动或重启 Mihomo sidecar（使用 buildAureproxyMihomoConfig 生成的配置绝对路径） */
+/** 启动或重启 Mihomo sidecar（使用 buildAurewayMihomoConfig 生成的配置绝对路径） */
 export async function startMihomoKernel(patchedConfigPath: string): Promise<void> {
   return await invoke<void>('start_mihomo_kernel', { patchedConfigPath })
 }

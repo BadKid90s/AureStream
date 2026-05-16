@@ -1,7 +1,7 @@
 mod commands;
 mod config;
 
-use commands::builtin_config::build_aureproxy_mihomo_config;
+use commands::builtin_config::build_aureway_mihomo_config;
 use commands::mihomo_kernel::{download_geodata, start_mihomo_kernel, stop_mihomo_kernel, MihomoKernelState};
 use commands::proxy::{get_proxy_config, get_proxy_status, set_current_node, start_proxy, stop_proxy, update_proxy_config, update_tray_menu, ProxyState};
 use commands::provider::{add_provider, delete_provider, get_nodes, get_nodes_by_provider, get_providers, test_all_nodes_latency, test_node_latency, update_provider};
@@ -52,7 +52,7 @@ pub fn run() {
             .or_else(|_| std::env::var("APPDATA"))
             .unwrap_or_else(|_| ".".to_string()),
     )
-    .join("com.root.aureproxy")
+    .join("com.root.aureway")
     .join("logs");
 
     tauri::Builder::default()
@@ -66,7 +66,7 @@ pub fn run() {
                     // 应用日志写入文件（排除 mihomo 标签的输出）
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Folder {
                         path: log_dir.clone(),
-                        file_name: Some("aureproxy".to_string()),
+                        file_name: Some("aureway".to_string()),
                     })
                     .filter(|metadata| metadata.target() != "mihomo"),
                     // 控制台输出（dev 模式可见，排除 mihomo）
@@ -80,8 +80,8 @@ pub fn run() {
         )
         .setup(move |app| {
             // 打印日志目录，方便定位
-            eprintln!("[aureproxy] 日志目录: {}", log_dir.display());
-            info!("AureProxy 启动中...");
+            eprintln!("[aureway] 日志目录: {}", log_dir.display());
+            info!("Aureway 启动中...");
             let config_state = AureConfigState::load(app.handle())?;
             app.manage(config_state);
             app.manage(ProxyState::default());
@@ -170,7 +170,7 @@ pub fn run() {
             download_subscription,
             get_subscription_path,
             delete_subscription_file,
-            build_aureproxy_mihomo_config,
+            build_aureway_mihomo_config,
             start_mihomo_kernel,
             stop_mihomo_kernel,
             download_geodata,

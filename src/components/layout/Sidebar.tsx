@@ -30,7 +30,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       <div className="relative flex flex-col items-center pt-5 pb-3">
         <div
           className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/30 ring-2 ring-white/25 dark:ring-white/10"
-          title="AureProxy"
+          title="Aureway"
         >
           <Zap className="w-5 h-5 text-white" aria-hidden />
         </div>

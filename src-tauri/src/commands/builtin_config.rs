@@ -141,10 +141,10 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
     Value::Mapping(root)
 }
 
-/// 写入 `runtime/aureproxy-mihomo.yaml`：`proxy-providers.type: file` 的 `path` 为 **`mihomo-work/subscriptions/<provider_id>.yaml`**（内核 `-d` 下，符合 SAFE_PATH）。
+/// 写入 `runtime/aureway-mihomo.yaml`：`proxy-providers.type: file` 的 `path` 为 **`mihomo-work/subscriptions/<provider_id>.yaml`**（内核 `-d` 下，符合 SAFE_PATH）。
 /// 数据源仍为应用配置目录下 `subscriptions/<provider_id>.yaml`（按 `download_subscription` 写入），此处每次生成配置时做一次复制以同步最新内容。
 #[tauri::command]
-pub async fn build_aureproxy_mihomo_config(
+pub async fn build_aureway_mihomo_config(
     app: AppHandle,
     provider_id: String,
     proxy_state: State<'_, ProxyState>,
@@ -207,7 +207,7 @@ pub async fn build_aureproxy_mihomo_config(
         .await
         .map_err(|e| format!("创建 runtime 目录失败: {}", e))?;
 
-    let out: PathBuf = runtime_dir.join("aureproxy-mihomo.yaml");
+    let out: PathBuf = runtime_dir.join("aureway-mihomo.yaml");
     tokio::fs::write(&out, text.as_bytes())
         .await
         .map_err(|e| format!("写入运行配置失败: {}", e))?;

@@ -12,7 +12,7 @@ import {
   deleteSubscriptionFile,
   getSubscriptionPath,
   testNodeLatency,
-  buildAureproxyMihomoConfig,
+  buildAurewayMihomoConfig,
   startMihomoKernel,
   stopProxy,
   updateProxyConfig,
@@ -476,7 +476,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       await startProxy()
 
       // 对齐 external-controller、启动 Mihomo sidecar（内部轮询 API 就绪）
-      const runtimePath = await buildAureproxyMihomoConfig(currentProvider.id)
+      const runtimePath = await buildAurewayMihomoConfig(currentProvider.id)
       await startMihomoKernel(runtimePath)
 
       // 刷新节点列表，若首次为空（provider 尚未加载），重试最多 5 次
@@ -737,7 +737,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         try {
           const sp = await getSubscriptionPath(id)
           if (sp) {
-            const runtimePath = await buildAureproxyMihomoConfig(id)
+            const runtimePath = await buildAurewayMihomoConfig(id)
             await reloadConfig(true, runtimePath)
             await get().refreshSubscriptionNodesFromMihomo()
           }
@@ -766,7 +766,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     try {
       const path = await getSubscriptionPath(provider.id)
       if (path) {
-        const runtimePath = await buildAureproxyMihomoConfig(provider.id)
+        const runtimePath = await buildAurewayMihomoConfig(provider.id)
         if (get().isConnected) {
           await reloadConfig(true, runtimePath)
           await get().refreshSubscriptionNodesFromMihomo()

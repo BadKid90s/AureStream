@@ -113,7 +113,7 @@ async fn wait_for_controller_ready() -> Result<(), String> {
     )
 }
 
-/// 启动（或重启）Mihomo sidecar，使用 `build_aureproxy_mihomo_config` 生成的运行时配置路径。
+/// 启动（或重启）Mihomo sidecar，使用 `build_aureway_mihomo_config` 生成的运行时配置路径。
 #[tauri::command]
 pub async fn start_mihomo_kernel(
     app: AppHandle,
@@ -123,7 +123,7 @@ pub async fn start_mihomo_kernel(
 ) -> Result<(), String> {
     let config = PathBuf::from(&patched_config_path);
     if !config.is_file() {
-        return Err("运行配置不存在，请先调用 build_aureproxy_mihomo_config".to_string());
+        return Err("运行配置不存在，请先调用 build_aureway_mihomo_config".to_string());
     }
 
     let work_dir = app
@@ -171,7 +171,7 @@ pub async fn start_mihomo_kernel(
             .or_else(|_| std::env::var("APPDATA"))
             .unwrap_or_else(|_| ".".to_string()),
     )
-    .join("com.root.aureproxy")
+    .join("com.root.aureway")
     .join("logs");
     let _ = tokio::fs::create_dir_all(&mihomo_log_dir).await;
     let mihomo_log_file = mihomo_log_dir.join("mihomo.log");

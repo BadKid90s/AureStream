@@ -22,7 +22,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>()
   return {
     ...actual,
-    buildAureproxyMihomoConfig: vi.fn().mockResolvedValue('/mock/runtime/aureproxy-mihomo.yaml'),
+    buildAurewayMihomoConfig: vi.fn().mockResolvedValue('/mock/runtime/aureway-mihomo.yaml'),
     startMihomoKernel: vi.fn().mockResolvedValue(undefined),
     stopProxy: vi.fn().mockResolvedValue('ok'),
   }
