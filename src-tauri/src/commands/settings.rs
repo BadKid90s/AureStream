@@ -36,12 +36,14 @@ pub fn save_app_settings(
     })
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub fn load_latency_cache(state: State<AureConfigState>) -> Result<HashMap<String, u32>, String> {
     let cfg = state.get();
     Ok(cfg.latency_cache.clone())
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 pub fn save_latency_cache(
     state: State<AureConfigState>,

@@ -5,7 +5,6 @@ import { Dashboard } from '@/pages/Dashboard'
 import { Providers } from '@/pages/Providers'
 import { Settings } from '@/pages/Settings'
 import { useAppStore, useProxyStore } from '@/stores/appStore'
-import { downloadGeodata } from '@/lib/api'
 import { loadPersistedState } from '@/lib/persistStore'
 import { Toaster } from '@/components/ui/sonner'
 import { listen } from '@tauri-apps/api/event'
@@ -25,11 +24,10 @@ function App() {
 
   useEffect(() => {
     const init = async () => {
-      // 阶段 1：并行加载设置、延迟缓存、GeoData
+      // 阶段 1：并行加载设置和延迟缓存
       await Promise.allSettled([
         useAppStore.getState().loadSettings(),
         useProxyStore.getState().loadCache(),
-        downloadGeodata(),
       ])
 
       // 应用 theme

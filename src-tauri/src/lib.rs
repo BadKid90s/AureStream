@@ -5,7 +5,7 @@ use commands::builtin_config::build_aureproxy_mihomo_config;
 use commands::mihomo_kernel::{download_geodata, start_mihomo_kernel, stop_mihomo_kernel, MihomoKernelState};
 use commands::proxy::{get_proxy_config, get_proxy_status, set_current_node, start_proxy, stop_proxy, update_proxy_config, update_tray_menu, ProxyState};
 use commands::provider::{add_provider, delete_provider, get_nodes, get_nodes_by_provider, get_providers, test_all_nodes_latency, test_node_latency, update_provider};
-use commands::settings::{load_app_settings, load_latency_cache, save_app_settings, save_latency_cache};
+use commands::settings::{load_app_settings, save_app_settings};
 use commands::subscription::{delete_subscription_file, download_subscription, get_subscription_path};
 use config::AureConfigState;
 use log::info;
@@ -88,6 +88,14 @@ pub fn run() {
             app.manage(MihomoKernelState::default());
             info!("应用状态初始化完成");
 
+            // 后台异步预下载 GeoIP/GeoSite（不阻塞启动）
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = download_geodata(app_handle).await {
+                    log::warn!("GeoData 预下载失败: {}", e);
+                }
+            });
+
             // 托盘菜单
             let show_i = tauri::menu::MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
             let switch_i = tauri::menu::Submenu::with_items(app, "切换节点", true, &[] as &[&dyn tauri::menu::IsMenuItem<_>])?;
@@ -168,8 +176,6 @@ pub fn run() {
             download_geodata,
             load_app_settings,
             save_app_settings,
-            load_latency_cache,
-            save_latency_cache,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
