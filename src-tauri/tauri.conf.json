@@ -15,7 +15,8 @@
         "title": "Aureway",
         "width": 1000,
         "height": 800,
-        "resizable": false
+        "resizable": false,
+        "skipTaskbar": false
       }
     ],
     "security": {

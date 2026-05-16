@@ -19,7 +19,55 @@ use commands::subscription::{
 };
 use config::AureConfigState;
 use log::info;
-use tauri::{Emitter, Manager};
+#[cfg(target_os = "macos")]
+use tauri::ActivationPolicy;
+use tauri::{Emitter, Manager, Runtime, Window};
+
+/// 关主窗口进入托盘（不退出进程）。平台约定见 `docs/PLATFORM_TRAY_MODE.md`。
+///
+/// | 平台 | 行为 |
+/// | --- | --- |
+/// | Windows / Linux | Tauri 文档：`CloseRequested` + `prevent_close` + [`Window::hide`]；任务栏见窗口配置 [`skipTaskbar`] / 运行时 [`Window::set_skip_taskbar`] |
+/// | macOS | [`AppHandle::set_activation_policy`]（`Accessory`），与官方文档示例一致 |
+///
+/// [`Window::hide`]: https://docs.rs/tauri/latest/tauri/window/struct.Window.html#method.hide
+/// [`skipTaskbar`]: https://v2.tauri.app/reference/config/#windowconfig
+/// [`Window::set_skip_taskbar`]: https://docs.rs/tauri/latest/tauri/window/struct.Window.html#method.set_skip_taskbar
+/// [`AppHandle::set_activation_policy`]: https://docs.rs/tauri/latest/tauri/struct.AppHandle.html#method.set_activation_policy
+fn enter_tray_mode<R: Runtime>(window: &Window<R>) {
+    if let Err(e) = window.hide() {
+        log::warn!("进入托盘模式时隐藏窗口失败: {}", e);
+    }
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    if let Err(e) = window.set_skip_taskbar(true) {
+        log::warn!("进入托盘模式时 set_skip_taskbar(true) 失败: {}", e);
+    }
+    #[cfg(target_os = "macos")]
+    if let Err(e) = window
+        .app_handle()
+        .set_activation_policy(ActivationPolicy::Accessory)
+    {
+        log::warn!("进入托盘模式时设置 ActivationPolicy 失败: {}", e);
+    }
+}
+
+/// 从托盘恢复主界面。
+fn show_main_window<R: Runtime>(app: &tauri::AppHandle<R>) {
+    #[cfg(target_os = "macos")]
+    if let Err(e) = app.set_activation_policy(ActivationPolicy::Regular) {
+        log::warn!("显示主窗口时设置 ActivationPolicy 失败: {}", e);
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
+        if let Err(e) = window.set_skip_taskbar(false) {
+            log::warn!("显示主窗口时 set_skip_taskbar(false) 失败: {}", e);
+        }
+        if let Err(e) = window.show() {
+            log::warn!("显示主窗口失败: {}", e);
+        }
+        let _ = window.set_focus();
+    }
+}
 
 /// `tauri-plugin-mihomo` 内用 reqwest 访问 `127.0.0.1:9090`；若进程继承系统代理（指向本机 mixed-port），
 /// 这些请求会错误走代理，导致 `/proxies`、组延迟测试等全部失败。在创建插件/任意 HTTP 客户端之前写入 NO_PROXY。
@@ -118,10 +166,7 @@ pub fn run() {
                 .on_menu_event(|app, event| {
                     let id = event.id.as_ref();
                     if id == "show" {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        show_main_window(&app);
                     } else if id == "quit" {
                         app.exit(0);
                     } else if id.starts_with("node_") {
@@ -142,10 +187,7 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        show_main_window(&app);
                     }
                 })
                 .build(app)?;
@@ -154,8 +196,8 @@ pub fn run() {
         })
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
-                let _ = window.hide();
                 api.prevent_close();
+                enter_tray_mode(window);
             }
             _ => {}
         })
