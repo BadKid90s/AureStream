@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State};
 
 /// 与模板中 proxy-groups.name 一致，供前端 selectNodeForGroup / getGroupByName 使用
-pub const AURE_NODE_SELECTOR: &str = "Aure_Node_Selector";
-const PROXY_PROVIDER_KEY: &str = "Aure_Sub";
+pub const AURESTREAM_NODE_SELECTOR: &str = "AureStream_Node_Selector";
+const PROXY_PROVIDER_KEY: &str = "AureStream_Sub";
 const EXTERNAL_CONTROLLER: &str = "127.0.0.1:9090";
 
 fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port: u16) -> Value {
@@ -118,7 +118,7 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
     let mut group = Mapping::new();
     group.insert(
         Value::String("name".to_string()),
-        Value::String(AURE_NODE_SELECTOR.to_string()),
+        Value::String(AURESTREAM_NODE_SELECTOR.to_string()),
     );
     group.insert(
         Value::String("type".to_string()),
@@ -140,7 +140,7 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
         "GEOIP,private,DIRECT".to_string(),
         "GEOIP,CN,DIRECT".to_string(),
         "GEOSITE,cn,DIRECT".to_string(),
-        format!("MATCH,{}", AURE_NODE_SELECTOR),
+        format!("MATCH,{}", AURESTREAM_NODE_SELECTOR),
     ];
     root.insert(
         Value::String("rules".to_string()),
@@ -150,10 +150,10 @@ fn build_config_value(subscription_file_absolute: &str, listen: &str, mixed_port
     Value::Mapping(root)
 }
 
-/// 写入 `runtime/aureway-mihomo.yaml`：`proxy-providers.type: file` 的 `path` 为 **`mihomo-work/subscriptions/<provider_id>.yaml`**（内核 `-d` 下，符合 SAFE_PATH）。
+/// 写入 `runtime/aurestream-mihomo.yaml`：`proxy-providers.type: file` 的 `path` 为 **`mihomo-work/subscriptions/<provider_id>.yaml`**（内核 `-d` 下，符合 SAFE_PATH）。
 /// 数据源仍为应用配置目录下 `subscriptions/<provider_id>.yaml`（按 `download_subscription` 写入），此处每次生成配置时做一次复制以同步最新内容。
 #[tauri::command]
-pub async fn build_aureway_mihomo_config(
+pub async fn build_aurestream_mihomo_config(
     app: AppHandle,
     provider_id: String,
     proxy_state: State<'_, ProxyState>,
@@ -216,7 +216,7 @@ pub async fn build_aureway_mihomo_config(
         .await
         .map_err(|e| format!("创建 runtime 目录失败: {}", e))?;
 
-    let out: PathBuf = runtime_dir.join("aureway-mihomo.yaml");
+    let out: PathBuf = runtime_dir.join("aurestream-mihomo.yaml");
     tokio::fs::write(&out, text.as_bytes())
         .await
         .map_err(|e| format!("写入运行配置失败: {}", e))?;

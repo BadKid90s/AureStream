@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AureProxy is a cross-platform desktop proxy client built on the mihomo kernel. It uses Tauri 2.0 (Rust backend) + React 19 + TypeScript + Tailwind CSS v4 + shadcn/ui (Radix). The UI uses a glassmorphism design language with light/dark theme support.
+AureStream is a cross-platform desktop proxy client built on the mihomo kernel. It uses Tauri 2.0 (Rust backend) + React 19 + TypeScript + Tailwind CSS v4 + shadcn/ui (Radix). The UI uses a glassmorphism design language with light/dark theme support.
 
 ## Quick Start
 
@@ -159,7 +159,7 @@ Parallel TypeScript definitions with camelCase naming convention for JSON serial
 1. Use seed data during development (`src/data/seed.ts`)
 2. Run `npm run dev:desktop` for full Tauri integration
 3. Hot reload works for both frontend and backend changes
-4. Database migrations handled automatically via Tauri setup
+4. SQLite schema is applied when the app initializes (no backward-compat relocation of legacy install paths).
 
 **Testing Strategy:**
 
@@ -232,19 +232,14 @@ Parallel TypeScript definitions with camelCase naming convention for JSON serial
 - Check Tauri developer tools console output
 - Monitor SQLite database contents for data integrity issues
 
-## Future Work (TODO Items)
+## Future Work
 
-Based on `docs/TODO.md`:
-
-1. **UI Polish**: Node name truncation/long text handling
-2. **Latency Testing**: Loading animation during speed tests
-3. **Real Traffic Stats**: Connect to Mihomo's actual traffic metrics
-4. **IP Geolocation**: Display current exit IP and location info
-5. **Storage Optimization**: Replace SQLite with lighter persistence layer
+Tracked in `docs/README.md`（章节「后续改进」）.
 
 ## Documentation References
 
 - `README.md`: User-facing feature overview and quick start
+- `docs/README.md`: Documentation index and backlog
 - `docs/SPEC.md`: Detailed technical specifications and design decisions
 - `docs/DESIGN.md`: Architecture overview and technology rationale
-- `docs/FEATURE_*.md`: Individual feature implementations and enhancements
+- `docs/FEATURE_*.md` / `docs/MIHOMO_SIDECAR.md` / `docs/PLATFORM_TRAY_MODE.md`: Feature and platform notes

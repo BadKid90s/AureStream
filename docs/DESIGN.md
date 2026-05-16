@@ -1,8 +1,10 @@
-# AureProxy 技术方案与功能设计
+# AureStream 技术方案与功能设计
+
+文档索引见 [README.md](README.md)。
 
 **版本**: 2.0  
 **日期**: 2026-05-14  
-**项目**: AureProxy — 基于 Mihomo 内核的跨平台代理软件  
+**项目**: AureStream — 基于 Mihomo 内核的跨平台代理软件  
 **技术栈**: Tauri 2.0 + React 19 + TypeScript + Tailwind CSS v4 + shadcn/ui + Zustand 5
 
 ---
@@ -11,7 +13,7 @@
 
 ### 1.1 背景
 
-AureProxy 是一款基于 MetaCubeX/mihomo 内核的跨平台代理客户端，提供订阅管理、节点选择、延迟测试、流量监控等核心功能。设计参考 Surge/Nextin 等主流代理客户端，采用 PC 桌面黄金比例布局 + 移动端信息架构的跨平台中性设计语言。
+AureStream 是一款基于 MetaCubeX/mihomo 内核的跨平台代理客户端，提供订阅管理、节点选择、延迟测试、流量监控等核心功能。设计参考 Surge/Nextin 等主流代理客户端，采用 PC 桌面黄金比例布局 + 移动端信息架构的跨平台中性设计语言。
 
 ### 1.2 核心功能
 

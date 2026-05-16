@@ -1,4 +1,4 @@
-# AureProxy Build Makefile
+# AureStream Build Makefile
 # Usage:
 #   make dev              - 开发模式（Tauri dev）
 #   make build            - 构建当前平台的安装包
@@ -209,7 +209,7 @@ clean-build:
 .PHONY: help
 help:
 	@echo ""
-	@echo "AureProxy 构建系统"
+	@echo "AureStream 构建系统"
 	@echo "=================="
 	@echo ""
 	@echo "  make dev                    启动开发模式 (Tauri dev + 热重载)"

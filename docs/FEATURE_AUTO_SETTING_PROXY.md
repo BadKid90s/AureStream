@@ -1,10 +1,10 @@
-这是一份为您量身撰写的 **AureProxy 系统代理接管方案**。本方案摒弃了存在缺陷的第三方简易库，采用商业级代理软件（如 Clash Verge、V2rayN）的底层原生调用标准，确保 HTTP、HTTPS 和 SOCKS5 全协议完美接管。
+这是一份为您量身撰写的 **AureStream 系统代理接管方案**。本方案摒弃了存在缺陷的第三方简易库，采用商业级代理软件（如 Clash Verge、V2rayN）的底层原生调用标准，确保 HTTP、HTTPS 和 SOCKS5 全协议完美接管。
 
 你可以直接将其作为内部开发文档、提测标准下发给前端和 Rust 研发人员。
 
 ---
 
-# AureProxy 系统代理接管方案 (System Proxy Takeover Plan)
+# AureStream 系统代理接管方案 (System Proxy Takeover Plan)
 
 **版本号**: v1.1.0
 **模块负责人**: Tauri 研发组 / 前端研发组
@@ -25,7 +25,7 @@
 
 ## 1. 方案背景与设计核心
 
-Mihomo 内核启动后，仅会在本地开启 `127.0.0.1:7890` 的混合监听端口。将操作系统流量引导至该端口，是 AureProxy 客户端的核心职责。
+Mihomo 内核启动后，仅会在本地开启 `127.0.0.1:7890` 的混合监听端口。将操作系统流量引导至该端口，是 AureStream 客户端的核心职责。
 
 **本方案的核心设计原则：**
 
@@ -246,9 +246,9 @@ export const NetworkManager = {
    */
   async connect(nodeName: string) {
     try {
-      // 1. 确保内核运行 (AureProxy_Core_Group 为底层唯一锚定组)
+      // 1. 确保内核运行（内置模板导出组：`AureStream_Node_Selector`）
       await startMihomoCore();
-      await selectNodeForGroup("AureProxy_Core_Group", nodeName);
+      await selectNodeForGroup("AureStream_Node_Selector", nodeName);
 
       // 2. 接管系统流量
       await invoke("enable_system_proxy");
@@ -288,4 +288,4 @@ export const NetworkManager = {
 | **SOCKS5 接管测试**  | Win / Mac | 开启代理后，直接打开 Telegram（网络设置保持“使用系统代理”）。                    | Telegram 无需任何手动设置，瞬间显示为“已连接”并刷新消息。                                |
 | **系统配置落盘测试** | Win       | 打开 Windows `设置 -> 网络和 Internet -> 代理`。                                 | “使用代理服务器”开关为开。点击编辑，里面显示的内容必须包含 HTTP, HTTPS, SOCKS 协议字样。 |
 | **系统配置落盘测试** | Mac       | 打开 `系统设置 -> 网络 -> Wi-Fi -> 详细信息 -> 代理`。                           | 网页代理(HTTP)、安全网页代理(HTTPS)、**SOCKS 代理**，三个开关全部处于勾选开启状态。      |
-| **灾难恢复测试**     | Win / Mac | 在处于“已连接”的状态下，通过任务管理器强制杀掉 AureProxy 或点击右上角 `X` 关闭。 | 操作系统的代理设置瞬间恢复为空，使用 Chrome 打开百度/淘宝等网页能正常访问（未断网）。    |
+| **灾难恢复测试**     | Win / Mac | 在处于“已连接”的状态下，通过任务管理器强制杀掉 AureStream 或点击右上角 `X` 关闭。 | 操作系统的代理设置瞬间恢复为空，使用 Chrome 打开百度/淘宝等网页能正常访问（未断网）。    |

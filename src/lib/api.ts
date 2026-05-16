@@ -136,13 +136,13 @@ export async function deleteSubscriptionFile(
   return await invoke<void>("delete_subscription_file", { providerId });
 }
 
-export async function buildAurewayMihomoConfig(
+export async function buildAureStreamMihomoConfig(
   providerId: string,
 ): Promise<string> {
-  return await invoke<string>("build_aureway_mihomo_config", { providerId });
+  return await invoke<string>("build_aurestream_mihomo_config", { providerId });
 }
 
-/** 启动或重启 Mihomo sidecar（使用 buildAurewayMihomoConfig 生成的配置绝对路径） */
+/** 启动或重启 Mihomo sidecar（使用 buildAureStreamMihomoConfig 生成的配置绝对路径） */
 export async function startMihomoKernel(
   patchedConfigPath: string,
 ): Promise<void> {

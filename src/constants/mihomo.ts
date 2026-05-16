@@ -6,8 +6,8 @@ export const MIHOMO_LATENCY_TEST_URL =
 export const MIHOMO_LATENCY_TEST_TCP_HOST = "www.gstatic.com" as const;
 export const MIHOMO_LATENCY_TEST_TCP_PORT = 443 as const;
 
-/** 与后端 `builtin_config::AURE_NODE_SELECTOR` 一致；选节点时传给 selectNodeForGroup */
-export const AURE_NODE_SELECTOR = "Aure_Node_Selector";
+/** 与后端 `builtin_config::AURESTREAM_NODE_SELECTOR` 一致；选节点时传给 selectNodeForGroup */
+export const AURESTREAM_NODE_SELECTOR = "AureStream_Node_Selector";
 
 /** 系统代理排除列表（Settings 默认值，逗号分隔） */
 export const DEFAULT_PROXY_BYPASS_DOMAINS =

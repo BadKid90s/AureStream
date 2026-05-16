@@ -1,12 +1,12 @@
 /**
  * 基于 tauri-plugin-store 的持久化层
  *
- * 将原来的单一 aureway.yaml 拆分为 3 个独立的 JSON store：
+ * 后端主配置使用 `aurestream.yaml`，与用户侧轻量持久化拆分：以下为 3 个独立的 JSON store：
  * - settings.json:   轻量 UI 设置（theme, autoConnect 等）
  * - state.json:      运行状态恢复（上次选中的 provider/node、是否已连接）
  * - latency-cache.json: 延迟测速缓存（频繁写入，独立隔离）
  *
- * providers 数据继续由后端 aureway.yaml 管理（通过 IPC 读写）。
+ * providers 数据继续由后端 `aurestream.yaml` 管理（通过 IPC 读写）。
  */
 
 import { Store } from "@tauri-apps/plugin-store";

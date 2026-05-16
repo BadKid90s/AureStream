@@ -12,7 +12,7 @@ import {
   deleteSubscriptionFile,
   getSubscriptionPath,
   testNodeLatency,
-  buildAurewayMihomoConfig,
+  buildAureStreamMihomoConfig,
   startMihomoKernel,
   stopProxy,
   updateProxyConfig,
@@ -33,7 +33,7 @@ import {
   selectNodeForGroup,
 } from "tauri-plugin-mihomo-api";
 import {
-  AURE_NODE_SELECTOR,
+  AURESTREAM_NODE_SELECTOR,
   DEFAULT_PROXY_BYPASS_DOMAINS,
   MIHOMO_LATENCY_TEST_URL,
 } from "@/constants/mihomo";
@@ -449,7 +449,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     set({ currentNode: node });
     if (!node || !get().isConnected) return;
     try {
-      await selectNodeForGroup(AURE_NODE_SELECTOR, node.name);
+      await selectNodeForGroup(AURESTREAM_NODE_SELECTOR, node.name);
     } catch (e) {
       console.error("切换节点失败:", e);
     }
@@ -465,7 +465,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       const leafNodes = mihomoProxiesToNodes(raw, currentProvider.id);
       let groupNow: string | undefined;
       try {
-        const grp = await getGroupByName(AURE_NODE_SELECTOR);
+        const grp = await getGroupByName(AURESTREAM_NODE_SELECTOR);
         groupNow = grp?.now;
       } catch {
         // 内核尚未建好组时可忽略
@@ -494,7 +494,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       set({ nodes: merged, currentNode: next });
       if (next && groupNow !== next.name) {
         try {
-          await selectNodeForGroup(AURE_NODE_SELECTOR, next.name);
+          await selectNodeForGroup(AURESTREAM_NODE_SELECTOR, next.name);
         } catch (e) {
           console.warn("selectNodeForGroup 同步失败:", e);
         }
@@ -547,7 +547,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       await startProxy();
 
       // 对齐 external-controller、启动 Mihomo sidecar（内部轮询 API 就绪）
-      const runtimePath = await buildAurewayMihomoConfig(currentProvider.id);
+      const runtimePath = await buildAureStreamMihomoConfig(currentProvider.id);
       await startMihomoKernel(runtimePath);
 
       // 刷新节点列表，若首次为空（provider 尚未加载），重试最多 5 次
@@ -703,7 +703,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       if (get().isConnected) {
         try {
           const delays = await delayGroup(
-            AURE_NODE_SELECTOR,
+            AURESTREAM_NODE_SELECTOR,
             MIHOMO_LATENCY_TEST_URL,
             8000,
             false,
@@ -832,7 +832,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         try {
           const sp = await getSubscriptionPath(id);
           if (sp) {
-            const runtimePath = await buildAurewayMihomoConfig(id);
+            const runtimePath = await buildAureStreamMihomoConfig(id);
             await reloadConfig(true, runtimePath);
             await get().refreshSubscriptionNodesFromMihomo();
           }
@@ -861,7 +861,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     try {
       const path = await getSubscriptionPath(provider.id);
       if (path) {
-        const runtimePath = await buildAurewayMihomoConfig(provider.id);
+        const runtimePath = await buildAureStreamMihomoConfig(provider.id);
         if (get().isConnected) {
           await reloadConfig(true, runtimePath);
           await get().refreshSubscriptionNodesFromMihomo();

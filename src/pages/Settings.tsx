@@ -184,7 +184,7 @@ export function Settings() {
                 <Info className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <div className="font-semibold text-sm">关于 Aureway</div>
+                <div className="font-semibold text-sm">关于 AureStream</div>
                 <div className="text-xs text-muted-foreground">
                   版本信息与内核状态
                 </div>

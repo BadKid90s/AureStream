@@ -13,7 +13,7 @@ vi.mock("tauri-plugin-mihomo-api", () => ({
   getGroups: vi.fn().mockResolvedValue({}),
   getGroupByName: vi
     .fn()
-    .mockResolvedValue({ name: "Aure_Node_Selector", now: undefined }),
+    .mockResolvedValue({ name: "AureStream_Node_Selector", now: undefined }),
   selectNodeForGroup: vi.fn().mockResolvedValue(undefined),
   delayGroup: vi.fn().mockResolvedValue({}),
   closeAllConnections: vi.fn().mockResolvedValue(undefined),
@@ -24,9 +24,9 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    buildAurewayMihomoConfig: vi
+    buildAureStreamMihomoConfig: vi
       .fn()
-      .mockResolvedValue("/mock/runtime/aureway-mihomo.yaml"),
+      .mockResolvedValue("/mock/runtime/aurestream-mihomo.yaml"),
     startMihomoKernel: vi.fn().mockResolvedValue(undefined),
     stopProxy: vi.fn().mockResolvedValue("ok"),
   };

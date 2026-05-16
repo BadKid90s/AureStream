@@ -1,6 +1,6 @@
-# AureProxy
+# AureStream
 
-基于 mihomo 内核的跨平台代理软件。
+完整文档目录与后续改进见 [README.md](README.md)。
 
 ## 技术栈
 

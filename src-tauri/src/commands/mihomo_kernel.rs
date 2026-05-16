@@ -124,7 +124,7 @@ async fn wait_for_controller_ready() -> Result<(), String> {
     )
 }
 
-/// 启动（或重启）Mihomo sidecar，使用 `build_aureway_mihomo_config` 生成的运行时配置路径。
+/// 启动（或重启）Mihomo sidecar，使用 `build_aurestream_mihomo_config` 生成的运行时配置路径。
 #[tauri::command]
 pub async fn start_mihomo_kernel(
     app: AppHandle,
@@ -134,7 +134,7 @@ pub async fn start_mihomo_kernel(
 ) -> Result<(), String> {
     let config = PathBuf::from(&patched_config_path);
     if !config.is_file() {
-        return Err("运行配置不存在，请先调用 build_aureway_mihomo_config".to_string());
+        return Err("运行配置不存在，请先调用 build_aurestream_mihomo_config".to_string());
     }
 
     let work_dir = app

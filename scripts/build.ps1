@@ -1,4 +1,4 @@
-﻿# AureProxy Build Script (PowerShell)
+﻿# AureStream Build Script (PowerShell)
 # Usage:
 #   .\scripts\build.ps1 dev              - Dev mode (Tauri dev)
 #   .\scripts\build.ps1 build            - Build for current platform
@@ -229,7 +229,7 @@ try {
         }
         'help' {
             Write-Host ""
-            Write-Host "AureProxy 构建系统 (PowerShell)" -ForegroundColor Cyan
+            Write-Host "AureStream 构建系统 (PowerShell)" -ForegroundColor Cyan
             Write-Host "==============================" -ForegroundColor Cyan
             Write-Host ""
             Write-Host "  .\scripts\build.ps1 dev              启动开发模式 (Tauri dev + 热重载)"

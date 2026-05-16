@@ -95,12 +95,12 @@ impl AureConfigState {
 
         std::fs::create_dir_all(&config_dir).map_err(|e| format!("创建配置目录失败: {}", e))?;
 
-        let path = config_dir.join("aureway.yaml");
+        let path = config_dir.join("aurestream.yaml");
         let config = if path.exists() {
             let text =
                 std::fs::read_to_string(&path).map_err(|e| format!("读取配置文件失败: {}", e))?;
             serde_yaml::from_str(&text).unwrap_or_else(|e| {
-                warn!("[config] 解析 aureway.yaml 失败，使用默认值: {}", e);
+                warn!("[config] 解析 aurestream.yaml 失败，使用默认值: {}", e);
                 AureConfig::default()
             })
         } else {

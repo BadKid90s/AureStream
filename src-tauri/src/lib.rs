@@ -1,7 +1,7 @@
 mod commands;
 mod config;
 
-use commands::builtin_config::build_aureway_mihomo_config;
+use commands::builtin_config::build_aurestream_mihomo_config;
 use commands::mihomo_kernel::{
     download_geodata, start_mihomo_kernel, stop_mihomo_kernel, MihomoKernelState,
 };
@@ -114,7 +114,7 @@ pub fn run() {
                 .targets([
                     // 应用日志写入文件（排除 mihomo 标签的输出）
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
-                        file_name: Some("aureway".to_string()),
+                        file_name: Some("aurestream".to_string()),
                     })
                     .filter(|metadata| metadata.target() != "mihomo"),
                     // 控制台输出（dev 模式可见，排除 mihomo）
@@ -128,9 +128,9 @@ pub fn run() {
         )
         .setup(move |app| {
             if let Ok(log_dir) = app.path().app_log_dir() {
-                eprintln!("[aureway] 日志目录: {}", log_dir.display());
+                eprintln!("[aurestream] 日志目录: {}", log_dir.display());
             }
-            info!("Aureway 启动中...");
+            info!("AureStream 启动中...");
             let config_state = AureConfigState::load(app.handle())?;
             app.manage(config_state);
             app.manage(ProxyState::default());
@@ -220,7 +220,7 @@ pub fn run() {
             download_subscription,
             get_subscription_path,
             delete_subscription_file,
-            build_aureway_mihomo_config,
+            build_aurestream_mihomo_config,
             start_mihomo_kernel,
             stop_mihomo_kernel,
             download_geodata,
