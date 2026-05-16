@@ -42,8 +42,8 @@ export function Settings() {
 
   return (
     <PageShell title="设置">
-      <div className="space-y-6">
-        <div className="space-y-3">
+      <div className="space-y-4">
+        <div className="space-y-2">
         <SettingRow icon={Monitor} title="外观主题" description="选择跟随系统、浅色或深色模式">
           <div className="flex rounded-xl bg-black/5 dark:bg-white/10 p-1 gap-1">
             {[
@@ -69,7 +69,7 @@ export function Settings() {
           </div>
         </SettingRow>
 
-        <div className="glass rounded-2xl p-6 space-y-5">
+        <div className="glass rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
               <Globe className="w-5 h-5 text-primary" />
@@ -96,7 +96,7 @@ export function Settings() {
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-6 space-y-5">
+        <div className="glass rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
               <Zap className="w-5 h-5 text-primary" />
@@ -111,7 +111,7 @@ export function Settings() {
               { label: '开机自启动', desc: '随系统启动后台运行', checked: autoStart, onChange: setAutoStart },
               { label: '自动连接', desc: '启动后恢复上次连接', checked: autoConnect, onChange: setAutoConnect },
             ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between p-3.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/8 dark:hover:bg-white/8 transition-colors">
+              <div key={item.label} className="flex items-center justify-between p-2.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/8 dark:hover:bg-white/8 transition-colors">
                 <div>
                   <div className="text-sm font-medium">{item.label}</div>
                   <div className="text-[11px] text-muted-foreground">{item.desc}</div>
@@ -131,7 +131,7 @@ export function Settings() {
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-6 space-y-5">
+        <div className="glass rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
               <Info className="w-5 h-5 text-primary" />
@@ -152,10 +152,8 @@ export function Settings() {
                     ? '未运行'
                     : '检测中…',
               },
-              { label: '运行环境', value: 'Tauri 2.0' },
-              { label: '架构', value: 'Universal' },
             ].map((item) => (
-              <div key={item.label} className="flex flex-col gap-1 p-3 rounded-xl bg-black/5 dark:bg-white/5">
+              <div key={item.label} className="flex flex-col gap-0.5 p-2 rounded-lg bg-black/5 dark:bg-white/5">
                 <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{item.label}</span>
                 <span className="font-semibold">{item.value}</span>
               </div>
