@@ -47,11 +47,15 @@ pub fn run() {
     ensure_loopback_in_no_proxy_env();
 
     // 日志目录：优先 %LOCALAPPDATA%，回退 %APPDATA%
-    let log_dir = PathBuf::from(
-        std::env::var("LOCALAPPDATA")
-            .or_else(|_| std::env::var("APPDATA"))
-            .unwrap_or_else(|_| ".".to_string()),
-    )
+    let log_dir = if cfg!(target_os = "windows") {
+        PathBuf::from(
+            std::env::var("LOCALAPPDATA")
+                .or_else(|_| std::env::var("APPDATA"))
+                .unwrap_or_else(|_| ".".to_string()),
+        )
+    } else {
+        PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join("Library/Logs")
+    }
     .join("com.root.aureway")
     .join("logs");
 

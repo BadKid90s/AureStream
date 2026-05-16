@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- 深邃太空蓝背景渐变 -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+    
+    <!-- 曙光金发光渐变 -->
+    <linearGradient id="goldGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d97706" />
+      <stop offset="30%" stop-color="#f59e0b" />
+      <stop offset="70%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#fef08a" />
+    </linearGradient>
+
+    <!-- 外发光滤镜 -->
+    <filter id="glow-strong" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="24" result="blur" />
+      <feComponentTransfer in="blur" result="glow1">
+        <feFuncA type="linear" slope="0.8"/>
+      </feComponentTransfer>
+      <feComposite in="SourceGraphic" in2="glow1" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- macOS 风格的圆角矩形背景 (Squircle) -->
+  <rect width="1024" height="1024" rx="230" fill="url(#bgGrad)" />
+
+  <!-- 背景的高光内发光边缘 -->
+  <rect width="1024" height="1024" rx="230" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="4" />
+
+  <!-- 图标主体区域 -->
+  <g transform="translate(0, 30)">
+    
+    <!-- 主体字母 A 的两根粗壮斜柱 -->
+    <path d="M470 260 L240 700 A30 30 0 0 0 265 745 L345 745 A20 20 0 0 0 363 732 L512 430 L661 732 A20 20 0 0 0 679 745 L759 745 A30 30 0 0 0 784 700 L554 260 A45 45 0 0 0 470 260 Z" 
+          fill="url(#goldGrad)" 
+          filter="url(#glow-strong)" />
+
+    <!-- 视觉切割：利用背景色切出 Way 的通道 -->
+    <path d="M250 630 Q 512 630 512 440 Q 512 710 774 540" 
+          fill="none" 
+          stroke="#12102a" 
+          stroke-width="56" 
+          stroke-linecap="round" />
+          
+    <!-- 通道内的金色能量流 (The Way) -->
+    <path d="M250 630 Q 512 630 512 440 Q 512 710 774 540" 
+          fill="none" 
+          stroke="url(#goldGrad)" 
+          stroke-width="18" 
+          stroke-linecap="round"
+          filter="url(#glow-strong)" />
+  </g>
+</svg>

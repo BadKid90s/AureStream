@@ -166,11 +166,15 @@ pub async fn start_mihomo_kernel(
         .map_err(|e| format!("启动 Mihomo 进程失败: {}", e))?;
 
     // Mihomo 日志写入独立文件
-    let mihomo_log_dir = PathBuf::from(
-        std::env::var("LOCALAPPDATA")
-            .or_else(|_| std::env::var("APPDATA"))
-            .unwrap_or_else(|_| ".".to_string()),
-    )
+    let mihomo_log_dir = if cfg!(target_os = "windows") {
+        PathBuf::from(
+            std::env::var("LOCALAPPDATA")
+                .or_else(|_| std::env::var("APPDATA"))
+                .unwrap_or_else(|_| ".".to_string()),
+        )
+    } else {
+        PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join("Library/Logs")
+    }
     .join("com.root.aureway")
     .join("logs");
     let _ = tokio::fs::create_dir_all(&mihomo_log_dir).await;
