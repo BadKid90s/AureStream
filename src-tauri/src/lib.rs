@@ -46,19 +46,6 @@ fn ensure_loopback_in_no_proxy_env() {
 pub fn run() {
     ensure_loopback_in_no_proxy_env();
 
-    // 日志目录：优先 %LOCALAPPDATA%，回退 %APPDATA%
-    let log_dir = if cfg!(target_os = "windows") {
-        PathBuf::from(
-            std::env::var("LOCALAPPDATA")
-                .or_else(|_| std::env::var("APPDATA"))
-                .unwrap_or_else(|_| ".".to_string()),
-        )
-    } else {
-        PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join("Library/Logs")
-    }
-    .join("com.root.aureway")
-    .join("logs");
-
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
@@ -68,8 +55,7 @@ pub fn run() {
             tauri_plugin_log::Builder::new()
                 .targets([
                     // 应用日志写入文件（排除 mihomo 标签的输出）
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Folder {
-                        path: log_dir.clone(),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
                         file_name: Some("aureway".to_string()),
                     })
                     .filter(|metadata| metadata.target() != "mihomo"),
@@ -83,8 +69,9 @@ pub fn run() {
                 .build(),
         )
         .setup(move |app| {
-            // 打印日志目录，方便定位
-            eprintln!("[aureway] 日志目录: {}", log_dir.display());
+            if let Ok(log_dir) = app.path().app_log_dir() {
+                eprintln!("[aureway] 日志目录: {}", log_dir.display());
+            }
             info!("Aureway 启动中...");
             let config_state = AureConfigState::load(app.handle())?;
             app.manage(config_state);
