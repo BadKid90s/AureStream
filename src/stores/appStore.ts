@@ -16,12 +16,15 @@ import {
   startMihomoKernel,
   stopProxy,
   updateProxyConfig,
-  loadAppSettings,
-  saveAppSettings,
-  loadLatencyCache,
-  saveLatencyCache,
   updateTrayMenu,
 } from '@/lib/api'
+import {
+  loadPersistedSettings,
+  savePersistedSettings,
+  savePersistedState,
+  loadPersistedLatencyCache,
+  savePersistedLatencyCache,
+} from '@/lib/persistStore'
 import {
   reloadConfig,
   delayGroup,
@@ -63,9 +66,13 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
   loadSettings: async () => {
     try {
-      const settings = await loadAppSettings()
+      const settings = await loadPersistedSettings()
+      // 首次迁移：如果 plugin-store 是空的，尝试从旧 IPC 加载一次
+      if (!settings.proxyBypassDomains) {
+        settings.proxyBypassDomains = DEFAULT_PROXY_BYPASS_DOMAINS
+      }
       set({
-        theme: settings.theme as 'light' | 'dark',
+        theme: settings.theme,
         proxyBypassDomains: settings.proxyBypassDomains,
         autoStart: settings.autoStart,
         autoConnect: settings.autoConnect,
@@ -77,33 +84,28 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
   setTheme: (theme) => {
     set({ theme })
-    const s = get()
-    saveAppSettings({ theme, proxyBypassDomains: s.proxyBypassDomains, autoStart: s.autoStart, autoConnect: s.autoConnect }).catch(console.error)
+    savePersistedSettings({ theme }).catch(console.error)
   },
 
   setProxyBypassDomains: (value) => {
     set({ proxyBypassDomains: value })
-    const s = get()
-    saveAppSettings({ theme: s.theme, proxyBypassDomains: value, autoStart: s.autoStart, autoConnect: s.autoConnect }).catch(console.error)
+    savePersistedSettings({ proxyBypassDomains: value }).catch(console.error)
   },
 
   toggleTheme: () => {
     const next = get().theme === 'light' ? 'dark' : 'light'
     set({ theme: next })
-    const s = get()
-    saveAppSettings({ theme: next, proxyBypassDomains: s.proxyBypassDomains, autoStart: s.autoStart, autoConnect: s.autoConnect }).catch(console.error)
+    savePersistedSettings({ theme: next }).catch(console.error)
   },
 
   setAutoStart: (value) => {
     set({ autoStart: value })
-    const s = get()
-    saveAppSettings({ theme: s.theme, proxyBypassDomains: s.proxyBypassDomains, autoStart: value, autoConnect: s.autoConnect }).catch(console.error)
+    savePersistedSettings({ autoStart: value }).catch(console.error)
   },
 
   setAutoConnect: (value) => {
     set({ autoConnect: value })
-    const s = get()
-    saveAppSettings({ theme: s.theme, proxyBypassDomains: s.proxyBypassDomains, autoStart: s.autoStart, autoConnect: value }).catch(console.error)
+    savePersistedSettings({ autoConnect: value }).catch(console.error)
   },
 }))
 
@@ -281,7 +283,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
   loadCache: async () => {
     try {
-      const cache = await loadLatencyCache()
+      const cache = await loadPersistedLatencyCache()
       set({ nodeLatencyByKey: cache })
     } catch (e) {
       console.error('Failed to load latency cache:', e)
@@ -355,9 +357,9 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       }
       return { providers: newProviders, ...sel, nodeLatencyByKey }
     })
-    saveLatencyCache(get().nodeLatencyByKey).catch(console.error)
+    savePersistedLatencyCache(get().nodeLatencyByKey).catch(console.error)
     // 删除订阅文件
-    deleteSubscriptionFile(id).catch(() => {})
+    deleteSubscriptionFile(id).catch(() => { })
   },
 
   setCurrentProvider: (provider) => {
@@ -445,13 +447,13 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       const cp = state.currentProvider
       const nodeLatencyByKey = cp
         ? {
-            ...state.nodeLatencyByKey,
-            [nodeLatencyCacheKey(cp.id, nodeId)]: delay,
-          }
+          ...state.nodeLatencyByKey,
+          [nodeLatencyCacheKey(cp.id, nodeId)]: delay,
+        }
         : state.nodeLatencyByKey
       return { nodes, currentNode, nodeLatencyByKey }
     })
-    saveLatencyCache(get().nodeLatencyByKey).catch(console.error)
+    savePersistedLatencyCache(get().nodeLatencyByKey).catch(console.error)
   },
 
   connect: async () => {
@@ -531,8 +533,8 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       const cp = get().currentProvider
       const nextNode =
         prevNode &&
-        cp &&
-        dbNodes.some((x) => x.id === prevNode.id && x.providerId === cp.id)
+          cp &&
+          dbNodes.some((x) => x.id === prevNode.id && x.providerId === cp.id)
           ? dbNodes.find((x) => x.id === prevNode.id)
           : undefined
       set({
@@ -678,9 +680,9 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
                 : state.currentNode,
               nodeLatencyByKey: cp
                 ? {
-                    ...state.nodeLatencyByKey,
-                    [nodeLatencyCacheKey(cp.id, node.id)]: result.delay as number,
-                  }
+                  ...state.nodeLatencyByKey,
+                  [nodeLatencyCacheKey(cp.id, node.id)]: result.delay as number,
+                }
                 : state.nodeLatencyByKey,
               latencyPendingByNodeId: nextPending,
             }
@@ -701,7 +703,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       console.error('Failed to start latency testing:', e)
     } finally {
       set({ isTestingLatency: false, latencyPendingByNodeId: {} })
-      saveLatencyCache(get().nodeLatencyByKey).catch(console.error)
+      savePersistedLatencyCache(get().nodeLatencyByKey).catch(console.error)
     }
   },
 
@@ -800,5 +802,18 @@ useProxyStore.subscribe((state, prevState) => {
       (n) => n.providerId === state.currentProvider!.id && n.enabled
     )
     updateTrayMenu(currentNodes, state.isConnected).catch(console.error)
+  }
+})
+
+// 持久化选择状态：provider / node / 连接状态
+useProxyStore.subscribe((state, prevState) => {
+  if (state.currentProvider?.id !== prevState.currentProvider?.id) {
+    savePersistedState({ lastProviderId: state.currentProvider?.id }).catch(console.error)
+  }
+  if (state.currentNode?.id !== prevState.currentNode?.id) {
+    savePersistedState({ lastNodeId: state.currentNode?.id }).catch(console.error)
+  }
+  if (state.isConnected !== prevState.isConnected) {
+    savePersistedState({ wasConnected: state.isConnected }).catch(console.error)
   }
 })

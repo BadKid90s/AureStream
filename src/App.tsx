@@ -6,40 +6,96 @@ import { Providers } from '@/pages/Providers'
 import { Settings } from '@/pages/Settings'
 import { useAppStore, useProxyStore } from '@/stores/appStore'
 import { downloadGeodata } from '@/lib/api'
+import { loadPersistedState } from '@/lib/persistStore'
 import { Toaster } from '@/components/ui/sonner'
+import { listen } from '@tauri-apps/api/event'
+
+function applyTheme(theme: string) {
+  const root = document.documentElement
+  if (theme === 'dark') {
+    root.classList.add('dark')
+  } else {
+    root.classList.remove('dark')
+  }
+}
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const { theme } = useAppStore()
 
   useEffect(() => {
-    // Load UI settings from YAML, then apply theme
-    useAppStore.getState().loadSettings().then(() => {
-      const { theme } = useAppStore.getState()
-      const root = document.documentElement
-      if (theme === 'dark') {
-        root.classList.add('dark')
-      } else {
-        root.classList.remove('dark')
+    const init = async () => {
+      // 阶段 1：并行加载设置、延迟缓存、GeoData
+      await Promise.allSettled([
+        useAppStore.getState().loadSettings(),
+        useProxyStore.getState().loadCache(),
+        downloadGeodata(),
+      ])
+
+      // 应用 theme
+      applyTheme(useAppStore.getState().theme)
+
+      // 阶段 2：加载 providers（依赖缓存先就绪）
+      await useProxyStore.getState().loadProviders()
+      useProxyStore.getState().initAutoUpdateTimers()
+
+      // 阶段 3：恢复上次选择的 provider/node
+      try {
+        const savedState = await loadPersistedState()
+        if (savedState.lastProviderId) {
+          const providers = useProxyStore.getState().providers
+          const provider = providers.find(p => p.id === savedState.lastProviderId)
+          if (provider) {
+            useProxyStore.getState().setCurrentProvider(provider)
+
+            // 恢复节点
+            if (savedState.lastNodeId) {
+              const nodes = useProxyStore.getState().nodes
+              const node = nodes.find(n => n.id === savedState.lastNodeId)
+              if (node) {
+                useProxyStore.getState().setCurrentNode(node)
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('恢复上次状态失败:', e)
+      }
+
+      // 阶段 4：自动连接（若上次退出时已连接且开启了自动连接）
+      try {
+        const { autoConnect } = useAppStore.getState()
+        const savedState = await loadPersistedState()
+        if (autoConnect && savedState.wasConnected && useProxyStore.getState().currentProvider) {
+          await useProxyStore.getState().connect()
+        }
+      } catch (e) {
+        console.warn('自动连接失败:', e)
+      }
+    }
+
+    init()
+
+    // 监听托盘节点切换事件
+    const unlisten = listen<string>('tray-select-node', async (event) => {
+      const nodeId = event.payload
+      const { nodes, isConnected } = useProxyStore.getState()
+      if (!isConnected) return
+      const node = nodes.find(n => n.id === nodeId)
+      if (node) {
+        await useProxyStore.getState().applyNodeSelection(node)
       }
     })
-    // Load latency cache, then providers, then auto-update timers
-    useProxyStore.getState().loadCache()
-      .then(() => useProxyStore.getState().loadProviders())
-      .then(() => useProxyStore.getState().initAutoUpdateTimers())
-    // Pre-download GeoIP/GeoSite files (fire-and-forget, non-blocking)
-    downloadGeodata().catch((e) => console.warn('GeoIP 预下载失败:', e))
+
+    return () => {
+      unlisten.then(fn => fn())
+    }
   }, [])
 
   const openProviders = () => setCurrentPage('providers')
 
   useEffect(() => {
-    const root = document.documentElement
-    if (theme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
+    applyTheme(theme)
   }, [theme])
 
   const renderPage = () => {
