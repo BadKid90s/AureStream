@@ -253,7 +253,7 @@ interface ProxyStore {
     sessionUpBytes: number,
     sessionDownBytes: number
   ) => void
-  testLatency: () => Promise<void>
+  testLatency: (skipPersist?: boolean) => Promise<void>
   /** 下载订阅配置文件并更新 provider 元数据 */
   fetchAndSaveSubscription: (id: string) => Promise<{ success: boolean; error?: string }>
   /** 设置当前订阅并通知 mihomo 加载配置 */
@@ -494,6 +494,11 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         isConnected: true,
         connectedAt: Date.now(),
       })
+
+      // 连接成功后，后台自动触发一轮测速（不阻塞 UI、不持久化结果）
+      get().testLatency(true).catch((e) => {
+        console.warn('连接后自动测速失败:', e)
+      })
     } catch (e) {
       stopMihomoTrafficPoll()
       try {
@@ -575,7 +580,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       sessionDownloadBytes: sessionDownBytes,
     }),
 
-  testLatency: async () => {
+  testLatency: async (skipPersist = false) => {
     const currentProvider0 = get().currentProvider
     const nodes0 = get().nodes
     const list0 = currentProvider0
@@ -703,7 +708,9 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       console.error('Failed to start latency testing:', e)
     } finally {
       set({ isTestingLatency: false, latencyPendingByNodeId: {} })
-      savePersistedLatencyCache(get().nodeLatencyByKey).catch(console.error)
+      if (!skipPersist) {
+        savePersistedLatencyCache(get().nodeLatencyByKey).catch(console.error)
+      }
     }
   },
 
