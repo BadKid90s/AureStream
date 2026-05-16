@@ -1,4 +1,4 @@
-import { Home, Package, Settings, Moon, Sun, Zap } from 'lucide-react'
+import { Home, Package, Settings, Moon, Sun, Zap, Monitor } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
 
@@ -73,11 +73,17 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         <button
           type="button"
           onClick={toggleTheme}
-          aria-label={theme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
-          title={theme === 'light' ? '深色模式' : '浅色模式'}
-          className="w-11 h-11 rounded-2xl flex items-center justify-center text-muted-foreground hover:bg-white/15 hover:text-foreground dark:hover:bg-white/10 transition-all duration-200"
+          aria-label="切换主题"
+          title={`当前主题: ${theme === 'light' ? '浅色' : theme === 'dark' ? '深色' : '跟随系统'}`}
+          className="w-11 h-11 rounded-2xl flex items-center justify-center text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 active:scale-95"
         >
-          {theme === 'light' ? <Moon className="w-[19px] h-[19px]" /> : <Sun className="w-[19px] h-[19px]" />}
+          {theme === 'light' ? (
+            <Sun className="w-[19px] h-[19px]" />
+          ) : theme === 'dark' ? (
+            <Moon className="w-[19px] h-[19px]" />
+          ) : (
+            <Monitor className="w-[19px] h-[19px]" />
+          )}
         </button>
       </div>
     </aside>

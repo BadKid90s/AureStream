@@ -45,7 +45,7 @@ export function Settings() {
       <div className="space-y-6">
         <div className="space-y-3">
         <SettingRow icon={Monitor} title="外观主题" description="选择跟随系统、浅色或深色模式">
-          <div className="flex rounded-xl bg-black/5 dark:bg-white/5 p-1 gap-1">
+          <div className="flex rounded-xl bg-black/5 dark:bg-white/10 p-1 gap-1">
             {[
               { id: 'system', label: '跟随系统', icon: Monitor },
               { id: 'light', label: '浅色', icon: Sun },
@@ -56,9 +56,9 @@ export function Settings() {
                 type="button"
                 onClick={() => theme !== t.id && setTheme(t.id as 'system'|'light'|'dark')}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 border',
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 border outline-none',
                   theme === t.id
-                    ? 'bg-white dark:bg-[#202025] text-foreground shadow-sm border-black/5 dark:border-white/10'
+                    ? 'bg-white dark:bg-white/20 text-foreground shadow-sm border-black/5 dark:border-white/10'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5',
                 )}
               >
@@ -69,50 +69,52 @@ export function Settings() {
           </div>
         </SettingRow>
 
-        <div className="glass rounded-2xl p-5 space-y-4">
+        <div className="glass rounded-2xl p-6 space-y-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Globe className="w-4 h-4 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <Globe className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium text-sm">代理设置</div>
-              <div className="text-xs text-muted-foreground">配置系统代理排除地址（逗号分隔）</div>
+              <div className="font-semibold text-sm">网络代理</div>
+              <div className="text-xs text-muted-foreground">配置系统代理绕过名单</div>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="proxyBypassDomains" className="text-xs">排除代理的地址</Label>
-            <Input
-              id="proxyBypassDomains"
-              value={proxyBypassDomains}
-              onChange={(e) => setProxyBypassDomains(e.target.value)}
-              placeholder="localhost,127.*,10.*,192.168.*,<local>"
-              className="h-10 rounded-xl"
-            />
-            <p className="text-xs text-muted-foreground">
-              示例：localhost,127.*,10.*,192.168.*,*.local,&lt;local&gt;
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="proxyBypassDomains" className="text-xs font-semibold ml-1">排除代理的域名或 IP</Label>
+              <Input
+                id="proxyBypassDomains"
+                value={proxyBypassDomains}
+                onChange={(e) => setProxyBypassDomains(e.target.value)}
+                placeholder="localhost,127.*,10.*,192.168.*,<local>"
+                className="h-11 rounded-xl bg-black/5 dark:bg-white/5 border-none focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground/80 leading-relaxed px-1">
+              这些地址将不经过代理。示例：localhost, 127.*, 10.*, 192.168.*, *.local, &lt;local&gt;
             </p>
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-5 space-y-4">
+        <div className="glass rounded-2xl p-6 space-y-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium text-sm">启动设置</div>
-              <div className="text-xs text-muted-foreground">配置应用启动行为</div>
+              <div className="font-semibold text-sm">自动化</div>
+              <div className="text-xs text-muted-foreground">优化应用启动体验</div>
             </div>
           </div>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { label: '开机自启动', desc: '应用启动时自动运行', checked: autoStart, onChange: setAutoStart },
-              { label: '自动连接', desc: '启动时自动连接上次使用的节点', checked: autoConnect, onChange: setAutoConnect },
+              { label: '开机自启动', desc: '随系统启动后台运行', checked: autoStart, onChange: setAutoStart },
+              { label: '自动连接', desc: '启动后恢复上次连接', checked: autoConnect, onChange: setAutoConnect },
             ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between py-1">
+              <div key={item.label} className="flex items-center justify-between p-3.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/8 dark:hover:bg-white/8 transition-colors">
                 <div>
                   <div className="text-sm font-medium">{item.label}</div>
-                  <div className="text-xs text-muted-foreground">{item.desc}</div>
+                  <div className="text-[11px] text-muted-foreground">{item.desc}</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -121,25 +123,25 @@ export function Settings() {
                     checked={item.checked}
                     onChange={(e) => item.onChange(e.target.checked)}
                   />
-                  <div className="w-10 h-6 rounded-full bg-black/10 dark:bg-white/10 peer-checked:bg-primary transition-colors duration-200" />
-                  <div className="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 peer-checked:translate-x-4" />
+                  <div className="w-9 h-5.5 rounded-full bg-black/10 dark:bg-white/20 peer-checked:bg-primary transition-colors duration-300" />
+                  <div className="absolute left-0.75 top-0.75 w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-300 peer-checked:translate-x-3.5" />
                 </label>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-5 space-y-4">
+        <div className="glass rounded-2xl p-6 space-y-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Info className="w-4 h-4 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <Info className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium text-sm">关于</div>
-              <div className="text-xs text-muted-foreground">应用信息和版本</div>
+              <div className="font-semibold text-sm">关于 Aureway</div>
+              <div className="text-xs text-muted-foreground">版本信息与内核状态</div>
             </div>
           </div>
-          <div className="space-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-3 text-[13px]">
             {[
               { label: '应用版本', value: '1.0.0' },
               {
@@ -150,11 +152,12 @@ export function Settings() {
                     ? '未运行'
                     : '检测中…',
               },
-              { label: '框架', value: 'Tauri 2.0' },
+              { label: '运行环境', value: 'Tauri 2.0' },
+              { label: '架构', value: 'Universal' },
             ].map((item) => (
-              <div key={item.label} className="flex justify-between py-1.5 px-3 rounded-lg bg-black/5 dark:bg-white/5">
-                <span className="text-muted-foreground">{item.label}</span>
-                <span className="font-medium">{item.value}</span>
+              <div key={item.label} className="flex flex-col gap-1 p-3 rounded-xl bg-black/5 dark:bg-white/5">
+                <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{item.label}</span>
+                <span className="font-semibold">{item.value}</span>
               </div>
             ))}
           </div>
