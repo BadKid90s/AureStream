@@ -20,6 +20,7 @@ import {
   saveAppSettings,
   loadLatencyCache,
   saveLatencyCache,
+  updateTrayMenu,
 } from '@/lib/api'
 import {
   reloadConfig,
@@ -784,3 +785,20 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     }
   },
 }))
+
+useProxyStore.subscribe((state, prevState) => {
+  if (
+    state.currentProvider?.id !== prevState.currentProvider?.id ||
+    state.nodes !== prevState.nodes ||
+    state.isConnected !== prevState.isConnected
+  ) {
+    if (!state.currentProvider) {
+      updateTrayMenu([], state.isConnected).catch(console.error)
+      return
+    }
+    const currentNodes = state.nodes.filter(
+      (n) => n.providerId === state.currentProvider!.id && n.enabled
+    )
+    updateTrayMenu(currentNodes, state.isConnected).catch(console.error)
+  }
+})

@@ -3,14 +3,14 @@ mod config;
 
 use commands::builtin_config::build_aureproxy_mihomo_config;
 use commands::mihomo_kernel::{download_geodata, start_mihomo_kernel, stop_mihomo_kernel, MihomoKernelState};
-use commands::proxy::{get_proxy_config, get_proxy_status, set_current_node, start_proxy, stop_proxy, update_proxy_config, ProxyState};
+use commands::proxy::{get_proxy_config, get_proxy_status, set_current_node, start_proxy, stop_proxy, update_proxy_config, update_tray_menu, ProxyState};
 use commands::provider::{add_provider, delete_provider, get_nodes, get_nodes_by_provider, get_providers, test_all_nodes_latency, test_node_latency, update_provider};
 use commands::settings::{load_app_settings, load_latency_cache, save_app_settings, save_latency_cache};
 use commands::subscription::{delete_subscription_file, download_subscription, get_subscription_path};
 use config::AureConfigState;
 use log::info;
 use std::path::PathBuf;
-use tauri::Manager;
+use tauri::{Manager, Emitter};
 
 /// `tauri-plugin-mihomo` 内用 reqwest 访问 `127.0.0.1:9090`；若进程继承系统代理（指向本机 mixed-port），
 /// 这些请求会错误走代理，导致 `/proxies`、组延迟测试等全部失败。在创建插件/任意 HTTP 客户端之前写入 NO_PROXY。
@@ -86,7 +86,61 @@ pub fn run() {
             app.manage(ProxyState::default());
             app.manage(MihomoKernelState::default());
             info!("应用状态初始化完成");
+
+            // 托盘菜单
+            let show_i = tauri::menu::MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
+            let switch_i = tauri::menu::Submenu::with_items(app, "切换节点", true, &[] as &[&dyn tauri::menu::IsMenuItem<_>])?;
+            let quit_i = tauri::menu::MenuItem::with_id(app, "quit", "退出应用", true, None::<&str>)?;
+            
+            let menu = tauri::menu::Menu::with_items(app, &[&show_i, &switch_i, &quit_i])?;
+            
+            tauri::tray::TrayIconBuilder::with_id("main")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    let id = event.id.as_ref();
+                    if id == "show" {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    } else if id == "quit" {
+                        app.exit(0);
+                    } else if id.starts_with("node_") {
+                        let node_id = &id[5..]; // remove "node_"
+                        let _ = app.emit("tray-select-node", node_id);
+                        if let Some(_window) = app.get_webview_window("main") {
+                            // 可选：切换节点后是否显示主界面
+                            // let _ = _window.show();
+                            // let _ = _window.set_focus();
+                        }
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
             Ok(())
+        })
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                let _ = window.hide();
+                api.prevent_close();
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             start_proxy,
@@ -95,6 +149,7 @@ pub fn run() {
             set_current_node,
             update_proxy_config,
             get_proxy_config,
+            update_tray_menu,
             add_provider,
             update_provider,
             delete_provider,

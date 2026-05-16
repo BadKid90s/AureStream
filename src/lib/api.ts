@@ -60,6 +60,10 @@ export async function getProviders(): Promise<Provider[]> {
   return await invoke<Provider[]>('get_providers')
 }
 
+export async function updateTrayMenu(nodes: Node[], isConnected: boolean): Promise<void> {
+  return await invoke<void>('update_tray_menu', { nodes, isConnected })
+}
+
 export async function getNodes(): Promise<Node[]> {
   return await invoke<Node[]>('get_nodes')
 }
