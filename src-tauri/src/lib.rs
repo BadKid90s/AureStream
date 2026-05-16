@@ -9,7 +9,6 @@ use commands::settings::{load_app_settings, save_app_settings};
 use commands::subscription::{delete_subscription_file, download_subscription, get_subscription_path};
 use config::AureConfigState;
 use log::info;
-use std::path::PathBuf;
 use tauri::{Manager, Emitter};
 
 /// `tauri-plugin-mihomo` 内用 reqwest 访问 `127.0.0.1:9090`；若进程继承系统代理（指向本机 mixed-port），

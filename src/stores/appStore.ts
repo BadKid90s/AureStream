@@ -45,13 +45,13 @@ function nodeLatencyCacheKey(providerId: string, nodeId: string): string {
 }
 
 interface AppStore {
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark' | 'system'
   proxyBypassDomains: string
   autoStart: boolean
   autoConnect: boolean
   /** 从后端 YAML 加载设置 */
   loadSettings: () => Promise<void>
-  setTheme: (theme: 'light' | 'dark') => void
+  setTheme: (theme: 'light' | 'dark' | 'system') => void
   setProxyBypassDomains: (value: string) => void
   toggleTheme: () => void
   setAutoStart: (value: boolean) => void
@@ -59,7 +59,7 @@ interface AppStore {
 }
 
 export const useAppStore = create<AppStore>()((set, get) => ({
-  theme: 'light',
+  theme: 'system',
   proxyBypassDomains: DEFAULT_PROXY_BYPASS_DOMAINS,
   autoStart: false,
   autoConnect: false,
@@ -93,7 +93,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
 
   toggleTheme: () => {
-    const next = get().theme === 'light' ? 'dark' : 'light'
+    const current = get().theme
+    const next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light'
     set({ theme: next })
     savePersistedSettings({ theme: next }).catch(console.error)
   },

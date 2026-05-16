@@ -41,7 +41,7 @@ async function getLatencyCacheStore(): Promise<Store> {
 // ---- Settings ----
 
 export interface PersistedSettings {
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark' | 'system'
   proxyBypassDomains: string
   autoStart: boolean
   autoConnect: boolean

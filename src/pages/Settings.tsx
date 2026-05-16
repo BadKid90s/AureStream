@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { getVersion, type MihomoVersion } from 'tauri-plugin-mihomo-api'
 
 export function Settings() {
-  const { theme, toggleTheme, proxyBypassDomains, setProxyBypassDomains,
+  const { theme, setTheme, proxyBypassDomains, setProxyBypassDomains,
           autoStart, autoConnect, setAutoStart, setAutoConnect } = useAppStore()
   const [kernelVersion, setKernelVersion] = useState<MihomoVersion | null>(null)
   const [kernelError, setKernelError] = useState(false)
@@ -44,32 +44,28 @@ export function Settings() {
     <PageShell title="设置">
       <div className="space-y-6">
         <div className="space-y-3">
-        <SettingRow icon={Monitor} title="外观主题" description="选择浅色或深色模式">
-          <div className="flex rounded-xl bg-muted p-1 gap-1">
-            <button
-              type="button"
-              onClick={() => theme !== 'light' && toggleTheme()}
-              className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border',
-                theme === 'light'
-                  ? 'bg-card text-foreground shadow-sm border-border/50'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <Sun className="w-3.5 h-3.5" /> 浅色
-            </button>
-            <button
-              type="button"
-              onClick={() => theme !== 'dark' && toggleTheme()}
-              className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border',
-                theme === 'dark'
-                  ? 'bg-card text-foreground shadow-sm border-border/50'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <Moon className="w-3.5 h-3.5" /> 深色
-            </button>
+        <SettingRow icon={Monitor} title="外观主题" description="选择跟随系统、浅色或深色模式">
+          <div className="flex rounded-xl bg-black/5 dark:bg-white/5 p-1 gap-1">
+            {[
+              { id: 'system', label: '跟随系统', icon: Monitor },
+              { id: 'light', label: '浅色', icon: Sun },
+              { id: 'dark', label: '深色', icon: Moon },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => theme !== t.id && setTheme(t.id as 'system'|'light'|'dark')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 border',
+                  theme === t.id
+                    ? 'bg-white dark:bg-[#202025] text-foreground shadow-sm border-black/5 dark:border-white/10'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5',
+                )}
+              >
+                <t.icon className="w-3.5 h-3.5" />
+                {t.label}
+              </button>
+            ))}
           </div>
         </SettingRow>
 

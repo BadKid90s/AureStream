@@ -9,7 +9,7 @@ export function MainContent({ children }: MainContentProps) {
   return (
     <div className="flex-1 min-w-0 my-3 rounded-3xl glass-rail overflow-hidden flex flex-col min-h-0 relative shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
       <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-primary/[0.06] to-transparent pointer-events-none rounded-t-3xl" />
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain rounded-3xl px-4 pt-4 sm:px-6 sm:pt-6 [scrollbar-gutter:stable] [padding-bottom:max(2rem,env(safe-area-inset-bottom,0px)+0.75rem)] sm:[padding-bottom:max(3rem,env(safe-area-inset-bottom,0px)+0.75rem)]">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl px-4 pt-4 sm:px-6 sm:pt-6">
         {children}
       </div>
     </div>

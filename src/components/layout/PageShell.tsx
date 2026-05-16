@@ -23,8 +23,7 @@ export function PageShell({
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-4xl',
-        fillHeight ? 'flex min-h-full flex-col' : '',
+        'mx-auto w-full max-w-4xl flex flex-col h-full min-h-0',
         className,
       )}
     >
@@ -41,6 +40,7 @@ export function PageShell({
       )}
       <div
         className={cn(
+          'flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable] [padding-bottom:max(2rem,env(safe-area-inset-bottom,0px)+0.75rem)] sm:[padding-bottom:max(3rem,env(safe-area-inset-bottom,0px)+0.75rem)]',
           fillHeight && 'flex w-full flex-col',
           contentClassName,
         )}

@@ -11,7 +11,13 @@ import { listen } from '@tauri-apps/api/event'
 
 function applyTheme(theme: string) {
   const root = document.documentElement
-  if (theme === 'dark') {
+  if (theme === 'system') {
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  } else if (theme === 'dark') {
     root.classList.add('dark')
   } else {
     root.classList.remove('dark')
@@ -94,6 +100,12 @@ function App() {
 
   useEffect(() => {
     applyTheme(theme)
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      const handler = () => applyTheme('system')
+      mediaQuery.addEventListener('change', handler)
+      return () => mediaQuery.removeEventListener('change', handler)
+    }
   }, [theme])
 
   const renderPage = () => {
