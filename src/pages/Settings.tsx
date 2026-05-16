@@ -28,7 +28,7 @@ export function Settings() {
   }) => (
     <div className="glass rounded-2xl p-5 flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0 transition-colors">
           <Icon className="w-4 h-4 text-primary" />
         </div>
         <div>
@@ -58,7 +58,7 @@ export function Settings() {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 border outline-none',
                   theme === t.id
-                    ? 'bg-white dark:bg-white/20 text-foreground shadow-sm border-black/5 dark:border-white/10'
+                    ? 'bg-white text-primary shadow-sm border-black/5 dark:bg-primary dark:text-primary-foreground dark:border-primary/20'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5',
                 )}
               >
