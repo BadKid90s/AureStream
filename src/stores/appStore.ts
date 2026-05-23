@@ -89,11 +89,11 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         proxyBypassDomains: settings.proxyBypassDomains,
         autoStart: settings.autoStart,
         autoConnect: settings.autoConnect,
-        proxyMode: (settings as any).proxyMode || (loadedSmartRoute ? "rule" : "global"),
+        proxyMode: settings.proxyMode || (loadedSmartRoute ? "rule" : "global"),
         smartRoute: loadedSmartRoute,
         smartAdBlock: settings.smartAdBlock ?? false,
-        streamMode: (settings as any).streamMode ?? false,
-        aiRoute: (settings as any).aiRoute ?? false,
+        streamMode: settings.streamMode ?? false,
+        aiRoute: settings.aiRoute ?? false,
       });
     } catch (e) {
       console.error("Failed to load app settings:", e);
@@ -143,7 +143,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
   setProxyMode: async (mode) => {
     set({ proxyMode: mode });
-    savePersistedSettings({ proxyMode: mode } as any).catch(console.error);
+    savePersistedSettings({ proxyMode: mode }).catch(console.error);
 
     if (useProxyStore.getState().isConnected) {
       try {
@@ -157,24 +157,24 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
   setSmartRoute: async (value) => {
     set({ smartRoute: value });
-    savePersistedSettings({ smartRoute: value } as any).catch(console.error);
+    savePersistedSettings({ smartRoute: value }).catch(console.error);
     const mode = value ? "rule" : "global";
     await get().setProxyMode(mode);
   },
 
   setSmartAdBlock: async (value) => {
     set({ smartAdBlock: value });
-    savePersistedSettings({ smartAdBlock: value } as any).catch(console.error);
+    savePersistedSettings({ smartAdBlock: value }).catch(console.error);
   },
 
   setStreamMode: async (value) => {
     set({ streamMode: value });
-    savePersistedSettings({ streamMode: value } as any).catch(console.error);
+    savePersistedSettings({ streamMode: value }).catch(console.error);
   },
 
   setAiRoute: async (value) => {
     set({ aiRoute: value });
-    savePersistedSettings({ aiRoute: value } as any).catch(console.error);
+    savePersistedSettings({ aiRoute: value }).catch(console.error);
   },
 }));
 

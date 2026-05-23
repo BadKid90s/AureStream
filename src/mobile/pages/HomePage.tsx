@@ -132,13 +132,18 @@ export function HomePage() {
         onToggle={handleConnectionToggle}
       />
 
-      {/* Connection info */}
+      {/* Connection info — tap to open node selector */}
       {currentNode && (
-        <ConnectionInfo
-          nodeName={currentNode.name}
-          nodeServer={currentNode.server}
-          delay={currentNode.delay}
-        />
+        <button
+          type="button"
+          className="w-full max-w-xs"
+          onClick={() => setSheetOpen(true)}
+        >
+          <ConnectionInfo
+            nodeName={currentNode.name}
+            delay={currentNode.delay}
+          />
+        </button>
       )}
 
       {/* Mode capsules (hidden when connected) */}

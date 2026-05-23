@@ -2,7 +2,6 @@ import { getLatencyLevel } from "@/types";
 
 interface ConnectionInfoProps {
   nodeName?: string;
-  nodeServer?: string;
   delay?: number;
 }
 
