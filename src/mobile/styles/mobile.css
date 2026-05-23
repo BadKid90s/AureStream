@@ -1,0 +1,423 @@
+/* ===== AureStream Mobile — Apple Liquid Glass Design System ===== */
+
+:root {
+  /* Light theme */
+  --mg-base: #F2F4F8;
+  --mg-text-primary: #1A1A2E;
+  --mg-text-secondary: #6B7280;
+  --mg-primary: #3B82F6;
+  --mg-primary-deep: #6366F1;
+  --mg-stream: #06B6D4;
+  --mg-ai: #8B5CF6;
+  --mg-adblock: #10B981;
+
+  /* Glass tokens — light */
+  --mg-glass-bg: rgba(255, 255, 255, 0.55);
+  --mg-glass-border: rgba(255, 255, 255, 0.50);
+  --mg-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  --mg-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  /* Glass Deep (background layer) */
+  --mg-glass-deep-bg: rgba(255, 255, 255, 0.25);
+  --mg-glass-deep-blur: blur(40px);
+
+  /* Glass Light (overlays, tab bar) */
+  --mg-glass-light-bg: rgba(255, 255, 255, 0.65);
+  --mg-glass-light-blur: blur(16px);
+
+  /* Glass Medium (cards, capsules, button body) */
+  --mg-glass-medium-bg: rgba(255, 255, 255, 0.45);
+  --mg-glass-medium-blur: blur(28px);
+
+  /* Glass Highlight (inner shine) */
+  --mg-glass-highlight-bg: rgba(255, 255, 255, 0.85);
+  --mg-glass-highlight-blur: blur(8px);
+
+  /* Outer ring colors */
+  --mg-ring-idle: transparent;
+  --mg-ring-connecting-start: #3B82F6;
+  --mg-ring-connecting-end: #6366F1;
+  --mg-ring-connected-start: #3B82F6;
+  --mg-ring-connected-mid: #06B6D4;
+  --mg-ring-connected-end: #10B981;
+}
+
+.dark {
+  --mg-base: #0A0A0F;
+  --mg-text-primary: #F0F0F5;
+  --mg-text-secondary: #8E8E93;
+  --mg-primary: #60A5FA;
+  --mg-primary-deep: #818CF8;
+  --mg-stream: #22D3EE;
+  --mg-ai: #A78BFA;
+  --mg-adblock: #34D399;
+
+  --mg-glass-bg: rgba(22, 22, 28, 0.55);
+  --mg-glass-border: rgba(255, 255, 255, 0.07);
+  --mg-glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --mg-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  --mg-glass-deep-bg: rgba(22, 22, 28, 0.25);
+  --mg-glass-light-bg: rgba(22, 22, 28, 0.65);
+  --mg-glass-medium-bg: rgba(22, 22, 28, 0.45);
+  --mg-glass-highlight-bg: rgba(22, 22, 28, 0.85);
+
+  --mg-ring-idle: transparent;
+  --mg-ring-connecting-start: #60A5FA;
+  --mg-ring-connecting-end: #818CF8;
+  --mg-ring-connected-start: #60A5FA;
+  --mg-ring-connected-mid: #22D3EE;
+  --mg-ring-connected-end: #34D399;
+}
+
+/* ===== Base reset for mobile ===== */
+.mobile-app {
+  background: var(--mg-base);
+  color: var(--mg-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== Glass utility classes ===== */
+.mg-glass-deep {
+  background: var(--mg-glass-deep-bg);
+  backdrop-filter: var(--mg-glass-deep-blur) saturate(160%);
+  -webkit-backdrop-filter: var(--mg-glass-deep-blur) saturate(160%);
+}
+
+.mg-glass-medium {
+  background: var(--mg-glass-medium-bg);
+  backdrop-filter: var(--mg-glass-medium-blur) saturate(175%);
+  -webkit-backdrop-filter: var(--mg-glass-medium-blur) saturate(175%);
+  border: 1px solid var(--mg-glass-border);
+  box-shadow: var(--mg-glass-shadow), var(--mg-glass-highlight);
+}
+
+.mg-glass-light {
+  background: var(--mg-glass-light-bg);
+  backdrop-filter: var(--mg-glass-light-blur) saturate(170%);
+  -webkit-backdrop-filter: var(--mg-glass-light-blur) saturate(170%);
+  border: 1px solid var(--mg-glass-border);
+}
+
+.mg-glass-card {
+  background: var(--mg-glass-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--mg-glass-border);
+  box-shadow: var(--mg-glass-shadow), var(--mg-glass-highlight);
+  border-radius: 24px;
+}
+
+/* ===== Mesh Gradient Background ===== */
+.mg-mesh-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.mg-mesh-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+}
+
+.dark .mg-mesh-layer {
+  opacity: 0.25;
+}
+
+.mg-mesh-gradient-1 {
+  background: radial-gradient(ellipse at 30% 40%, rgba(59, 130, 246, 0.12) 0%, transparent 55%);
+}
+
+.mg-mesh-gradient-2 {
+  background: radial-gradient(ellipse at 70% 60%, rgba(99, 102, 241, 0.10) 0%, transparent 55%);
+}
+
+.mg-mesh-gradient-3 {
+  background: radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
+}
+
+/* ===== Outer ring animation ===== */
+@keyframes ring-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ring-pulse-connected {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.mg-ring-spin {
+  animation: ring-rotate 1.5s linear infinite;
+}
+
+.mg-ring-glow {
+  animation: ring-pulse-connected 2s ease-in-out infinite;
+}
+
+/* ===== Mode capsule animations ===== */
+@keyframes capsule-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes capsule-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(8px) scale(0.95); }
+}
+
+/* ===== Bottom sheet transition ===== */
+@keyframes sheet-slide-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheet-slide-out {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes sheet-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheet-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ===== Page enter animation ===== */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Connect button breathing (ring glow) ===== */
+@keyframes connect-glow-idle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes connect-glow-active {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ===== Tab bar float ===== */
+.mg-tab-bar {
+  position: fixed;
+  bottom: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+.mg-tab-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 280px;
+  height: 64px;
+  padding: 6px;
+  border-radius: 32px;
+  background: var(--mg-glass-bg);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  border: 1px solid var(--mg-glass-border);
+  box-shadow: var(--mg-glass-shadow), var(--mg-glass-highlight);
+}
+
+.mg-tab-indicator {
+  position: absolute;
+  top: 6px;
+  height: 52px;
+  border-radius: 26px;
+  background: var(--mg-primary);
+  opacity: 0.12;
+  transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.dark .mg-tab-indicator {
+  opacity: 0.18;
+}
+
+/* ===== Bottom sheet overlay ===== */
+.mg-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ===== Bottom sheet panel ===== */
+.mg-sheet-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 70;
+  max-height: 60vh;
+  border-radius: 28px 28px 0 0;
+  background: var(--mg-glass-light-bg);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid var(--mg-glass-border);
+  box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark .mg-sheet-panel {
+  box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.5);
+}
+
+.mg-sheet-handle {
+  width: 36px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, 0.3);
+  margin: 12px auto 16px;
+  flex-shrink: 0;
+}
+
+/* ===== Mode capsule ===== */
+.mg-capsule {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 64px;
+}
+
+.mg-capsule:active {
+  transform: scale(0.96);
+}
+
+.mg-capsule-on {
+  border-color: var(--mg-glass-border);
+  box-shadow: var(--mg-glass-shadow);
+}
+
+/* ===== Scrollbar hide ===== */
+.mg-scroll-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mg-scroll-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== Status header ===== */
+.mg-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 16px;
+  background: rgba(242, 244, 248, 0.4);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.06);
+}
+
+.dark .mg-status-header {
+  background: rgba(10, 10, 15, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ===== Provider chip ===== */
+.mg-provider-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--mg-glass-medium-bg);
+  backdrop-filter: var(--mg-glass-medium-blur) saturate(175%);
+  -webkit-backdrop-filter: var(--mg-glass-medium-blur) saturate(175%);
+  border: 1px solid var(--mg-glass-border);
+  color: var(--mg-text-primary);
+}
+
+/* ===== Connection info card ===== */
+.mg-connection-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 24px;
+  background: var(--mg-glass-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--mg-glass-border);
+  box-shadow: var(--mg-glass-shadow);
+}
+
+/* ===== Node row ===== */
+.mg-node-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--mg-glass-border);
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.mg-node-row:active {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+/* ===== Signal dot ===== */
+.mg-signal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mg-signal-excellent { background: #10B981; }
+.mg-signal-good { background: #F59E0B; }
+.mg-signal-poor { background: #EF4444; }
+.mg-signal-unknown { background: #9CA3AF; }
+
+/* ===== Theme page ===== */
+.mg-theme-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background: var(--mg-glass-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  transition: border-color 0.3s ease;
+  cursor: pointer;
+}
+.mg-theme-option-selected {
+  border-color: var(--mg-primary);
+}
