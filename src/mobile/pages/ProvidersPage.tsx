@@ -3,6 +3,7 @@ import { Plus, RefreshCw, Trash2, Loader2 } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import type { Provider } from "@/types";
+import { NodeBottomSheet } from "@/mobile/components/NodeBottomSheet";
 
 interface ProvidersPageProps {
   onAddProvider: () => void;
@@ -65,11 +66,11 @@ function ProviderSwipeCard({
     let diffX = clientX - startX.current;
 
     if (isRevealed.current) {
-      diffX -= 140;
+      diffX -= 80;
     }
 
     if (diffX < 0) {
-      setOffsetX(Math.max(-160, diffX));
+      setOffsetX(Math.max(-100, diffX));
     } else {
       setOffsetX(Math.min(0, diffX));
     }
@@ -77,8 +78,8 @@ function ProviderSwipeCard({
 
   const handleTouchEnd = () => {
     setIsDragging(false);
-    if (offsetX < -70) {
-      setOffsetX(-140);
+    if (offsetX < -40) {
+      setOffsetX(-80);
       isRevealed.current = true;
       onSwipeOpen();
     } else {
@@ -104,35 +105,17 @@ function ProviderSwipeCard({
   return (
     <div className="relative overflow-hidden rounded-[16px] select-none">
       {/* Background Revealed Actions */}
-      <div className="absolute top-0 right-0 h-full w-[140px] flex z-0 rounded-[16px] overflow-hidden">
-        <button
-          type="button"
-          disabled={isRefreshing}
-          onClick={(e) => {
-            e.stopPropagation();
-            onRefresh();
-          }}
-          className="h-full w-[70px] bg-blue-500 text-white flex flex-col items-center justify-center gap-1 active:bg-blue-600 transition-colors disabled:opacity-50"
-        >
-          {isRefreshing ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
-          )}
-          <span className="text-[10px] font-bold">更新</span>
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="h-full w-[70px] bg-rose-500 text-white flex flex-col items-center justify-center gap-1 active:bg-rose-600 transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-          <span className="text-[10px] font-bold">删除</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        className="absolute top-0 right-0 h-full w-[80px] bg-rose-500 text-white flex flex-col items-center justify-center gap-1 active:bg-rose-600 transition-colors z-0"
+      >
+        <Trash2 className="w-4 h-4" />
+        <span className="text-[10px] font-bold">删除</span>
+      </button>
 
       {/* Foreground Main Card Content */}
       <div
@@ -160,13 +143,30 @@ function ProviderSwipeCard({
           </span>
         </div>
 
-        {/* Right Section: Status Indicator */}
-        <div className="flex items-center justify-end w-5 h-5 shrink-0">
-          {isRefreshing ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--mg-primary)]" />
-          ) : isActive ? (
-            <div className="w-2 h-2 rounded-full bg-[#FF8000] shadow-[0_0_6px_rgba(255,128,0,0.6)]" />
-          ) : null}
+        {/* Right Section: Status Indicator & Refresh */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            disabled={isRefreshing}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRefresh();
+            }}
+            className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all disabled:opacity-50"
+            aria-label="更新订阅"
+          >
+            {isRefreshing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--mg-primary)]" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
+            )}
+          </button>
+
+          <div className="w-3.5 h-3.5 flex items-center justify-center">
+            {isActive && (
+              <div className="w-2 h-2 rounded-full bg-[#FF8000] shadow-[0_0_6px_rgba(255,128,0,0.6)]" />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -181,18 +181,28 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
     setCurrentSubscription,
     fetchAndSaveSubscription,
     refreshingIds,
+    nodes,
+    currentNode,
+    applyNodeSelection,
+    testLatency,
+    isTestingLatency,
   } = useProxyStore();
 
   const [activeSwipeId, setActiveSwipeId] = useState<string | null>(null);
+  const [sheetOpenProvider, setSheetOpenProvider] = useState<Provider | null>(null);
+  const [sheetSort, setSheetSort] = useState<"name" | "delay">("delay");
 
   const handleSetActive = useCallback(async (provider: Provider) => {
-    if (currentProvider?.id === provider.id) return;
-    try {
-      await setCurrentSubscription(provider);
-      toast.success(`已切换为订阅: ${provider.name}`);
-    } catch (e) {
-      toast.error("切换订阅失败");
+    if (currentProvider?.id !== provider.id) {
+      try {
+        await setCurrentSubscription(provider);
+        toast.success(`已切换为订阅: ${provider.name}`);
+      } catch (e) {
+        toast.error("切换订阅失败");
+        return;
+      }
     }
+    setSheetOpenProvider(provider);
   }, [currentProvider, setCurrentSubscription]);
 
   const handleRefresh = useCallback(async (id: string, name: string) => {
@@ -222,6 +232,23 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
       toast.error("删除订阅失败");
     }
   }, [deleteProvider]);
+
+  const handleSelectNode = useCallback(async (nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (node) {
+      try {
+        await applyNodeSelection(node);
+        toast.success(`已选择节点: ${node.name}`);
+        setSheetOpenProvider(null);
+      } catch (e) {
+        toast.error("选择节点失败");
+      }
+    }
+  }, [nodes, applyNodeSelection]);
+
+  const sheetNodes = sheetOpenProvider
+    ? nodes.filter((n) => n.providerId === sheetOpenProvider.id && n.enabled)
+    : [];
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -269,6 +296,19 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
           </div>
         )}
       </div>
+
+      {/* Node selection Bottom Sheet */}
+      <NodeBottomSheet
+        open={sheetOpenProvider !== null}
+        onClose={() => setSheetOpenProvider(null)}
+        nodes={sheetNodes}
+        currentNodeId={currentNode?.id}
+        sortBy={sheetSort}
+        onSortChange={setSheetSort}
+        onSelect={handleSelectNode}
+        onTestLatency={() => testLatency()}
+        isTesting={isTestingLatency}
+      />
     </div>
   );
 }
