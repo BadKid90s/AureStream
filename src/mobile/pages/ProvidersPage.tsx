@@ -3,6 +3,7 @@ import { Plus, RefreshCw, Trash2, Loader2, ChevronDown } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import type { Provider, Node } from "@/types";
+import { NodeRow } from "@/mobile/components/NodeRow";
 
 interface ProvidersPageProps {
   onAddProvider: () => void;
@@ -130,6 +131,7 @@ function ProviderSwipeCard({
             onDelete();
           }}
           className="absolute top-0 right-0 h-full w-[80px] bg-rose-500 text-white flex items-center justify-center active:bg-rose-600 transition-colors z-0"
+          style={{ display: offsetX >= 0 ? "none" : "flex" }}
         >
           <Trash2 className="w-4.5 h-4.5" />
         </button>
@@ -140,7 +142,9 @@ function ProviderSwipeCard({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="px-4 h-full flex items-center justify-between relative overflow-hidden z-10 cursor-pointer bg-transparent"
+          className={`px-4 h-full flex items-center justify-between relative overflow-hidden z-10 cursor-pointer bg-[var(--mg-glass-bg)] rounded-[16px] ${
+            isActive ? "bg-[rgba(59,130,246,0.03)]" : ""
+          }`}
           style={{
             transform: `translateX(${offsetX}px)`,
             transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
@@ -202,32 +206,17 @@ function ProviderSwipeCard({
 
       {/* Expanded Nodes List */}
       {isExpanded && (
-        <div className="border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] px-4 py-2 max-h-[220px] overflow-y-auto mg-scroll-none space-y-1">
+        <div className="border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] max-h-[260px] overflow-y-auto mg-scroll-none">
           {providerNodes.map((node) => (
-            <button
+            <NodeRow
               key={node.id}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectNode(node.id);
-              }}
-              className="w-full py-1.5 flex items-center justify-between text-xs text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] transition-colors active:opacity-70"
-            >
-              <span className="truncate pr-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 flex items-center justify-center shrink-0">
-                  {node.id === currentNodeId && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF8000]" />
-                  )}
-                </span>
-                <span className="font-semibold text-[13px]">{node.name}</span>
-              </span>
-              <span className="font-mono text-[11px]">
-                {node.delayError ? "超时" : node.delay != null ? `${node.delay}ms` : "--"}
-              </span>
-            </button>
+              node={node}
+              isSelected={node.id === currentNodeId}
+              onSelect={onSelectNode}
+            />
           ))}
           {providerNodes.length === 0 && (
-            <div className="py-2 text-center text-xs text-[var(--mg-text-secondary)]">
+            <div className="py-4 text-center text-xs text-[var(--mg-text-secondary)]">
               暂无可用节点
             </div>
           )}
