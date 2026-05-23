@@ -6,8 +6,8 @@ interface ProviderChipProps {
 
 export function ProviderChip({ name }: ProviderChipProps) {
   return (
-    <div className="mg-provider-chip">
-      <Package className="w-3.5 h-3.5 text-[var(--mg-primary)]" />
+    <div className="flex items-center gap-2.5 text-[var(--mg-text-primary)] text-[18px] font-bold">
+      <Package className="w-5 h-5 text-[var(--mg-primary)]" strokeWidth={2.5} />
       <span>{name}</span>
     </div>
   );

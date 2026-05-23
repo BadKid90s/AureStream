@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { ArrowDown01, ArrowDownAZ, RefreshCw } from "lucide-react";
 import { NodeRow } from "./NodeRow";
 import type { Node } from "@/types";
@@ -26,6 +26,38 @@ export function NodeBottomSheet({
   onTestLatency,
   isTesting,
 }: NodeBottomSheetProps) {
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startY = useRef(0);
+
+  useEffect(() => {
+    if (!open) {
+      setDragY(0);
+      setIsDragging(false);
+    }
+  }, [open]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY.current;
+    if (deltaY > 0) {
+      setDragY(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (dragY > 80) {
+      onClose();
+    }
+    setDragY(0);
+  };
+
   const sorted = useMemo(() => {
     const arr = [...nodes];
     if (sortBy === "name") {
@@ -52,11 +84,21 @@ export function NodeBottomSheet({
       />
       <div
         className="mg-sheet-panel"
-        style={{ animation: "sheet-slide-in 0.35s cubic-bezier(0.32, 0.72, 0, 1)" }}
+        style={{
+          animation: isDragging ? "none" : "sheet-slide-in 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+          transform: `translateY(${dragY}px)`,
+          transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+        }}
       >
-        <div className="mg-sheet-handle" />
-        <div className="flex items-center justify-between px-5 pb-3">
-          <h3 className="text-base font-bold text-[var(--mg-text-primary)]">选择节点</h3>
+        <div 
+          className="flex-none cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="mg-sheet-handle" />
+          <div className="flex items-center justify-between px-5 pb-3">
+            <h3 className="text-base font-bold text-[var(--mg-text-primary)]">选择节点</h3>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -84,7 +126,8 @@ export function NodeBottomSheet({
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto mg-scroll-none">
+      </div>
+      <div className="flex-1 overflow-y-auto mg-scroll-none">
           {sorted.map((node) => (
             <NodeRow
               key={node.id}

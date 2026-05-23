@@ -30,20 +30,20 @@ export function ConnectionInfo({ nodeName, delay }: ConnectionInfoProps) {
 
   return (
     <div className="mg-connection-info">
-      <span className="text-xl">{flag}</span>
-      <div className="flex flex-col min-w-0">
-        <span className="text-sm font-semibold text-[var(--mg-text-primary)] truncate">
+      <span className="text-2xl">{flag}</span>
+      <div className="flex flex-col min-w-0 text-left">
+        <span className="text-[15px] font-semibold text-[var(--mg-text-primary)] truncate">
           {primary}
         </span>
         {secondary && (
-          <span className="text-[11px] text-[var(--mg-text-secondary)] truncate">
+          <span className="text-xs text-[var(--mg-text-secondary)] truncate">
             {secondary}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1.5 ml-auto">
+      <div className="flex items-center gap-2 ml-auto">
         <div className={`mg-signal-dot ${dotColor}`} />
-        <span className="text-xs font-mono font-medium text-[var(--mg-text-secondary)]">
+        <span className="text-sm font-mono font-medium text-[var(--mg-text-secondary)]">
           {delay != null ? `${delay}ms` : "--"}
         </span>
       </div>

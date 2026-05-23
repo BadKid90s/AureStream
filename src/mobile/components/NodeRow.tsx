@@ -1,5 +1,3 @@
-import { Check } from "lucide-react";
-import { getLatencyLevel } from "@/types";
 import type { Node } from "@/types";
 
 function parseFlag(nodeName: string): string {
@@ -18,13 +16,6 @@ interface NodeRowProps {
 }
 
 export function NodeRow({ node, isSelected, onSelect }: NodeRowProps) {
-  const level = getLatencyLevel(node.delay);
-  const dotColor =
-    level === "excellent" ? "mg-signal-excellent" :
-    level === "good" ? "mg-signal-good" :
-    level === "poor" ? "mg-signal-poor" :
-    "mg-signal-unknown";
-
   return (
     <button
       type="button"
@@ -41,13 +32,14 @@ export function NodeRow({ node, isSelected, onSelect }: NodeRowProps) {
         </span>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className={`mg-signal-dot ${dotColor}`} />
-        <span className="text-xs font-mono text-[var(--mg-text-secondary)] w-10 text-right">
+        <span className="text-xs font-mono text-[var(--mg-text-secondary)] w-[52px] text-right tabular-nums">
           {node.delayError ? "超时" : node.delay != null ? `${node.delay}ms` : "--"}
         </span>
-        {isSelected && (
-          <Check className="w-4 h-4 text-[var(--mg-primary)]" strokeWidth={2.5} />
-        )}
+        <div className="w-5 h-5 flex items-center justify-center">
+          {isSelected && (
+            <div className="w-2.5 h-2.5 rounded-full bg-[#FF8000] shadow-[0_0_8px_rgba(255,128,0,0.6)]" />
+          )}
+        </div>
       </div>
     </button>
   );

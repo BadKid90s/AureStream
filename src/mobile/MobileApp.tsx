@@ -1,7 +1,6 @@
 import "@/mobile/styles/mobile.css";
 import { useState, useCallback } from "react";
 import { GlassTabBar } from "@/mobile/components/GlassTabBar";
-import { StatusHeader } from "@/mobile/components/StatusHeader";
 import { MeshGradientBackground } from "@/mobile/components/MeshGradientBackground";
 import { HomePage } from "@/mobile/pages/HomePage";
 import { NodesPage } from "@/mobile/pages/NodesPage";
@@ -29,16 +28,6 @@ export function MobileApp() {
     setThemePageVisible(false);
   }, []);
 
-  const getHeaderTitle = () => {
-    if (themePageVisible) return "外观";
-    switch (currentPage) {
-      case "home": return undefined;
-      case "nodes": return "节点管理";
-      case "settings": return "设置";
-      default: return undefined;
-    }
-  };
-
   const renderPage = () => {
     if (themePageVisible) {
       return <ThemePage onBack={handleBackFromTheme} />;
@@ -54,12 +43,6 @@ export function MobileApp() {
   return (
     <div className="mobile-app relative flex flex-col h-dvh w-full overflow-hidden">
       <MeshGradientBackground />
-
-      <StatusHeader
-        title={getHeaderTitle()}
-        showBack={isSubPage}
-        onBack={handleBackFromTheme}
-      />
 
       <div className="flex-1 min-h-0 flex flex-col" style={{ animation: "page-enter 0.25s ease-out" }}>
         {renderPage()}

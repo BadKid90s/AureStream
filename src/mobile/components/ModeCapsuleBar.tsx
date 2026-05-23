@@ -5,14 +5,13 @@ interface Mode {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  activeColor: string;
 }
 
 const modes: Mode[] = [
-  { id: "smart", label: "智能", icon: Compass, activeColor: "var(--mg-primary)" },
-  { id: "stream", label: "流媒体", icon: Film, activeColor: "var(--mg-stream)" },
-  { id: "ai", label: "AI", icon: Bot, activeColor: "var(--mg-ai)" },
-  { id: "adblock", label: "去广告", icon: Shield, activeColor: "var(--mg-adblock)" },
+  { id: "smart", label: "智能", icon: Compass },
+  { id: "stream", label: "流媒体", icon: Film },
+  { id: "ai", label: "AI", icon: Bot },
+  { id: "adblock", label: "去广告", icon: Shield },
 ];
 
 interface ModeCapsuleBarProps {
@@ -26,10 +25,9 @@ export function ModeCapsuleBar({ activeModes, onToggle, visible, disabled }: Mod
   return (
     <div
       className={cn(
-        "flex justify-center gap-2 px-4 transition-all duration-300 ease-out",
+        "flex justify-center gap-2 px-4 transition-all duration-350 ease-out",
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none",
       )}
-      style={{ height: visible ? "auto" : 0, overflow: "hidden" }}
     >
       {modes.map((mode) => {
         const Icon = mode.icon;
@@ -43,30 +41,37 @@ export function ModeCapsuleBar({ activeModes, onToggle, visible, disabled }: Mod
             onClick={() => onToggle(mode.id)}
             className={cn(
               "mg-capsule",
-              isOn && "mg-capsule-on",
+              isOn ? "shadow-sm" : "mg-capsule-inactive",
             )}
             style={isOn ? {
-              backgroundColor: `${mode.activeColor}14`,
-              borderColor: `${mode.activeColor}40`,
+              backgroundColor: `rgba(var(--mg-${mode.id}-rgb), 0.12)`,
+              borderColor: `rgba(var(--mg-${mode.id}-rgb), 0.35)`,
+              boxShadow: `0 6px 18px -4px rgba(var(--mg-${mode.id}-rgb), 0.22)`,
             } : undefined}
           >
             <div
               className={cn(
-                "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300",
+                "w-9 h-9 rounded-[14px] flex items-center justify-center transition-all duration-300",
                 isOn
-                  ? "text-white shadow-sm"
-                  : "bg-black/5 dark:bg-white/5 text-[var(--mg-text-secondary)]",
+                  ? "text-white"
+                  : "bg-black/[0.04] dark:bg-white/[0.04] text-[var(--mg-text-secondary)]",
               )}
               style={isOn ? {
-                background: `linear-gradient(to top right, ${mode.activeColor}, ${mode.activeColor}CC)`,
-                boxShadow: `0 2px 8px ${mode.activeColor}40`,
+                background: `var(--mg-${mode.id}-gradient)`,
+                boxShadow: `0 4px 10px rgba(var(--mg-${mode.id}-rgb), 0.35)`,
               } : undefined}
             >
-              <Icon className="w-4 h-4" strokeWidth={2} />
+              <Icon 
+                className={cn(
+                  "w-[18px] h-[18px] transition-transform duration-300",
+                  isOn ? "scale-110" : "scale-100"
+                )} 
+                strokeWidth={2.2} 
+              />
             </div>
             <span className={cn(
-              "text-[11px] font-semibold transition-colors duration-300",
-              isOn ? "text-[var(--mg-text-primary)]" : "text-[var(--mg-text-secondary)]",
+              "text-[11px] font-semibold tracking-wide transition-colors duration-300 select-none",
+              isOn ? "text-[var(--mg-text-primary)] font-bold" : "text-[var(--mg-text-secondary)]",
             )}>
               {mode.label}
             </span>
@@ -76,3 +81,4 @@ export function ModeCapsuleBar({ activeModes, onToggle, visible, disabled }: Mod
     </div>
   );
 }
+

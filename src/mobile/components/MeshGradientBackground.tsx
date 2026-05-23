@@ -5,6 +5,7 @@ export function MeshGradientBackground() {
         <div className="mg-mesh-gradient-1" />
         <div className="mg-mesh-gradient-2" />
         <div className="mg-mesh-gradient-3" />
+        <div className="mg-mesh-gradient-4" />
       </div>
     </div>
   );

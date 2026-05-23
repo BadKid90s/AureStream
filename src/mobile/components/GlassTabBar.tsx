@@ -41,20 +41,18 @@ export function GlassTabBar({ currentPage, onNavigate }: GlassTabBarProps) {
               type="button"
               onClick={() => onNavigate(tab.id)}
               className={cn(
-                "relative flex-1 h-full rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors duration-300 z-10",
-                isActive
-                  ? "text-[var(--mg-primary)]"
-                  : "text-[var(--mg-text-secondary)]"
+                "relative flex-1 h-full rounded-full flex flex-col items-center justify-center gap-0.5 z-10 mg-tab-button",
+                isActive && "active"
               )}
             >
               <Icon
                 className={cn(
-                  "w-5 h-5 transition-transform duration-300",
+                  "w-[22px] h-[22px] transition-transform duration-300",
                   isActive && "scale-110"
                 )}
                 strokeWidth={2}
               />
-              <span className="text-[10px] font-semibold tracking-wider">
+              <span className="text-[11px] font-semibold tracking-wider">
                 {tab.label}
               </span>
             </button>
