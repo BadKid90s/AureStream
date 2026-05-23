@@ -9,6 +9,8 @@ import { loadPersistedState } from "@/lib/persistStore";
 import { Toaster } from "@/components/ui/sonner";
 import { listen } from "@tauri-apps/api/event";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { MobileApp } from "@/mobile/MobileApp";
 
 function applyTheme(theme: string) {
   const root = document.documentElement;
@@ -29,6 +31,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [isInitializing, setIsInitializing] = useState(true);
   const { theme } = useAppStore();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const init = async () => {
@@ -125,6 +128,16 @@ function App() {
         return <Dashboard onOpenProviders={openProviders} />;
     }
   };
+
+  if (isMobile) {
+    return (
+      <>
+        <MobileApp />
+        <Toaster richColors />
+        <LoadingScreen visible={isInitializing} />
+      </>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden gap-3 ">
