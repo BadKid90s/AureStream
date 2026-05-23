@@ -58,6 +58,7 @@ function ProviderSwipeCard({
   const handleTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
     setIsDragging(true);
+    onSwipeOpen();
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -133,18 +134,28 @@ function ProviderSwipeCard({
           transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
         }}
       >
-        {/* Left Section: Info */}
-        <div className="flex flex-col min-w-0 pr-4">
-          <span className="text-[14px] font-bold text-[var(--mg-text-primary)] truncate">
-            {provider.name}
-          </span>
-          <span className="text-[10px] text-[var(--mg-text-secondary)] mt-0.5 font-mono truncate">
-            {provider.nodeCount}个节点 · {used.toFixed(1)}G/{total.toFixed(0)}G · {formatDate(provider.expiresAt)}
-          </span>
+        {/* Left Section: Active selection dot & Info */}
+        <div className="flex items-center gap-3 min-w-0 pr-4">
+          <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+            {isActive ? (
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FF8000] shadow-[0_0_6px_rgba(255,128,0,0.6)] animate-pulse" />
+            ) : (
+              <div className="w-2.5 h-2.5 rounded-full border border-slate-300 dark:border-zinc-700" />
+            )}
+          </div>
+
+          <div className="flex flex-col min-w-0">
+            <span className="text-[14px] font-bold text-[var(--mg-text-primary)] truncate">
+              {provider.name}
+            </span>
+            <span className="text-[10px] text-[var(--mg-text-secondary)] mt-0.5 font-mono truncate">
+              {provider.nodeCount}个节点 · {used.toFixed(1)}G/{total.toFixed(0)}G · {formatDate(provider.expiresAt)}
+            </span>
+          </div>
         </div>
 
-        {/* Right Section: Status Indicator & Refresh */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Right Section: Refresh Icon */}
+        <div className="flex items-center shrink-0">
           <button
             type="button"
             disabled={isRefreshing}
@@ -161,12 +172,6 @@ function ProviderSwipeCard({
               <RefreshCw className="w-3.5 h-3.5" />
             )}
           </button>
-
-          <div className="w-3.5 h-3.5 flex items-center justify-center">
-            {isActive && (
-              <div className="w-2 h-2 rounded-full bg-[#FF8000] shadow-[0_0_6px_rgba(255,128,0,0.6)]" />
-            )}
-          </div>
         </div>
       </div>
     </div>
