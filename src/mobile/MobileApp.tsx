@@ -14,7 +14,7 @@ type Page = "home" | "providers" | "settings" | "theme" | "add_provider";
 
 // Shared icon-button style used in the nav bar
 const NAV_BTN =
-  "w-9 h-9 rounded-full bg-[var(--mg-glass-bg)] border border-[var(--mg-glass-border)] flex items-center justify-center text-[var(--mg-text-primary)] active:scale-90 transition-transform shadow-[var(--mg-glass-shadow)]";
+  "w-9 h-9 flex items-center justify-center text-[var(--mg-text-primary)] active:scale-90 transition-transform";
 
 export function MobileApp() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
@@ -47,7 +47,7 @@ export function MobileApp() {
             aria-label="返回"
             onClick={handleBackFromTheme}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 3L5 8L10 13" />
             </svg>
           </button>
@@ -64,7 +64,7 @@ export function MobileApp() {
             aria-label="返回"
             onClick={() => setCurrentPage("providers")}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 3L5 8L10 13" />
             </svg>
           </button>
@@ -86,7 +86,7 @@ export function MobileApp() {
               aria-label="扫描二维码"
               onClick={() => {/* TODO: QR scan */}}
             >
-              <QrCode className="w-[18px] h-[18px]" />
+              <QrCode className="w-[22px] h-[22px]" />
             </button>
           ),
           right: (
@@ -96,7 +96,7 @@ export function MobileApp() {
               aria-label="添加服务商"
               onClick={() => setCurrentPage("add_provider")}
             >
-              <Plus className="w-[18px] h-[18px]" />
+              <Plus className="w-[22px] h-[22px]" />
             </button>
           ),
         };

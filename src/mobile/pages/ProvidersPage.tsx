@@ -161,14 +161,13 @@ function ProviderSwipeCard({
               revealedDir.current = null;
               onSwipeClose();
             }}
-            className="h-full w-[70px] bg-blue-500 text-white flex flex-col items-center justify-center gap-1 active:bg-blue-600 transition-colors disabled:opacity-50"
+            className="h-full w-[70px] bg-blue-500 text-white flex items-center justify-center active:bg-blue-600 transition-colors disabled:opacity-50"
           >
             {isRefreshing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4.5 h-4.5 animate-spin" />
             ) : (
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4.5 h-4.5" />
             )}
-            <span className="text-[10px] font-bold">更新</span>
           </button>
           <button
             type="button"
@@ -181,14 +180,13 @@ function ProviderSwipeCard({
               revealedDir.current = null;
               onSwipeClose();
             }}
-            className="h-full w-[70px] bg-teal-500 text-white flex flex-col items-center justify-center gap-1 active:bg-teal-600 transition-colors disabled:opacity-50"
+            className="h-full w-[70px] bg-teal-500 text-white flex items-center justify-center active:bg-teal-600 transition-colors disabled:opacity-50"
           >
             {isTesting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4.5 h-4.5 animate-spin" />
             ) : (
-              <Activity className="w-4 h-4" />
+              <Activity className="w-4.5 h-4.5" />
             )}
-            <span className="text-[10px] font-bold">测速</span>
           </button>
         </div>
 
