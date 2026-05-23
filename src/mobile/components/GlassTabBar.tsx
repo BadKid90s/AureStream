@@ -1,4 +1,4 @@
-import { Home, Radio, Settings } from "lucide-react";
+import { Home, Server, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Tab {
@@ -14,7 +14,7 @@ interface GlassTabBarProps {
 
 const tabs: Tab[] = [
   { id: "home", label: "首页", icon: Home },
-  { id: "nodes", label: "节点", icon: Radio },
+  { id: "providers", label: "服务商", icon: Server },
   { id: "settings", label: "设置", icon: Settings },
 ];
 
