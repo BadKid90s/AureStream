@@ -11,7 +11,7 @@ export function ThemePage() {
   const { theme, setTheme } = useAppStore();
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto mg-scroll-none px-4 pt-4 pb-4 gap-3">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto mg-scroll-none px-4 pt-3 pb-4 gap-3">
 
       {options.map((opt) => {
         const Icon = opt.icon;

@@ -281,31 +281,44 @@ function startMihomoTrafficPoll(get: () => ProxyStore) {
   mihomoTrafficTimer = setInterval(() => void tick(), 1000);
 }
 
-/** 校正当前选中订阅：仅存 1 条时一律视为当前使用中；零条清空；多条时校正无效引用 */
 function normalizeCurrentSubscriptionSelection(
   providers: Provider[],
   currentProvider: Provider | undefined,
   currentNode: Node | undefined,
+  nodes: Node[] = [],
 ): { currentProvider: Provider | undefined; currentNode: Node | undefined } {
   if (providers.length === 0) {
     return { currentProvider: undefined, currentNode: undefined };
   }
+  
+  let cp = currentProvider;
   if (providers.length === 1) {
-    const only = providers[0];
-    const nodeOk =
-      currentNode?.providerId === only.id ? currentNode : undefined;
-    return { currentProvider: only, currentNode: nodeOk };
+    cp = providers[0];
+  } else if (currentProvider && !providers.some((p) => p.id === currentProvider.id)) {
+    cp = undefined;
   }
-  if (currentProvider && !providers.some((p) => p.id === currentProvider.id)) {
+  
+  if (!cp) {
     return { currentProvider: undefined, currentNode: undefined };
   }
-  const nodeOk =
-    currentNode &&
-    currentProvider &&
-    currentNode.providerId === currentProvider.id
-      ? currentNode
-      : undefined;
-  return { currentProvider, currentNode: nodeOk };
+  
+  let nodeOk =
+    currentNode && currentNode.providerId === cp.id ? currentNode : undefined;
+  
+  if (!nodeOk && nodes.length > 0) {
+    const cpNodes = nodes.filter((n) => n.providerId === cp!.id && n.enabled !== false);
+    if (cpNodes.length > 0) {
+      cpNodes.sort((a, b) => {
+        const da = a.delayError ? Infinity : (a.delay ?? Infinity);
+        const db = b.delayError ? Infinity : (b.delay ?? Infinity);
+        if (da === Infinity && db === Infinity) return a.name.localeCompare(b.name, "zh-Hans-CN");
+        return da - db;
+      });
+      nodeOk = cpNodes[0];
+    }
+  }
+  
+  return { currentProvider: cp, currentNode: nodeOk };
 }
 
 interface ProxyStore {
@@ -445,6 +458,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
           providers,
           get().currentProvider,
           get().currentNode,
+          nodes,
         );
         set({ providers, nodes, ...cur });
       } else {
@@ -452,6 +466,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
           get().providers,
           get().currentProvider,
           get().currentNode,
+          get().nodes,
         );
         set({ ...cur });
       }
@@ -461,6 +476,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         get().providers,
         get().currentProvider,
         get().currentNode,
+        get().nodes,
       );
       set({ ...cur });
     }
@@ -524,6 +540,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       newProviders,
       currentProvider,
       get().currentNode,
+      get().nodes,
     );
     const prefix = `${id}:`;
     set((state) => {
@@ -540,8 +557,20 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
   setCurrentProvider: (provider) => {
     const cur = get().currentNode;
-    const nextNode =
+    let nextNode =
       provider && cur?.providerId === provider.id ? cur : undefined;
+    if (provider && !nextNode) {
+      const cpNodes = get().nodes.filter((n) => n.providerId === provider.id && n.enabled !== false);
+      if (cpNodes.length > 0) {
+        cpNodes.sort((a, b) => {
+          const da = a.delayError ? Infinity : (a.delay ?? Infinity);
+          const db = b.delayError ? Infinity : (b.delay ?? Infinity);
+          if (da === Infinity && db === Infinity) return a.name.localeCompare(b.name, "zh-Hans-CN");
+          return da - db;
+        });
+        nextNode = cpNodes[0];
+      }
+    }
     set({
       currentProvider: provider,
       currentNode: nextNode,
@@ -1055,6 +1084,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         providers,
         currentProvider,
         get().currentNode,
+        get().nodes,
       );
       set({ providers, ...sel });
       await get().refreshSubscriptionNodesFromDb();
@@ -1083,7 +1113,20 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
   },
 
   setCurrentSubscription: async (provider?: Provider) => {
-    set({ currentProvider: provider, currentNode: undefined });
+    let defaultNode: Node | undefined;
+    if (provider) {
+      const cpNodes = get().nodes.filter((n) => n.providerId === provider.id && n.enabled !== false);
+      if (cpNodes.length > 0) {
+        cpNodes.sort((a, b) => {
+          const da = a.delayError ? Infinity : (a.delay ?? Infinity);
+          const db = b.delayError ? Infinity : (b.delay ?? Infinity);
+          if (da === Infinity && db === Infinity) return a.name.localeCompare(b.name, "zh-Hans-CN");
+          return da - db;
+        });
+        defaultNode = cpNodes[0];
+      }
+    }
+    set({ currentProvider: provider, currentNode: defaultNode });
     if (!provider) return;
 
     try {

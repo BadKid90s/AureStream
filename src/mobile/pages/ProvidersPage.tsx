@@ -439,14 +439,14 @@ export function ProvidersPage() {
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
 
   const handleSetActive = useCallback(async (provider: Provider) => {
-    if (currentProvider?.id === provider.id) return;
+    if (currentProvider?.id === provider.id && currentNode) return;
     try {
       await setCurrentSubscription(provider);
       toast.success(`已切换为订阅: ${provider.name}`);
     } catch (e) {
       toast.error("切换订阅失败");
     }
-  }, [currentProvider, setCurrentSubscription]);
+  }, [currentProvider, currentNode, setCurrentSubscription]);
 
   const handleRefresh = useCallback(async (id: string, name: string) => {
     try {
@@ -502,7 +502,7 @@ export function ProvidersPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* List Container */}
-      <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pb-24 space-y-3">
+      <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pt-3 pb-24 space-y-3">
         {providers.map((provider) => (
           <ProviderSwipeCard
             key={provider.id}

@@ -8,7 +8,7 @@ interface MobileNavBarProps {
 
 export function MobileNavBar({ title, leftAction, rightAction }: MobileNavBarProps) {
   return (
-    <div className="flex-none flex items-center justify-between px-5 pt-4 pb-3 relative">
+    <div className="flex-none flex items-center justify-between px-5 pt-2.5 pb-2 relative">
       {/* Left */}
       <div className="w-9 h-9 flex items-center justify-center">
         {leftAction ?? null}

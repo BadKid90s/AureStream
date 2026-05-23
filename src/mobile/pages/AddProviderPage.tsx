@@ -96,7 +96,7 @@ export function AddProviderPage({ onBack }: AddProviderPageProps) {
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Form scroll view */}
-      <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pb-20">
+      <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pt-3 pb-20">
         <form onSubmit={handleSubmit} className="mg-glass-card p-5 flex flex-col gap-5">
           {/* Name Field */}
           <div className="flex flex-col gap-1.5">

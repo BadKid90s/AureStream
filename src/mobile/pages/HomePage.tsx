@@ -118,7 +118,7 @@ export function HomePage() {
   return (
     <div className="relative flex flex-col h-full overflow-hidden">
       {/* Top — status text & timer */}
-      <div className="flex-none flex flex-col items-center pt-4 pb-4">
+      <div className="flex-none flex flex-col items-center pt-3 pb-4">
         <div className="flex flex-col items-center">
           {/* Main Status Header */}
           <span className={`text-[28px] font-extrabold tracking-tight transition-all duration-500 ${
