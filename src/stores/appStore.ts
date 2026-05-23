@@ -49,6 +49,8 @@ interface AppStore {
   proxyMode: "rule" | "global" | "direct";
   smartRoute: boolean;
   smartAdBlock: boolean;
+  streamMode: boolean;
+  aiRoute: boolean;
   /** 从后端 YAML 加载设置 */
   loadSettings: () => Promise<void>;
   setTheme: (theme: "light" | "dark" | "system") => void;
@@ -59,6 +61,8 @@ interface AppStore {
   setProxyMode: (mode: "rule" | "global" | "direct") => Promise<void>;
   setSmartRoute: (value: boolean) => Promise<void>;
   setSmartAdBlock: (value: boolean) => Promise<void>;
+  setStreamMode: (value: boolean) => Promise<void>;
+  setAiRoute: (value: boolean) => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>()((set, get) => ({
@@ -69,6 +73,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   proxyMode: "rule",
   smartRoute: true,
   smartAdBlock: false,
+  streamMode: false,
+  aiRoute: false,
 
   loadSettings: async () => {
     try {
@@ -86,6 +92,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         proxyMode: (settings as any).proxyMode || (loadedSmartRoute ? "rule" : "global"),
         smartRoute: loadedSmartRoute,
         smartAdBlock: settings.smartAdBlock ?? false,
+        streamMode: (settings as any).streamMode ?? false,
+        aiRoute: (settings as any).aiRoute ?? false,
       });
     } catch (e) {
       console.error("Failed to load app settings:", e);
@@ -157,6 +165,16 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   setSmartAdBlock: async (value) => {
     set({ smartAdBlock: value });
     savePersistedSettings({ smartAdBlock: value } as any).catch(console.error);
+  },
+
+  setStreamMode: async (value) => {
+    set({ streamMode: value });
+    savePersistedSettings({ streamMode: value } as any).catch(console.error);
+  },
+
+  setAiRoute: async (value) => {
+    set({ aiRoute: value });
+    savePersistedSettings({ aiRoute: value } as any).catch(console.error);
   },
 }));
 
