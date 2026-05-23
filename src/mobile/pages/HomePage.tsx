@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ChevronRight } from "lucide-react";
 import { LiquidConnectButton } from "@/mobile/components/LiquidConnectButton";
 import { ModeCapsuleBar } from "@/mobile/components/ModeCapsuleBar";
 import { ConnectionInfo } from "@/mobile/components/ConnectionInfo";
@@ -121,7 +122,7 @@ export function HomePage() {
       <div className="flex-none flex flex-col items-center pt-14 pb-4">
         {currentProvider && (
           <div className="pb-3">
-            <ProviderChip provider={currentProvider} />
+            <ProviderChip name={currentProvider.name} />
           </div>
         )}
 
@@ -208,18 +209,23 @@ export function HomePage() {
           )}
         </div>
 
-        {currentNode && (
-          <button
-            type="button"
-            className="w-full max-w-[340px]"
-            onClick={() => setSheetOpen(true)}
-          >
+        <button
+          type="button"
+          className="w-full max-w-[340px]"
+          onClick={() => setSheetOpen(true)}
+        >
+          {currentNode ? (
             <ConnectionInfo
               nodeName={currentNode.name}
               delay={currentNode.delay}
             />
-          </button>
-        )}
+          ) : (
+            <div className="mg-glass-card rounded-[16px] px-4 py-3 flex items-center justify-center gap-2">
+              <span className="text-xs text-[var(--mg-text-secondary)]">点击选择节点</span>
+              <ChevronRight className="w-3.5 h-3.5 text-[var(--mg-text-secondary)]" />
+            </div>
+          )}
+        </button>
       </div>
 
       {/* Node bottom sheet */}

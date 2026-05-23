@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Plus, RefreshCw, Trash2, Loader2, ChevronDown } from "lucide-react";
+import { Plus, RefreshCw, Trash2, Loader2, ChevronDown, Activity } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import type { Provider, Node } from "@/types";
@@ -20,6 +20,12 @@ function formatDate(dateStr?: string): string {
   }
 }
 
+/* ============================================================
+   ProviderSwipeCard – bidirectional swipe
+   Left swipe  → Delete (right side, 80px)
+   Right swipe → Update + Test Speed (left side, 140px)
+   ============================================================ */
+
 interface SwipeCardProps {
   provider: Provider;
   isActive: boolean;
@@ -28,15 +34,20 @@ interface SwipeCardProps {
   onSetActive: () => void;
   onRefresh: () => void;
   onDelete: () => void;
+  onTestLatency: () => void;
   onSwipeOpen: () => void;
   onSwipeClose: () => void;
-
-  // Accordion Props
   isExpanded: boolean;
   onToggleExpand: () => void;
   providerNodes: Node[];
   currentNodeId?: string;
   onSelectNode: (nodeId: string) => void;
+  isTesting: boolean;
+  // Global swipe sync (unified for provider cards + node rows)
+  globalActiveSwipeId: string | null;
+  onGlobalSwipeOpen: (id: string) => void;
+  onGlobalSwipeClose: (id: string) => void;
+  onNodeTestLatency: () => void;
 }
 
 function ProviderSwipeCard({
@@ -47,6 +58,7 @@ function ProviderSwipeCard({
   onSetActive,
   onRefresh,
   onDelete,
+  onTestLatency,
   onSwipeOpen,
   onSwipeClose,
   isExpanded,
@@ -54,16 +66,22 @@ function ProviderSwipeCard({
   providerNodes,
   currentNodeId,
   onSelectNode,
+  isTesting,
+  globalActiveSwipeId,
+  onGlobalSwipeOpen,
+  onGlobalSwipeClose,
+  onNodeTestLatency,
 }: SwipeCardProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
-  const isRevealed = useRef(false);
+  // "left" = left-swiped (delete visible), "right" = right-swiped (update/test visible)
+  const revealedDir = useRef<"left" | "right" | null>(null);
 
   useEffect(() => {
     if (forceClose && offsetX !== 0) {
       setOffsetX(0);
-      isRevealed.current = false;
+      revealedDir.current = null;
     }
   }, [forceClose, offsetX]);
 
@@ -78,34 +96,41 @@ function ProviderSwipeCard({
     const clientX = e.touches[0].clientX;
     let diffX = clientX - startX.current;
 
-    if (isRevealed.current) {
+    // If already revealed, offset the base position
+    if (revealedDir.current === "left") {
       diffX -= 80;
+    } else if (revealedDir.current === "right") {
+      diffX += 140;
     }
 
-    if (diffX < 0) {
-      setOffsetX(Math.max(-100, diffX));
-    } else {
-      setOffsetX(Math.min(0, diffX));
-    }
+    // Clamp: left swipe max -100, right swipe max +160
+    setOffsetX(Math.max(-100, Math.min(160, diffX)));
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
     if (offsetX < -40) {
+      // Lock left-swiped (delete)
       setOffsetX(-80);
-      isRevealed.current = true;
+      revealedDir.current = "left";
+      onSwipeOpen();
+    } else if (offsetX > 70) {
+      // Lock right-swiped (update + test)
+      setOffsetX(140);
+      revealedDir.current = "right";
       onSwipeOpen();
     } else {
+      // Snap back
       setOffsetX(0);
-      isRevealed.current = false;
+      revealedDir.current = null;
       onSwipeClose();
     }
   };
 
   const handleClick = () => {
-    if (isRevealed.current) {
+    if (revealedDir.current) {
       setOffsetX(0);
-      isRevealed.current = false;
+      revealedDir.current = null;
       onSwipeClose();
     } else {
       onSetActive();
@@ -123,7 +148,54 @@ function ProviderSwipeCard({
     }`}>
       {/* Swipeable Row Container */}
       <div className="relative overflow-hidden h-[68px]">
-        {/* Background Revealed Actions */}
+        {/* Left background: Update + Test Speed (revealed on right-swipe) */}
+        <div
+          className="absolute top-0 left-0 h-full w-[140px] flex z-0"
+          style={{ display: offsetX <= 0 ? "none" : "flex" }}
+        >
+          <button
+            type="button"
+            disabled={isRefreshing}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRefresh();
+              // Auto-close swipe after clicking update
+              setOffsetX(0);
+              revealedDir.current = null;
+              onSwipeClose();
+            }}
+            className="h-full w-[70px] bg-blue-500 text-white flex flex-col items-center justify-center gap-1 active:bg-blue-600 transition-colors disabled:opacity-50"
+          >
+            {isRefreshing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            <span className="text-[10px] font-bold">更新</span>
+          </button>
+          <button
+            type="button"
+            disabled={isTesting}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTestLatency();
+              // Auto-close swipe after clicking test speed
+              setOffsetX(0);
+              revealedDir.current = null;
+              onSwipeClose();
+            }}
+            className="h-full w-[70px] bg-teal-500 text-white flex flex-col items-center justify-center gap-1 active:bg-teal-600 transition-colors disabled:opacity-50"
+          >
+            {isTesting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Activity className="w-4 h-4" />
+            )}
+            <span className="text-[10px] font-bold">测速</span>
+          </button>
+        </div>
+
+        {/* Right background: Delete (revealed on left-swipe) */}
         <button
           type="button"
           onClick={(e) => {
@@ -170,25 +242,8 @@ function ProviderSwipeCard({
             </div>
           </div>
 
-          {/* Right Section: Actions (Refresh & Expand Triangle) */}
-          <div className="flex items-center gap-1 shrink-0 z-20">
-            <button
-              type="button"
-              disabled={isRefreshing}
-              onClick={(e) => {
-                e.stopPropagation();
-                onRefresh();
-              }}
-              className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all disabled:opacity-50"
-              aria-label="更新订阅"
-            >
-              {isRefreshing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--mg-primary)]" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
-            </button>
-
+          {/* Right Section: Expand Triangle only */}
+          <div className="flex items-center shrink-0 z-20">
             <button
               type="button"
               onClick={(e) => {
@@ -208,11 +263,16 @@ function ProviderSwipeCard({
       {isExpanded && (
         <div className="border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] max-h-[260px] overflow-y-auto mg-scroll-none">
           {providerNodes.map((node) => (
-            <NodeRow
+            <SwipeableNodeRow
               key={node.id}
               node={node}
               isSelected={node.id === currentNodeId}
               onSelect={onSelectNode}
+              onTestLatency={onNodeTestLatency}
+              isTesting={isTesting}
+              forceClose={globalActiveSwipeId !== null && globalActiveSwipeId !== `node-${node.id}`}
+              onSwipeOpen={() => onGlobalSwipeOpen(`node-${node.id}`)}
+              onSwipeClose={() => onGlobalSwipeClose(`node-${node.id}`)}
             />
           ))}
           {providerNodes.length === 0 && (
@@ -226,6 +286,143 @@ function ProviderSwipeCard({
   );
 }
 
+/* ============================================================
+   SwipeableNodeRow – right-swipe only
+   Right swipe → Update + Test Speed (left side, 140px)
+   ============================================================ */
+
+interface SwipeableNodeRowProps {
+  node: Node;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onTestLatency: () => void;
+  isTesting: boolean;
+  forceClose: boolean;
+  onSwipeOpen: () => void;
+  onSwipeClose: () => void;
+}
+
+function SwipeableNodeRow({
+  node,
+  isSelected,
+  onSelect,
+  onTestLatency,
+  isTesting,
+  forceClose,
+  onSwipeOpen,
+  onSwipeClose,
+}: SwipeableNodeRowProps) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef(0);
+  const isRevealed = useRef(false);
+
+  useEffect(() => {
+    if (forceClose && offsetX !== 0) {
+      setOffsetX(0);
+      isRevealed.current = false;
+    }
+  }, [forceClose, offsetX]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    startX.current = e.touches[0].clientX;
+    setIsDragging(true);
+    onSwipeOpen();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.stopPropagation();
+    const clientX = e.touches[0].clientX;
+    let diffX = clientX - startX.current;
+
+    if (isRevealed.current) {
+      diffX += 70;
+    }
+
+    // Only allow right-swipe (positive offset), max 70px for single button
+    setOffsetX(Math.max(0, Math.min(90, diffX)));
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (offsetX > 35) {
+      setOffsetX(70);
+      isRevealed.current = true;
+      onSwipeOpen();
+    } else {
+      setOffsetX(0);
+      isRevealed.current = false;
+      onSwipeClose();
+    }
+  };
+
+  const handleClick = () => {
+    if (isRevealed.current) {
+      setOffsetX(0);
+      isRevealed.current = false;
+      onSwipeClose();
+    } else {
+      onSelect(node.id);
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden select-none">
+      {/* Left background: Test Speed only */}
+      <div
+        className="absolute top-0 left-0 h-full w-[70px] flex z-0"
+        style={{ display: offsetX <= 0 ? "none" : "flex" }}
+      >
+        <button
+          type="button"
+          disabled={isTesting}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTestLatency();
+            // Auto-close swipe after clicking test speed
+            setOffsetX(0);
+            isRevealed.current = false;
+            onSwipeClose();
+          }}
+          className="h-full w-[70px] bg-teal-500 text-white flex flex-col items-center justify-center gap-1 active:bg-teal-600 transition-colors disabled:opacity-50"
+        >
+          {isTesting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Activity className="w-3.5 h-3.5" />
+          )}
+          <span className="text-[9px] font-bold">测速</span>
+        </button>
+      </div>
+
+      {/* Foreground NodeRow */}
+      <div
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="relative z-10 bg-[var(--mg-glass-bg)]"
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
+        }}
+      >
+        <NodeRow
+          node={node}
+          isSelected={isSelected}
+          onSelect={() => {/* handled by parent onClick */}}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ProvidersPage – main page component
+   ============================================================ */
+
 export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
   const {
     providers,
@@ -237,9 +434,11 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
     nodes,
     currentNode,
     applyNodeSelection,
+    testLatency,
+    isTestingLatency,
   } = useProxyStore();
 
-  const [activeSwipeId, setActiveSwipeId] = useState<string | null>(null);
+  const [globalActiveSwipeId, setGlobalActiveSwipeId] = useState<string | null>(null);
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
 
   const handleSetActive = useCallback(async (provider: Provider) => {
@@ -274,7 +473,7 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
     try {
       await deleteProvider(id);
       toast.success(`「${name}」订阅已成功删除`);
-      setActiveSwipeId(null);
+      setGlobalActiveSwipeId(null);
     } catch (e) {
       toast.error("删除订阅失败");
     }
@@ -326,14 +525,15 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
             provider={provider}
             isActive={currentProvider?.id === provider.id}
             isRefreshing={refreshingIds.has(provider.id)}
-            forceClose={activeSwipeId !== null && activeSwipeId !== provider.id}
+            forceClose={globalActiveSwipeId !== null && globalActiveSwipeId !== `provider-${provider.id}`}
             onSetActive={() => handleSetActive(provider)}
             onRefresh={() => handleRefresh(provider.id, provider.name)}
             onDelete={() => handleDelete(provider.id, provider.name)}
-            onSwipeOpen={() => setActiveSwipeId(provider.id)}
+            onTestLatency={() => testLatency()}
+            onSwipeOpen={() => setGlobalActiveSwipeId(`provider-${provider.id}`)}
             onSwipeClose={() => {
-              if (activeSwipeId === provider.id) {
-                setActiveSwipeId(null);
+              if (globalActiveSwipeId === `provider-${provider.id}`) {
+                setGlobalActiveSwipeId(null);
               }
             }}
             isExpanded={expandedProviderId === provider.id}
@@ -343,6 +543,15 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
             providerNodes={getSortedNodes(provider.id)}
             currentNodeId={currentNode?.id}
             onSelectNode={handleSelectNode}
+            isTesting={isTestingLatency}
+            globalActiveSwipeId={globalActiveSwipeId}
+            onGlobalSwipeOpen={(id) => setGlobalActiveSwipeId(id)}
+            onGlobalSwipeClose={(id) => {
+              if (globalActiveSwipeId === id) {
+                setGlobalActiveSwipeId(null);
+              }
+            }}
+            onNodeTestLatency={() => testLatency()}
           />
         ))}
 
