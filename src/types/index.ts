@@ -33,3 +33,10 @@ export function getLatencyColor(delay?: number): string {
   if (delay < 300) return "text-yellow-500";
   return "text-red-500";
 }
+
+export function getLatencyLevel(delay?: number): "excellent" | "good" | "poor" | "unknown" {
+  if (delay == null) return "unknown";
+  if (delay < 100) return "excellent";
+  if (delay < 300) return "good";
+  return "poor";
+}

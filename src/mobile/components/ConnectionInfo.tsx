@@ -19,7 +19,7 @@ function parseNodeLabels(nodeName?: string): { flag: string; primary: string; se
   return { flag, primary, secondary };
 }
 
-export function ConnectionInfo({ nodeName, nodeServer, delay }: ConnectionInfoProps) {
+export function ConnectionInfo({ nodeName, delay }: ConnectionInfoProps) {
   const { flag, primary, secondary } = parseNodeLabels(nodeName);
   const level = getLatencyLevel(delay);
 

@@ -1,3 +1,4 @@
+import "@/mobile/styles/mobile.css";
 import { useState, useCallback } from "react";
 import { GlassTabBar } from "@/mobile/components/GlassTabBar";
 import { StatusHeader } from "@/mobile/components/StatusHeader";

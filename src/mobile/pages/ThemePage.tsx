@@ -11,7 +11,7 @@ const options = [
   { id: "system" as const, label: "跟随系统", icon: Monitor },
 ];
 
-export function ThemePage({ onBack }: ThemePageProps) {
+export function ThemePage({ onBack: _onBack }: ThemePageProps) {
   const { theme, setTheme } = useAppStore();
 
   return (
