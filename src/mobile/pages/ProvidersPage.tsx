@@ -1,9 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Plus, RefreshCw, Trash2, Loader2 } from "lucide-react";
+import { Plus, RefreshCw, Trash2, Loader2, ChevronDown } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
-import type { Provider } from "@/types";
-import { NodeBottomSheet } from "@/mobile/components/NodeBottomSheet";
+import type { Provider, Node } from "@/types";
 
 interface ProvidersPageProps {
   onAddProvider: () => void;
@@ -30,6 +29,13 @@ interface SwipeCardProps {
   onDelete: () => void;
   onSwipeOpen: () => void;
   onSwipeClose: () => void;
+
+  // Accordion Props
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  providerNodes: Node[];
+  currentNodeId?: string;
+  onSelectNode: (nodeId: string) => void;
 }
 
 function ProviderSwipeCard({
@@ -42,6 +48,11 @@ function ProviderSwipeCard({
   onDelete,
   onSwipeOpen,
   onSwipeClose,
+  isExpanded,
+  onToggleExpand,
+  providerNodes,
+  currentNodeId,
+  onSelectNode,
 }: SwipeCardProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -104,76 +115,124 @@ function ProviderSwipeCard({
   const used = provider.trafficUsedGB || 0;
 
   return (
-    <div className="relative overflow-hidden rounded-[16px] select-none">
-      {/* Background Revealed Actions */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="absolute top-0 right-0 h-full w-[80px] bg-rose-500 text-white flex flex-col items-center justify-center gap-1 active:bg-rose-600 transition-colors z-0"
-      >
-        <Trash2 className="w-4 h-4" />
-        <span className="text-[10px] font-bold">删除</span>
-      </button>
+    <div className={`mg-glass-card rounded-[16px] overflow-hidden select-none transition-all duration-300 ${
+      isActive
+        ? "border-[var(--mg-primary)]/20 bg-[rgba(59,130,246,0.03)]"
+        : ""
+    }`}>
+      {/* Swipeable Row Container */}
+      <div className="relative overflow-hidden h-[52px]">
+        {/* Background Revealed Actions */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute top-0 right-0 h-full w-[80px] bg-rose-500 text-white flex items-center justify-center active:bg-rose-600 transition-colors z-0"
+        >
+          <Trash2 className="w-4.5 h-4.5" />
+        </button>
 
-      {/* Foreground Main Card Content */}
-      <div
-        onClick={handleClick}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className={`mg-glass-card px-4 py-2.5 flex items-center justify-between relative overflow-hidden z-10 cursor-pointer rounded-[16px] ${
-          isActive
-            ? "border-[var(--mg-primary)]/20 bg-[rgba(59,130,246,0.03)]"
-            : ""
-        }`}
-        style={{
-          transform: `translateX(${offsetX}px)`,
-          transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
-        }}
-      >
-        {/* Left Section: Active selection dot & Info */}
-        <div className="flex items-center gap-3 min-w-0 pr-4">
-          <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
-            {isActive ? (
-              <div className="w-2.5 h-2.5 rounded-full bg-[#FF8000] shadow-[0_0_6px_rgba(255,128,0,0.6)] animate-pulse" />
-            ) : (
-              <div className="w-2.5 h-2.5 rounded-full border border-slate-300 dark:border-zinc-700" />
-            )}
+        {/* Foreground Main Card Content */}
+        <div
+          onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="px-4 h-full flex items-center justify-between relative overflow-hidden z-10 cursor-pointer bg-transparent"
+          style={{
+            transform: `translateX(${offsetX}px)`,
+            transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
+          }}
+        >
+          {/* Left Section: Active selection dot & Info */}
+          <div className="flex items-center gap-3 min-w-0 pr-4">
+            <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+              {isActive ? (
+                <div className="w-2.5 h-2.5 rounded-full bg-[#FF8000] shadow-[0_0_6px_rgba(255,128,0,0.6)] animate-pulse" />
+              ) : (
+                <div className="w-2.5 h-2.5 rounded-full border border-slate-300 dark:border-zinc-700" />
+              )}
+            </div>
+
+            <div className="flex flex-col min-w-0">
+              <span className="text-[14px] font-bold text-[var(--mg-text-primary)] truncate">
+                {provider.name}
+              </span>
+              <span className="text-[10px] text-[var(--mg-text-secondary)] mt-0.5 font-mono truncate">
+                {provider.nodeCount}个节点 · {used.toFixed(1)}G/{total.toFixed(0)}G · {formatDate(provider.expiresAt)}
+              </span>
+            </div>
           </div>
 
-          <div className="flex flex-col min-w-0">
-            <span className="text-[14px] font-bold text-[var(--mg-text-primary)] truncate">
-              {provider.name}
-            </span>
-            <span className="text-[10px] text-[var(--mg-text-secondary)] mt-0.5 font-mono truncate">
-              {provider.nodeCount}个节点 · {used.toFixed(1)}G/{total.toFixed(0)}G · {formatDate(provider.expiresAt)}
-            </span>
-          </div>
-        </div>
+          {/* Right Section: Actions (Refresh & Expand Triangle) */}
+          <div className="flex items-center gap-1 shrink-0 z-20">
+            <button
+              type="button"
+              disabled={isRefreshing}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRefresh();
+              }}
+              className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all disabled:opacity-50"
+              aria-label="更新订阅"
+            >
+              {isRefreshing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--mg-primary)]" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+            </button>
 
-        {/* Right Section: Refresh Icon */}
-        <div className="flex items-center shrink-0">
-          <button
-            type="button"
-            disabled={isRefreshing}
-            onClick={(e) => {
-              e.stopPropagation();
-              onRefresh();
-            }}
-            className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all disabled:opacity-50"
-            aria-label="更新订阅"
-          >
-            {isRefreshing ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--mg-primary)]" />
-            ) : (
-              <RefreshCw className="w-3.5 h-3.5" />
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all"
+              aria-label="展开节点"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Expanded Nodes List */}
+      {isExpanded && (
+        <div className="border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] px-4 py-2 max-h-[220px] overflow-y-auto mg-scroll-none space-y-1">
+          {providerNodes.map((node) => (
+            <button
+              key={node.id}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectNode(node.id);
+              }}
+              className="w-full py-1.5 flex items-center justify-between text-xs text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] transition-colors active:opacity-70"
+            >
+              <span className="truncate pr-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 flex items-center justify-center shrink-0">
+                  {node.id === currentNodeId && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF8000]" />
+                  )}
+                </span>
+                <span className="font-semibold text-[13px]">{node.name}</span>
+              </span>
+              <span className="font-mono text-[11px]">
+                {node.delayError ? "超时" : node.delay != null ? `${node.delay}ms` : "--"}
+              </span>
+            </button>
+          ))}
+          {providerNodes.length === 0 && (
+            <div className="py-2 text-center text-xs text-[var(--mg-text-secondary)]">
+              暂无可用节点
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -189,25 +248,19 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
     nodes,
     currentNode,
     applyNodeSelection,
-    testLatency,
-    isTestingLatency,
   } = useProxyStore();
 
   const [activeSwipeId, setActiveSwipeId] = useState<string | null>(null);
-  const [sheetOpenProvider, setSheetOpenProvider] = useState<Provider | null>(null);
-  const [sheetSort, setSheetSort] = useState<"name" | "delay">("delay");
+  const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
 
   const handleSetActive = useCallback(async (provider: Provider) => {
-    if (currentProvider?.id !== provider.id) {
-      try {
-        await setCurrentSubscription(provider);
-        toast.success(`已切换为订阅: ${provider.name}`);
-      } catch (e) {
-        toast.error("切换订阅失败");
-        return;
-      }
+    if (currentProvider?.id === provider.id) return;
+    try {
+      await setCurrentSubscription(provider);
+      toast.success(`已切换为订阅: ${provider.name}`);
+    } catch (e) {
+      toast.error("切换订阅失败");
     }
-    setSheetOpenProvider(provider);
   }, [currentProvider, setCurrentSubscription]);
 
   const handleRefresh = useCallback(async (id: string, name: string) => {
@@ -244,16 +297,22 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
       try {
         await applyNodeSelection(node);
         toast.success(`已选择节点: ${node.name}`);
-        setSheetOpenProvider(null);
       } catch (e) {
         toast.error("选择节点失败");
       }
     }
   }, [nodes, applyNodeSelection]);
 
-  const sheetNodes = sheetOpenProvider
-    ? nodes.filter((n) => n.providerId === sheetOpenProvider.id && n.enabled)
-    : [];
+  const getSortedNodes = useCallback((providerId: string) => {
+    const arr = nodes.filter((n) => n.providerId === providerId && n.enabled);
+    arr.sort((a, b) => {
+      const da = a.delayError ? Infinity : (a.delay ?? Infinity);
+      const db = b.delayError ? Infinity : (b.delay ?? Infinity);
+      if (da === Infinity && db === Infinity) return a.name.localeCompare(b.name, "zh-Hans-CN");
+      return da - db;
+    });
+    return arr;
+  }, [nodes]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -288,6 +347,13 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
                 setActiveSwipeId(null);
               }
             }}
+            isExpanded={expandedProviderId === provider.id}
+            onToggleExpand={() => {
+              setExpandedProviderId((prev) => (prev === provider.id ? null : provider.id));
+            }}
+            providerNodes={getSortedNodes(provider.id)}
+            currentNodeId={currentNode?.id}
+            onSelectNode={handleSelectNode}
           />
         ))}
 
@@ -301,19 +367,6 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
           </div>
         )}
       </div>
-
-      {/* Node selection Bottom Sheet */}
-      <NodeBottomSheet
-        open={sheetOpenProvider !== null}
-        onClose={() => setSheetOpenProvider(null)}
-        nodes={sheetNodes}
-        currentNodeId={currentNode?.id}
-        sortBy={sheetSort}
-        onSortChange={setSheetSort}
-        onSelect={handleSelectNode}
-        onTestLatency={() => testLatency()}
-        isTesting={isTestingLatency}
-      />
     </div>
   );
 }
