@@ -3,7 +3,6 @@ import { ChevronRight } from "lucide-react";
 import { LiquidConnectButton } from "@/mobile/components/LiquidConnectButton";
 import { ModeCapsuleBar } from "@/mobile/components/ModeCapsuleBar";
 import { ConnectionInfo } from "@/mobile/components/ConnectionInfo";
-import { ProviderChip } from "@/mobile/components/ProviderChip";
 import { NodeBottomSheet } from "@/mobile/components/NodeBottomSheet";
 import { useProxyStore, useAppStore } from "@/stores/appStore";
 import { toast } from "sonner";
@@ -118,14 +117,8 @@ export function HomePage() {
 
   return (
     <div className="relative flex flex-col h-full overflow-hidden">
-      {/* Top — status bar safe area + prominent state & timer */}
-      <div className="flex-none flex flex-col items-center pt-14 pb-4">
-        {currentProvider && (
-          <div className="pb-3">
-            <ProviderChip name={currentProvider.name} />
-          </div>
-        )}
-
+      {/* Top — status text & timer */}
+      <div className="flex-none flex flex-col items-center pt-4 pb-4">
         <div className="flex flex-col items-center">
           {/* Main Status Header */}
           <span className={`text-[28px] font-extrabold tracking-tight transition-all duration-500 ${

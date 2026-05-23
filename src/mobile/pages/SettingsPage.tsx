@@ -6,7 +6,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({ onNavigateToTheme }: SettingsPageProps) {
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto mg-scroll-none px-4 pt-4 pb-4 gap-3">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto mg-scroll-none px-4 pt-2 pb-4 gap-3">
       <button
         type="button"
         onClick={onNavigateToTheme}

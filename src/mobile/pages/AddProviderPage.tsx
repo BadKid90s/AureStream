@@ -95,22 +95,6 @@ export function AddProviderPage({ onBack }: AddProviderPageProps) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center px-4 pt-12 pb-4 flex-none gap-2">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={isLoading}
-          className="w-9 h-9 rounded-full bg-[var(--mg-glass-bg)] border border-[var(--mg-glass-border)] flex items-center justify-center text-[var(--mg-text-primary)] active:scale-90 transition-transform disabled:opacity-50"
-          aria-label="返回服务商管理"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 3L5 8L10 13" />
-          </svg>
-        </button>
-        <h2 className="text-lg font-bold text-[var(--mg-text-primary)]">添加订阅服务商</h2>
-      </div>
-
       {/* Form scroll view */}
       <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pb-20">
         <form onSubmit={handleSubmit} className="mg-glass-card p-5 flex flex-col gap-5">

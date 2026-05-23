@@ -1,13 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Plus, RefreshCw, Trash2, Loader2, ChevronDown, Activity } from "lucide-react";
+import { RefreshCw, Trash2, Loader2, ChevronDown, Activity } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import type { Provider, Node } from "@/types";
 import { NodeRow } from "@/mobile/components/NodeRow";
 
-interface ProvidersPageProps {
-  onAddProvider: () => void;
-}
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return "永久有效";
@@ -423,7 +420,7 @@ function SwipeableNodeRow({
    ProvidersPage – main page component
    ============================================================ */
 
-export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
+export function ProvidersPage() {
   const {
     providers,
     deleteProvider,
@@ -504,19 +501,6 @@ export function ProvidersPage({ onAddProvider }: ProvidersPageProps) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-12 pb-4 flex-none">
-        <h2 className="text-xl font-bold text-[var(--mg-text-primary)]">服务商管理</h2>
-        <button
-          type="button"
-          onClick={onAddProvider}
-          className="w-9 h-9 rounded-full bg-[var(--mg-glass-bg)] border border-[var(--mg-glass-border)] flex items-center justify-center text-[var(--mg-text-primary)] active:scale-90 transition-transform shadow-[var(--mg-glass-shadow)]"
-          aria-label="添加服务商"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
-
       {/* List Container */}
       <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pb-24 space-y-3">
         {providers.map((provider) => (

@@ -1,32 +1,17 @@
 import { Sun, Moon, Monitor, Check } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
 
-interface ThemePageProps {
-  onBack: () => void;
-}
-
 const options = [
   { id: "light" as const, label: "浅色", icon: Sun },
   { id: "dark" as const, label: "深色", icon: Moon },
   { id: "system" as const, label: "跟随系统", icon: Monitor },
 ];
 
-export function ThemePage({ onBack }: ThemePageProps) {
+export function ThemePage() {
   const { theme, setTheme } = useAppStore();
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto mg-scroll-none px-4 pt-4 pb-4 gap-3">
-      {/* Back button */}
-      <button
-        type="button"
-        onClick={onBack}
-        className="self-start w-8 h-8 flex items-center justify-center rounded-full text-[var(--mg-text-secondary)] active:scale-95 transition-transform mb-2"
-        aria-label="返回"
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10 3L5 8L10 13" />
-        </svg>
-      </button>
 
       {options.map((opt) => {
         const Icon = opt.icon;

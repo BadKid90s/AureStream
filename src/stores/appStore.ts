@@ -603,7 +603,14 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       ) {
         next = merged.find((n) => n.name === groupNow && n.providerId === cpId);
       } else {
-        next = merged.find((n) => n.providerId === cpId);
+        const cpNodes = merged.filter((n) => n.providerId === cpId && n.enabled !== false);
+        cpNodes.sort((a, b) => {
+          const da = a.delayError ? Infinity : (a.delay ?? Infinity);
+          const db = b.delayError ? Infinity : (b.delay ?? Infinity);
+          if (da === Infinity && db === Infinity) return a.name.localeCompare(b.name, "zh-Hans-CN");
+          return da - db;
+        });
+        next = cpNodes[0] || merged.find((n) => n.providerId === cpId);
       }
 
       set({ nodes: merged, currentNode: next });
