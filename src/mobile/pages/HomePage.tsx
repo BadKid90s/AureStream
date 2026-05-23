@@ -121,7 +121,7 @@ export function HomePage() {
       <div className="flex-none flex flex-col items-center pt-14 pb-4">
         {currentProvider && (
           <div className="pb-3">
-            <ProviderChip name={currentProvider.name} />
+            <ProviderChip provider={currentProvider} />
           </div>
         )}
 

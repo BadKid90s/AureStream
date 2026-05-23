@@ -122,7 +122,7 @@ function ProviderSwipeCard({
         : ""
     }`}>
       {/* Swipeable Row Container */}
-      <div className="relative overflow-hidden h-[52px]">
+      <div className="relative overflow-hidden h-[68px]">
         {/* Background Revealed Actions */}
         <button
           type="button"
@@ -161,7 +161,7 @@ function ProviderSwipeCard({
             </div>
 
             <div className="flex flex-col min-w-0">
-              <span className="text-[14px] font-bold text-[var(--mg-text-primary)] truncate">
+              <span className="font-bold text-[var(--mg-text-primary)] text-[14px] truncate">
                 {provider.name}
               </span>
               <span className="text-[10px] text-[var(--mg-text-secondary)] mt-0.5 font-mono truncate">
