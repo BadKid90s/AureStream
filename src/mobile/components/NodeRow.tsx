@@ -14,9 +14,10 @@ interface NodeRowProps {
   isSelected: boolean;
   onSelect: (id: string) => void;
   isTesting?: boolean;
+  isLast?: boolean;
 }
 
-export function NodeRow({ node, isSelected, onSelect, isTesting }: NodeRowProps) {
+export function NodeRow({ node, isSelected, onSelect, isTesting, isLast }: NodeRowProps) {
   return (
     <button
       type="button"
@@ -29,7 +30,7 @@ export function NodeRow({ node, isSelected, onSelect, isTesting }: NodeRowProps)
         )}
       </div>
       <span className="text-lg flex-shrink-0">{parseFlag(node.name)}</span>
-      <div className="flex flex-1 items-center justify-between border-b border-[var(--mg-divider)] py-2.5 min-w-0">
+      <div className={`flex flex-1 items-center justify-between py-2.5 min-w-0 ${isLast ? "" : "border-b border-[var(--mg-divider)]"}`}>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-sm font-semibold text-[var(--mg-text-primary)] truncate">
             {node.name}

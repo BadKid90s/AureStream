@@ -140,13 +140,13 @@ function ProviderSwipeCard({
   const used = provider.trafficUsedGB || 0;
 
   return (
-    <div className={`mg-glass-card rounded-[16px] overflow-hidden select-none transition-all duration-300 ${
+    <div className={`mg-glass-card rounded-[24px] overflow-hidden select-none transition-all duration-300 ${
       isActive
         ? "border-[var(--mg-primary)]/20 bg-[rgba(59,130,246,0.03)]"
         : ""
     }`}>
       {/* Swipeable Row Container */}
-      <div className="relative overflow-hidden h-[68px]">
+      <div className="relative overflow-hidden h-[52px]">
         {/* Left background: Update + Test Speed (revealed on right-swipe) */}
         <div
           className="absolute top-0 left-0 h-full w-[140px] flex z-0"
@@ -211,7 +211,7 @@ function ProviderSwipeCard({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`px-4 h-full flex items-center justify-between relative overflow-hidden z-10 cursor-pointer bg-[var(--mg-glass-bg)] rounded-[16px] ${
+          className={`px-4 h-full flex items-center justify-between relative overflow-hidden z-10 cursor-pointer bg-[var(--mg-glass-bg)] rounded-[24px] ${
             isActive ? "border-[var(--mg-primary)]/40 bg-[rgba(59,130,246,0.06)]" : ""
           }`}
           style={{
@@ -272,7 +272,7 @@ function ProviderSwipeCard({
       {/* Expanded Nodes List */}
       {isExpanded && (
         <div className="border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01]">
-          {providerNodes.map((node) => (
+          {providerNodes.map((node, index) => (
             <SwipeableNodeRow
               key={node.id}
               node={node}
@@ -284,6 +284,7 @@ function ProviderSwipeCard({
               forceClose={globalActiveSwipeId !== null && globalActiveSwipeId !== `node-${node.id}`}
               onSwipeOpen={() => onGlobalSwipeOpen(`node-${node.id}`)}
               onSwipeClose={() => onGlobalSwipeClose(`node-${node.id}`)}
+              isLast={index === providerNodes.length - 1}
             />
           ))}
           {providerNodes.length === 0 && (
@@ -312,6 +313,7 @@ interface SwipeableNodeRowProps {
   forceClose: boolean;
   onSwipeOpen: () => void;
   onSwipeClose: () => void;
+  isLast?: boolean;
 }
 
 function SwipeableNodeRow({
@@ -324,6 +326,7 @@ function SwipeableNodeRow({
   forceClose,
   onSwipeOpen,
   onSwipeClose,
+  isLast,
 }: SwipeableNodeRowProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -427,6 +430,7 @@ function SwipeableNodeRow({
           isSelected={isSelected}
           onSelect={() => {/* handled by parent onClick */}}
           isTesting={isPending}
+          isLast={isLast}
         />
       </div>
     </div>

@@ -130,13 +130,14 @@ export function NodeBottomSheet({
         </div>
       </div>
       <div className="flex-1 overflow-y-auto mg-scroll-none">
-          {sorted.map((node) => (
+          {sorted.map((node, index) => (
             <NodeRow
               key={node.id}
               node={node}
               isSelected={node.id === currentNodeId}
               onSelect={onSelect}
               isTesting={isTesting && !!latencyPendingByNodeId[node.id]}
+              isLast={index === sorted.length - 1}
             />
           ))}
         </div>
