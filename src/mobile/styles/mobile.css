@@ -25,6 +25,7 @@
   /* Glass tokens — light */
   --mg-glass-bg: rgba(255, 255, 255, 0.55);
   --mg-glass-border: rgba(255, 255, 255, 0.50);
+  --mg-divider: rgba(0, 0, 0, 0.08);
   --mg-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
   --mg-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
@@ -76,6 +77,7 @@
 
   --mg-glass-bg: rgba(22, 22, 28, 0.55);
   --mg-glass-border: rgba(255, 255, 255, 0.07);
+  --mg-divider: rgba(255, 255, 255, 0.08);
   --mg-glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   --mg-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
@@ -480,7 +482,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--mg-glass-border);
+  border-bottom: 1px solid var(--mg-divider);
   transition: background-color 0.15s ease;
   cursor: pointer;
 }

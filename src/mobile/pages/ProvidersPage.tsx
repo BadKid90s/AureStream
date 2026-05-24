@@ -269,7 +269,7 @@ function ProviderSwipeCard({
 
       {/* Expanded Nodes List */}
       {isExpanded && (
-        <div className="border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] max-h-[260px] overflow-y-auto mg-scroll-none">
+        <div className="border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01]">
           {providerNodes.map((node) => (
             <SwipeableNodeRow
               key={node.id}
