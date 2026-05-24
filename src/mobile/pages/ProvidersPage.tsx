@@ -421,6 +421,7 @@ function SwipeableNodeRow({
           node={node}
           isSelected={isSelected}
           onSelect={() => {/* handled by parent onClick */}}
+          isTesting={isTesting}
         />
       </div>
     </div>

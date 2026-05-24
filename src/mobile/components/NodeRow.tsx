@@ -13,9 +13,10 @@ interface NodeRowProps {
   node: Node;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  isTesting?: boolean;
 }
 
-export function NodeRow({ node, isSelected, onSelect }: NodeRowProps) {
+export function NodeRow({ node, isSelected, onSelect, isTesting }: NodeRowProps) {
   return (
     <button
       type="button"
@@ -37,8 +38,16 @@ export function NodeRow({ node, isSelected, onSelect }: NodeRowProps) {
         </span>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs font-mono text-[var(--mg-text-secondary)] w-[52px] text-right tabular-nums">
-          {node.delayError ? "超时" : node.delay != null ? `${node.delay}ms` : "--"}
+        <span className="text-xs font-mono w-[52px] text-right tabular-nums">
+          {isTesting ? "" : (
+            node.delayError ? (
+              <span className="text-rose-500 font-semibold">超时</span>
+            ) : node.delay != null ? (
+              <span className="text-emerald-500 font-semibold">{node.delay}ms</span>
+            ) : (
+              <span className="text-[var(--mg-text-secondary)]">--</span>
+            )
+          )}
         </span>
       </div>
     </button>

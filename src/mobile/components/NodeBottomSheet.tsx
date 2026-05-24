@@ -134,6 +134,7 @@ export function NodeBottomSheet({
               node={node}
               isSelected={node.id === currentNodeId}
               onSelect={onSelect}
+              isTesting={isTesting}
             />
           ))}
         </div>
