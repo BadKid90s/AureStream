@@ -525,6 +525,25 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* List Container */}
       <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pt-3 pb-24 space-y-3">
+        {/* Current Subscription Info */}
+        {currentProvider && (
+          <div className="mg-glass-card p-4 rounded-[24px] flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--mg-primary)] to-[var(--mg-primary-deep)] flex items-center justify-center shrink-0 shadow-md">
+              <Activity className="w-[18px] h-[18px] text-white" />
+            </div>
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-[10px] font-bold text-[var(--mg-text-secondary)] uppercase tracking-wider">当前使用</span>
+              <span className="text-sm font-bold text-[var(--mg-text-primary)] truncate">{currentProvider.name}</span>
+              {currentNode && (
+                <span className="text-[11px] text-[var(--mg-text-secondary)] truncate">
+                  {currentNode.name}
+                  {currentNode.delay != null && <span className="text-emerald-500 font-semibold"> · {currentNode.delay}ms</span>}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {providers.map((provider) => (
           <ProviderSwipeCard
             key={provider.id}
