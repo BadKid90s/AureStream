@@ -478,8 +478,8 @@
 .mg-node-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
+  gap: 8px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--mg-glass-border);
   transition: background-color 0.15s ease;
   cursor: pointer;
@@ -518,4 +518,13 @@
 }
 .mg-theme-option-selected {
   border-color: var(--mg-primary);
+}
+
+/* ===== Chevron icon rotation ===== */
+.mg-chevron-icon {
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform: rotate(0deg);
+}
+.mg-chevron-icon.expanded {
+  transform: rotate(90deg);
 }

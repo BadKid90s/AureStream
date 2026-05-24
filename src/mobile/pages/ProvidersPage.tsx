@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { RefreshCw, Trash2, Loader2, ChevronDown, Activity, Info } from "lucide-react";
+import { RefreshCw, Trash2, Loader2, ChevronRight, Activity, Info } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import type { Provider, Node } from "@/types";
@@ -28,7 +28,6 @@ interface SwipeCardProps {
   isActive: boolean;
   isRefreshing: boolean;
   forceClose: boolean;
-  onSetActive: () => void;
   onRefresh: () => void;
   onDelete: () => void;
   onTestLatency: () => void;
@@ -53,7 +52,6 @@ function ProviderSwipeCard({
   isActive,
   isRefreshing,
   forceClose,
-  onSetActive,
   onRefresh,
   onDelete,
   onTestLatency,
@@ -132,7 +130,7 @@ function ProviderSwipeCard({
       revealedDir.current = null;
       onSwipeClose();
     } else {
-      onSetActive();
+      onToggleExpand();
     }
   };
 
@@ -221,17 +219,9 @@ function ProviderSwipeCard({
         >
           {/* Left Section: Expand Chevron & Info */}
           <div className="flex items-center gap-2 min-w-0 pr-4 flex-1 h-full">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleExpand();
-              }}
-              className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all shrink-0"
-              aria-label="展开节点"
-            >
-              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
-            </button>
+            <div className="p-1.5 flex items-center justify-center shrink-0">
+              <ChevronRight className={`mg-chevron-icon w-4 h-4 text-[var(--mg-text-secondary)] ${isExpanded ? "expanded" : ""}`} />
+            </div>
 
             <div className="flex flex-col min-w-0 flex-1 justify-center h-full">
               <span className="font-bold text-[var(--mg-text-primary)] text-[14px] truncate">
@@ -243,8 +233,25 @@ function ProviderSwipeCard({
             </div>
           </div>
 
-          {/* Right Section: Details Info icon */}
-          <div className="flex items-center shrink-0 z-20">
+          {/* Right Section: Refresh & Details Info icons */}
+          <div className="flex items-center gap-1 shrink-0 z-20">
+            <button
+              type="button"
+              disabled={isRefreshing}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRefresh();
+              }}
+              className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all disabled:opacity-50"
+              aria-label="刷新订阅"
+            >
+              {isRefreshing ? (
+                <Loader2 className="w-[18px] h-[18px] animate-spin" />
+              ) : (
+                <RefreshCw className="w-[18px] h-[18px]" />
+              )}
+            </button>
+
             <button
               type="button"
               onClick={(e) => {
@@ -446,16 +453,6 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
   const [globalActiveSwipeId, setGlobalActiveSwipeId] = useState<string | null>(null);
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
 
-  const handleSetActive = useCallback(async (provider: Provider) => {
-    if (currentProvider?.id === provider.id && currentNode) return;
-    try {
-      await setCurrentSubscription(provider);
-      toast.success(`已切换为订阅: ${provider.name}`);
-    } catch (e) {
-      toast.error("切换订阅失败");
-    }
-  }, [currentProvider, currentNode, setCurrentSubscription]);
-
   const handleRefresh = useCallback(async (id: string, name: string) => {
     try {
       const result = await fetchAndSaveSubscription(id);
@@ -488,13 +485,17 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
       try {
+        const provider = providers.find((p) => p.id === node.providerId);
+        if (provider && currentProvider?.id !== provider.id) {
+          await setCurrentSubscription(provider);
+        }
         await applyNodeSelection(node);
         toast.success(`已选择节点: ${node.name}`);
       } catch (e) {
         toast.error("选择节点失败");
       }
     }
-  }, [nodes, applyNodeSelection]);
+  }, [nodes, providers, currentProvider, setCurrentSubscription, applyNodeSelection]);
 
   const getSortedNodes = useCallback((providerId: string) => {
     const arr = nodes.filter((n) => n.providerId === providerId && n.enabled);
@@ -518,7 +519,6 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
             isActive={currentProvider?.id === provider.id}
             isRefreshing={refreshingIds.has(provider.id)}
             forceClose={globalActiveSwipeId !== null && globalActiveSwipeId !== `provider-${provider.id}`}
-            onSetActive={() => handleSetActive(provider)}
             onRefresh={() => handleRefresh(provider.id, provider.name)}
             onDelete={() => handleDelete(provider.id, provider.name)}
             onTestLatency={() => testLatency()}
