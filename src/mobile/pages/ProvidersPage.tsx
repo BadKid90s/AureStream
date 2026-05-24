@@ -17,6 +17,17 @@ function formatDate(dateStr?: string): string {
   }
 }
 
+function formatShortDate(dateStr?: string): string {
+  if (!dateStr) return "未知";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "未知";
+    return d.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+  } catch {
+    return "未知";
+  }
+}
+
 /* ============================================================
    ProviderSwipeCard – bidirectional swipe
    Left swipe  → Delete (right side, 80px)
@@ -526,23 +537,79 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
       {/* List Container */}
       <div className="flex-1 overflow-y-auto mg-scroll-none px-4 pt-3 pb-24 space-y-3">
         {/* Current Subscription Info */}
-        {currentProvider && (
-          <div className="mg-glass-card p-4 rounded-[24px] flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--mg-primary)] to-[var(--mg-primary-deep)] flex items-center justify-center shrink-0 shadow-md">
-              <Activity className="w-[18px] h-[18px] text-white" />
-            </div>
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[10px] font-bold text-[var(--mg-text-secondary)] uppercase tracking-wider">当前使用</span>
-              <span className="text-sm font-bold text-[var(--mg-text-primary)] truncate">{currentProvider.name}</span>
-              {currentNode && (
-                <span className="text-[11px] text-[var(--mg-text-secondary)] truncate">
-                  {currentNode.name}
-                  {currentNode.delay != null && <span className="text-emerald-500 font-semibold"> · {currentNode.delay}ms</span>}
+        {currentProvider && (() => {
+          const total = currentProvider.trafficTotalGB || 0;
+          const used = currentProvider.trafficUsedGB || 0;
+          const remaining = Math.max(0, total - used);
+          const percent = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+          return (
+            <div className="mg-glass-card px-5 py-4 rounded-[24px] flex flex-col gap-3">
+              {/* Top Row: Ring + Name & Traffic */}
+              <div className="flex items-center gap-4">
+                {/* Circular Progress Ring */}
+                <div className="relative w-[56px] h-[56px] shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 56 56">
+                    <circle cx="28" cy="28" r="22" fill="none" stroke="var(--mg-divider)" strokeWidth="3.5" />
+                    <circle
+                      cx="28" cy="28" r="22" fill="none"
+                      stroke="url(#ring-grad)"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 22}
+                      strokeDashoffset={2 * Math.PI * 22 * (1 - percent / 100)}
+                      className="transition-all duration-500"
+                    />
+                    <defs>
+                      <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="var(--mg-primary)" />
+                        <stop offset="100%" stopColor="var(--mg-primary-deep)" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  {total > 0 && (
+                    <span className="absolute inset-0 flex items-center justify-center text-[11px] font-extrabold text-[var(--mg-text-primary)]">
+                      {percent.toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+
+                {/* Name & Traffic */}
+                <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+                  <span className="text-[15px] font-bold text-[var(--mg-text-primary)] truncate">{currentProvider.name}</span>
+                  {total > 0 ? (
+                    <span className="text-[11px] text-[var(--mg-text-secondary)]">
+                      剩余 <span className="font-semibold text-[var(--mg-text-primary)]">{remaining.toFixed(1)}</span> GB / {total.toFixed(0)} GB
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-[var(--mg-text-secondary)]">永久有效</span>
+                  )}
+                  {currentNode && (
+                    <span className="text-[11px] text-[var(--mg-text-secondary)] truncate">
+                      {currentNode.name}
+                      {currentNode.delay != null && <span className="text-emerald-500 font-semibold"> · {currentNode.delay}ms</span>}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-black/5 dark:bg-white/5" />
+
+              {/* Bottom Row: Stats */}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-[var(--mg-text-secondary)]">
+                  {formatDate(currentProvider.expiresAt)}
                 </span>
-              )}
+                <span className="text-[11px] text-[var(--mg-text-secondary)]">
+                  {currentProvider.nodeCount} 个节点
+                </span>
+                <span className="text-[11px] text-[var(--mg-text-secondary)] truncate">
+                  更新于 {formatShortDate(currentProvider.lastUpdated)}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {providers.map((provider) => (
           <ProviderSwipeCard
