@@ -118,46 +118,6 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto mg-scroll-none px-4 pt-3 pb-8 gap-4">
-      {/* Top Header Section */}
-      <div className="flex items-center gap-3.5 px-1 py-1 shrink-0">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center border border-blue-500/10 shadow-sm shrink-0">
-          <HardDrive className="w-5.5 h-5.5 text-[var(--mg-primary)]" />
-        </div>
-        <div className="flex flex-col min-w-0 flex-1 justify-center">
-          {isEditingName ? (
-            <input
-              type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              onBlur={handleSaveName}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveName();
-                if (e.key === "Escape") handleCancelEditName();
-              }}
-              className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2 py-0.5 rounded-lg text-base font-extrabold text-[var(--mg-text-primary)] focus:outline-none focus:border-[var(--mg-primary)] w-full max-w-[200px]"
-              autoFocus
-            />
-          ) : (
-            <div className="flex items-center gap-1.5 cursor-pointer max-w-full" onClick={handleStartEditName}>
-              <h2 className="text-base font-extrabold text-[var(--mg-text-primary)] truncate max-w-[85%]">{provider.name}</h2>
-              <svg 
-                className="w-3.5 h-3.5 text-[var(--mg-text-secondary)] opacity-60 hover:opacity-100 shrink-0" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-            </div>
-          )}
-          <p className="text-[10px] text-[var(--mg-text-secondary)] font-medium mt-0.5">配置订阅信息</p>
-        </div>
-      </div>
-
       {/* Overview Card (Traffic Widget Style) */}
       {total > 0 && (
         <div className="mg-glass-card p-5 rounded-[24px] flex flex-col gap-3.5">
@@ -193,7 +153,54 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
 
       {/* Details List Group */}
       <div className="mg-glass-card p-1 px-4 rounded-[24px] flex flex-col">
-        {/* Row 1: Copy Link */}
+        {/* Row 1: Edit Name */}
+        <div
+          onClick={handleStartEditName}
+          className="flex items-center justify-between py-3.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 border-b border-[var(--mg-divider)]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500">
+              <HardDrive className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold text-[var(--mg-text-primary)]">订阅名称</span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[60%] justify-end flex-1" onClick={(e) => isEditingName && e.stopPropagation()}>
+            {isEditingName ? (
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={handleSaveName}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveName();
+                  if (e.key === "Escape") handleCancelEditName();
+                }}
+                className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2 py-0.5 rounded-lg text-xs font-bold text-[var(--mg-text-primary)] text-right focus:outline-none focus:border-[var(--mg-primary)] w-full"
+                autoFocus
+              />
+            ) : (
+              <>
+                <span className="text-xs text-[var(--mg-text-secondary)] font-semibold truncate">
+                  {provider.name}
+                </span>
+                <svg 
+                  className="w-3.5 h-3.5 text-[var(--mg-text-secondary)] opacity-60 hover:opacity-100 shrink-0" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Copy Link */}
         <div
           onClick={handleCopyUrl}
           className="flex items-center justify-between py-3.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 border-b border-[var(--mg-divider)]"
@@ -216,7 +223,7 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
           </div>
         </div>
 
-        {/* Row 2: Expiration */}
+        {/* Row 3: Expiration */}
         <div className="flex items-center justify-between py-3.5 border-b border-[var(--mg-divider)]">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500">
@@ -229,7 +236,7 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
           </span>
         </div>
 
-        {/* Row 3: Node Count */}
+        {/* Row 4: Node Count */}
         <div className="flex items-center justify-between py-3.5 border-b border-[var(--mg-divider)]">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500">
@@ -242,7 +249,7 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
           </span>
         </div>
 
-        {/* Row 4: Last Updated */}
+        {/* Row 5: Last Updated */}
         <div className="flex items-center justify-between py-3.5">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-500">
