@@ -60,7 +60,7 @@ export function NodeBottomSheet({
 
   const sorted = useMemo(() => {
     const arr = [...nodes];
-    if (sortBy === "name") {
+    if (sortBy === "name" || isTesting) {
       arr.sort((a, b) => a.name.localeCompare(b.name, "zh-Hans-CN"));
     } else {
       arr.sort((a, b) => {
@@ -71,7 +71,7 @@ export function NodeBottomSheet({
       });
     }
     return arr;
-  }, [nodes, sortBy]);
+  }, [nodes, sortBy, isTesting]);
 
   if (!open) return null;
 

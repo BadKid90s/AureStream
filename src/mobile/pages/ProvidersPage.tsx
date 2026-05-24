@@ -500,14 +500,18 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
 
   const getSortedNodes = useCallback((providerId: string) => {
     const arr = nodes.filter((n) => n.providerId === providerId && n.enabled);
-    arr.sort((a, b) => {
-      const da = a.delayError ? Infinity : (a.delay ?? Infinity);
-      const db = b.delayError ? Infinity : (b.delay ?? Infinity);
-      if (da === Infinity && db === Infinity) return a.name.localeCompare(b.name, "zh-Hans-CN");
-      return da - db;
-    });
+    if (isTestingLatency) {
+      arr.sort((a, b) => a.name.localeCompare(b.name, "zh-Hans-CN"));
+    } else {
+      arr.sort((a, b) => {
+        const da = a.delayError ? Infinity : (a.delay ?? Infinity);
+        const db = b.delayError ? Infinity : (b.delay ?? Infinity);
+        if (da === Infinity && db === Infinity) return a.name.localeCompare(b.name, "zh-Hans-CN");
+        return da - db;
+      });
+    }
     return arr;
-  }, [nodes]);
+  }, [nodes, isTestingLatency]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
