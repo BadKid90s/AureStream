@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Palette, Activity, Info, Trash2 } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
 import { mobileToast } from "@/mobile/lib/mobileToast";
 
@@ -36,46 +36,55 @@ export function SettingsPage({
         onClick={onNavigateToTheme}
         className="mg-glass-card p-4 flex items-center justify-between active:scale-[0.98] transition-transform"
       >
-        <span className="text-sm font-semibold text-[var(--mg-text-primary)]">外观</span>
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-violet-500/10 dark:bg-violet-500/20 text-violet-500">
+            <Palette className="w-4 h-4" />
+          </div>
+          <span className="text-sm font-semibold text-[var(--mg-text-primary)]">外观</span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-[13px] text-[var(--mg-text-secondary)]">{themeLabel}</span>
           <ChevronRight className="w-4 h-4 text-[var(--mg-text-secondary)]" />
         </div>
       </button>
 
-      {/* 功能设置 */}
-      <div className="mg-glass-card rounded-[24px] flex flex-col overflow-hidden">
-        <div className="px-4 pt-3.5 pb-2">
-          <span className="text-[11px] font-bold text-[var(--mg-text-secondary)] uppercase tracking-wider">功能设置</span>
-        </div>
-        <button
-          type="button"
-          onClick={onNavigateToLatencyConfig}
-          className="flex items-center justify-between px-4 py-3.5 active:bg-black/5 dark:active:bg-white/5 transition-colors"
-        >
+      {/* 延迟测速配置 */}
+      <button
+        type="button"
+        onClick={onNavigateToLatencyConfig}
+        className="mg-glass-card px-4 py-3.5 flex items-center justify-between active:scale-[0.98] transition-transform"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-blue-500/10 dark:bg-blue-500/20 text-blue-500">
+            <Activity className="w-4 h-4" />
+          </div>
           <span className="text-sm font-semibold text-[var(--mg-text-primary)]">延迟测速配置</span>
-          <ChevronRight className="w-4 h-4 text-[var(--mg-text-secondary)]" />
-        </button>
-      </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-[var(--mg-text-secondary)]" />
+      </button>
 
       {/* 关于 */}
-      <div className="mg-glass-card rounded-[24px] flex flex-col overflow-hidden">
-        <button
-          type="button"
-          onClick={onNavigateToAbout}
-          className="flex items-center justify-between px-4 py-3.5 active:bg-black/5 dark:active:bg-white/5 transition-colors"
-        >
+      <button
+        type="button"
+        onClick={onNavigateToAbout}
+        className="mg-glass-card px-4 py-3.5 flex items-center justify-between active:scale-[0.98] transition-transform"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500">
+            <Info className="w-4 h-4" />
+          </div>
           <span className="text-sm font-semibold text-[var(--mg-text-primary)]">关于</span>
-          <ChevronRight className="w-4 h-4 text-[var(--mg-text-secondary)]" />
-        </button>
-      </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-[var(--mg-text-secondary)]" />
+      </button>
 
       {/* 重置 */}
       <button
         type="button"
         onClick={handleReset}
-        className="mg-glass-card p-4 flex items-center justify-center active:scale-[0.98] transition-transform mt-4"
+        className="mg-glass-card px-4 py-3.5 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-4"
       >
+        <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400" />
         <span className="text-sm font-semibold text-rose-500 dark:text-rose-400">重置所有配置</span>
       </button>
     </div>

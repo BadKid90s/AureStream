@@ -46,6 +46,7 @@ export function MobileApp() {
   const [addUrl, setAddUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const detailSaveRef = useRef<((() => Promise<boolean>) | null)>(null);
+  const latencySaveRef = useRef<((() => Promise<boolean>) | null)>(null);
   const [toastMsg, setToastMsg] = useState("");
   const [toastType, setToastType] = useState<"success" | "error">("success");
 
@@ -160,6 +161,23 @@ export function MobileApp() {
             </svg>
           </button>
         ),
+        right: settingsSubPage === "latency" ? (
+          <button
+            type="button"
+            className={NAV_BTN}
+            aria-label="保存"
+            onClick={async () => {
+              if (!latencySaveRef.current) return;
+              const ok = await latencySaveRef.current();
+              if (ok) {
+                setSettingsSubPage(null);
+                mobileToast("保存成功");
+              }
+            }}
+          >
+            <span className="text-sm font-bold text-[var(--mg-text-primary)]">保存</span>
+          </button>
+        ) : undefined,
       };
     }
 
@@ -247,7 +265,7 @@ export function MobileApp() {
       return <ThemePage />;
     }
     if (settingsSubPage === "latency") {
-      return <LatencyConfigPage />;
+      return <LatencyConfigPage onSave={(fn) => { latencySaveRef.current = fn; }} />;
     }
     if (settingsSubPage === "about") {
       return <AboutPage />;
