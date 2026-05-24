@@ -195,39 +195,36 @@ export function ProviderDetailPage({ provider, onBack }: ProviderDetailPageProps
         </div>
       </div>
 
-      {/* Actions Group */}
-      <div className="mg-glass-card p-1 px-4 rounded-[24px] flex flex-col">
+      {/* Actions Row */}
+      <div className="mg-glass-card rounded-[24px] flex items-center min-h-[48px] overflow-hidden">
         {/* Update Action Row */}
         <button
           type="button"
           disabled={isRefreshing}
           onClick={handleRefresh}
-          className="w-full flex items-center gap-3 py-3.5 text-left cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 border-b border-[var(--mg-divider)] disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 disabled:opacity-50 text-blue-500 dark:text-blue-400"
         >
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-blue-500/10 dark:bg-blue-500/20 text-blue-500">
-            {isRefreshing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-          </div>
-          <span className="text-xs font-bold text-blue-500 dark:text-blue-400">
-            {isRefreshing ? "正在更新订阅..." : "立即更新订阅"}
+          {isRefreshing ? (
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+          ) : (
+            <RefreshCw className="w-4 h-4 shrink-0" />
+          )}
+          <span className="text-xs font-bold">
+            {isRefreshing ? "正在更新..." : "更新订阅"}
           </span>
         </button>
+
+        {/* Vertical Divider */}
+        <div className="w-[1px] h-6 bg-[var(--mg-divider)] shrink-0" />
 
         {/* Delete Action Row */}
         <button
           type="button"
           onClick={handleDelete}
-          className="w-full flex items-center gap-3 py-3.5 text-left cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150"
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 text-rose-500 dark:text-rose-400"
         >
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-rose-500/10 dark:bg-rose-500/20 text-rose-500">
-            <Trash2 className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-bold text-rose-500 dark:text-rose-400">
-            删除订阅
-          </span>
+          <Trash2 className="w-4 h-4 shrink-0" />
+          <span className="text-xs font-bold">删除订阅</span>
         </button>
       </div>
     </div>
