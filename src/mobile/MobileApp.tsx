@@ -206,7 +206,7 @@ export function MobileApp() {
       case "provider_detail":
         return selectedDetailProvider ? (
           <ProviderDetailPage
-            provider={selectedDetailProvider}
+            providerId={selectedDetailProvider.id}
             onBack={() => {
               setSelectedDetailProvider(null);
               setCurrentPage("providers");

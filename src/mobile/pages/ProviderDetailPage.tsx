@@ -2,10 +2,9 @@ import { useCallback, useState } from "react";
 import { Copy, RefreshCw, Trash2, Calendar, HardDrive, ShieldAlert, Check, Loader2, Link } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
-import type { Provider } from "@/types";
 
 interface ProviderDetailPageProps {
-  provider: Provider;
+  providerId: string;
   onBack: () => void;
 }
 
@@ -35,9 +34,18 @@ function getDomain(urlStr: string): string {
   }
 }
 
-export function ProviderDetailPage({ provider, onBack }: ProviderDetailPageProps) {
-  const { deleteProvider, fetchAndSaveSubscription, refreshingIds } = useProxyStore();
+export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPageProps) {
+  const { providers, deleteProvider, fetchAndSaveSubscription, refreshingIds, updateProvider } = useProxyStore();
+  const provider = providers.find((p) => p.id === providerId);
+
   const [copied, setCopied] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+
+  if (!provider) {
+    // If the provider was deleted or not found, go back
+    return null;
+  }
 
   const isRefreshing = refreshingIds.has(provider.id);
 
@@ -79,6 +87,30 @@ export function ProviderDetailPage({ provider, onBack }: ProviderDetailPageProps
     }
   }, [provider.id, provider.name, deleteProvider, onBack]);
 
+  const handleStartEditName = () => {
+    setEditedName(provider.name);
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    const trimmed = editedName.trim();
+    if (!trimmed) {
+      toast.error("名字不能为空");
+      return;
+    }
+    try {
+      await updateProvider(provider.id, { name: trimmed });
+      setIsEditingName(false);
+      toast.success("订阅名称已更新");
+    } catch (e) {
+      toast.error("更新名称失败");
+    }
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+  };
+
   const total = provider.trafficTotalGB || 0;
   const used = provider.trafficUsedGB || 0;
   const remaining = Math.max(0, total - used);
@@ -91,8 +123,37 @@ export function ProviderDetailPage({ provider, onBack }: ProviderDetailPageProps
         <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center border border-blue-500/10 shadow-sm shrink-0">
           <HardDrive className="w-5.5 h-5.5 text-[var(--mg-primary)]" />
         </div>
-        <div className="flex flex-col min-w-0">
-          <h2 className="text-base font-extrabold text-[var(--mg-text-primary)] truncate">{provider.name}</h2>
+        <div className="flex flex-col min-w-0 flex-1 justify-center">
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={handleSaveName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveName();
+                if (e.key === "Escape") handleCancelEditName();
+              }}
+              className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2 py-0.5 rounded-lg text-base font-extrabold text-[var(--mg-text-primary)] focus:outline-none focus:border-[var(--mg-primary)] w-full max-w-[200px]"
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-center gap-1.5 cursor-pointer max-w-full" onClick={handleStartEditName}>
+              <h2 className="text-base font-extrabold text-[var(--mg-text-primary)] truncate max-w-[85%]">{provider.name}</h2>
+              <svg 
+                className="w-3.5 h-3.5 text-[var(--mg-text-secondary)] opacity-60 hover:opacity-100 shrink-0" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </div>
+          )}
           <p className="text-[10px] text-[var(--mg-text-secondary)] font-medium mt-0.5">配置订阅信息</p>
         </div>
       </div>
@@ -230,4 +291,3 @@ export function ProviderDetailPage({ provider, onBack }: ProviderDetailPageProps
     </div>
   );
 }
-
