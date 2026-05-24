@@ -61,12 +61,11 @@ export function ModeCapsuleBar({ activeModes, onToggle, visible, disabled }: Mod
                 boxShadow: `0 4px 10px rgba(var(--mg-${mode.id}-rgb), 0.35)`,
               } : undefined}
             >
-              <Icon 
+              <Icon
                 className={cn(
-                  "w-[18px] h-[18px] transition-transform duration-300",
+                  "w-4 h-4 transition-transform duration-300",
                   isOn ? "scale-110" : "scale-100"
-                )} 
-                strokeWidth={2.2} 
+                )}
               />
             </div>
             <span className={cn(
