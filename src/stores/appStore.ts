@@ -25,6 +25,7 @@ import {
   savePersistedState,
   loadPersistedLatencyCache,
   savePersistedLatencyCache,
+  clearAllPersistedData,
 } from "@/lib/persistStore";
 import {
   reloadConfig,
@@ -51,6 +52,8 @@ interface AppStore {
   smartAdBlock: boolean;
   streamMode: boolean;
   aiRoute: boolean;
+  latencyTestUrl: string;
+  latencyTestTimeout: number;
   /** 从后端 YAML 加载设置 */
   loadSettings: () => Promise<void>;
   setTheme: (theme: "light" | "dark" | "system") => void;
@@ -63,6 +66,9 @@ interface AppStore {
   setSmartAdBlock: (value: boolean) => Promise<void>;
   setStreamMode: (value: boolean) => Promise<void>;
   setAiRoute: (value: boolean) => Promise<void>;
+  setLatencyTestUrl: (value: string) => void;
+  setLatencyTestTimeout: (value: number) => void;
+  resetAllSettings: () => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>()((set, get) => ({
@@ -75,6 +81,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   smartAdBlock: false,
   streamMode: false,
   aiRoute: false,
+  latencyTestUrl: "http://www.gstatic.com/generate_204",
+  latencyTestTimeout: 5000,
 
   loadSettings: async () => {
     try {
@@ -94,6 +102,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         smartAdBlock: settings.smartAdBlock ?? false,
         streamMode: settings.streamMode ?? false,
         aiRoute: settings.aiRoute ?? false,
+        latencyTestUrl: settings.latencyTestUrl ?? "http://www.gstatic.com/generate_204",
+        latencyTestTimeout: settings.latencyTestTimeout ?? 5000,
       });
     } catch (e) {
       console.error("Failed to load app settings:", e);
@@ -175,6 +185,41 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   setAiRoute: async (value) => {
     set({ aiRoute: value });
     savePersistedSettings({ aiRoute: value }).catch(console.error);
+  },
+
+  setLatencyTestUrl: (value) => {
+    set({ latencyTestUrl: value });
+    savePersistedSettings({ latencyTestUrl: value }).catch(console.error);
+  },
+
+  setLatencyTestTimeout: (value) => {
+    set({ latencyTestTimeout: value });
+    savePersistedSettings({ latencyTestTimeout: value }).catch(console.error);
+  },
+
+  resetAllSettings: async () => {
+    const proxyState = useProxyStore.getState();
+    for (const p of proxyState.providers) {
+      try { await proxyState.deleteProvider(p.id); } catch {}
+    }
+    for (const id of autoUpdateTimers.keys()) {
+      clearAutoUpdateTimer(id);
+    }
+    await clearAllPersistedData();
+    proxyState.resetProxyState();
+    set({
+      theme: "system",
+      proxyBypassDomains: DEFAULT_PROXY_BYPASS_DOMAINS,
+      autoStart: false,
+      autoConnect: false,
+      proxyMode: "rule",
+      smartRoute: true,
+      smartAdBlock: false,
+      streamMode: false,
+      aiRoute: false,
+      latencyTestUrl: "http://www.gstatic.com/generate_204",
+      latencyTestTimeout: 5000,
+    });
   },
 }));
 
@@ -352,6 +397,7 @@ interface ProxyStore {
   addProvider: (provider: Provider, skipIpc?: boolean) => Promise<void>;
   updateProvider: (id: string, updates: Partial<Provider>) => Promise<void>;
   deleteProvider: (id: string) => Promise<void>;
+  resetProxyState: () => void;
   setCurrentProvider: (provider?: Provider) => void;
   setCurrentNode: (node?: Node) => void;
   /** 选择节点并在已连接时同步到 Mihomo Selector */
@@ -553,6 +599,21 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     savePersistedLatencyCache(get().nodeLatencyByKey).catch(console.error);
     // 删除订阅文件
     deleteSubscriptionFile(id).catch(() => {});
+  },
+
+  resetProxyState: () => {
+    set({
+      providers: [],
+      nodes: [],
+      currentNode: undefined,
+      currentProvider: undefined,
+      isConnected: false,
+      isConnecting: false,
+      isDisconnecting: false,
+      nodeLatencyByKey: {},
+      isTestingLatency: false,
+      latencyPendingByNodeId: {},
+    });
   },
 
   setCurrentProvider: (provider) => {

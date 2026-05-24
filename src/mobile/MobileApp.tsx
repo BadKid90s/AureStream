@@ -8,6 +8,8 @@ import { HomePage } from "@/mobile/pages/HomePage";
 import { ProvidersPage } from "@/mobile/pages/ProvidersPage";
 import { SettingsPage } from "@/mobile/pages/SettingsPage";
 import { ThemePage } from "@/mobile/pages/ThemePage";
+import { LatencyConfigPage } from "@/mobile/pages/LatencyConfigPage";
+import { AboutPage } from "@/mobile/pages/AboutPage";
 import { ProviderDetailPage } from "@/mobile/pages/ProviderDetailPage";
 import { useProxyStore } from "@/stores/appStore";
 import { mobileToast, onMobileToast } from "@/mobile/lib/mobileToast";
@@ -38,6 +40,7 @@ function getSubNameFromUrl(urlStr: string): string {
 export function MobileApp() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
   const [themePageVisible, setThemePageVisible] = useState(false);
+  const [settingsSubPage, setSettingsSubPage] = useState<"latency" | "about" | null>(null);
   const [selectedDetailProvider, setSelectedDetailProvider] = useState<Provider | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addUrl, setAddUrl] = useState("");
@@ -56,10 +59,11 @@ export function MobileApp() {
 
   const { addProvider, deleteProvider, fetchAndSaveSubscription } = useProxyStore();
 
-  const isSubPage = themePageVisible || currentPage === "provider_detail";
+  const isSubPage = themePageVisible || currentPage === "provider_detail" || settingsSubPage !== null;
 
   const handleNavigate = useCallback((page: string) => {
     setThemePageVisible(false);
+    setSettingsSubPage(null);
     setCurrentPage(page as Page);
   }, []);
 
@@ -131,6 +135,25 @@ export function MobileApp() {
             className={NAV_BTN}
             aria-label="返回"
             onClick={handleBackFromTheme}
+          >
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 3L5 8L10 13" />
+            </svg>
+          </button>
+        ),
+      };
+    }
+
+    if (settingsSubPage) {
+      const backToSettings = () => setSettingsSubPage(null);
+      return {
+        title: settingsSubPage === "latency" ? "延迟测速配置" : "关于",
+        left: (
+          <button
+            type="button"
+            className={NAV_BTN}
+            aria-label="返回"
+            onClick={backToSettings}
           >
             <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 3L5 8L10 13" />
@@ -223,13 +246,25 @@ export function MobileApp() {
     if (themePageVisible) {
       return <ThemePage />;
     }
+    if (settingsSubPage === "latency") {
+      return <LatencyConfigPage />;
+    }
+    if (settingsSubPage === "about") {
+      return <AboutPage />;
+    }
     switch (currentPage) {
       case "home":
         return <HomePage />;
       case "providers":
         return <ProvidersPage onShowDetails={handleShowDetails} />;
       case "settings":
-        return <SettingsPage onNavigateToTheme={handleOpenTheme} />;
+        return (
+          <SettingsPage
+            onNavigateToTheme={handleOpenTheme}
+            onNavigateToLatencyConfig={() => setSettingsSubPage("latency")}
+            onNavigateToAbout={() => setSettingsSubPage("about")}
+          />
+        );
       case "provider_detail":
         return selectedDetailProvider ? (
           <ProviderDetailPage

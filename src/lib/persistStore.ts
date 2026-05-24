@@ -50,6 +50,8 @@ export interface PersistedSettings {
   smartAdBlock: boolean;
   streamMode: boolean;
   aiRoute: boolean;
+  latencyTestUrl: string;
+  latencyTestTimeout: number;
 }
 
 const DEFAULT_SETTINGS: PersistedSettings = {
@@ -62,6 +64,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   smartAdBlock: false,
   streamMode: false,
   aiRoute: false,
+  latencyTestUrl: "http://www.gstatic.com/generate_204",
+  latencyTestTimeout: 5000,
 };
 
 export async function loadPersistedSettings(): Promise<PersistedSettings> {
@@ -84,6 +88,10 @@ export async function loadPersistedSettings(): Promise<PersistedSettings> {
     (await store.get<boolean>("streamMode")) ?? DEFAULT_SETTINGS.streamMode;
   const aiRoute =
     (await store.get<boolean>("aiRoute")) ?? DEFAULT_SETTINGS.aiRoute;
+  const latencyTestUrl =
+    (await store.get<string>("latencyTestUrl")) ?? DEFAULT_SETTINGS.latencyTestUrl;
+  const latencyTestTimeout =
+    (await store.get<number>("latencyTestTimeout")) ?? DEFAULT_SETTINGS.latencyTestTimeout;
   return {
     theme: theme as "light" | "dark" | "system",
     proxyBypassDomains,
@@ -94,6 +102,8 @@ export async function loadPersistedSettings(): Promise<PersistedSettings> {
     smartAdBlock,
     streamMode,
     aiRoute,
+    latencyTestUrl,
+    latencyTestTimeout,
   };
 }
 
@@ -148,4 +158,17 @@ export async function savePersistedLatencyCache(
   const store = await getLatencyCacheStore();
   await store.set("cache", cache);
   await store.save(); // 手动 save，因为 autoSave 已关闭（防抖）
+}
+
+// ---- Clear All ----
+
+export async function clearAllPersistedData(): Promise<void> {
+  const settingsStore = await getSettingsStore();
+  for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+    await settingsStore.set(key, value);
+  }
+  const stateStore = await getStateStore();
+  await stateStore.clear();
+  const latencyStore = await getLatencyCacheStore();
+  await latencyStore.clear();
 }
