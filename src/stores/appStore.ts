@@ -372,7 +372,7 @@ interface ProxyStore {
     sessionUpBytes: number,
     sessionDownBytes: number,
   ) => void;
-  testLatency: (skipPersist?: boolean) => Promise<void>;
+  testLatency: (providerId?: string, skipPersist?: boolean) => Promise<void>;
   /** 下载订阅配置文件并更新 provider 元数据 */
   fetchAndSaveSubscription: (
     id: string,
@@ -870,15 +870,17 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       sessionDownloadBytes: sessionDownBytes,
     }),
 
-  testLatency: async (skipPersist = false) => {
-    const currentProvider0 = get().currentProvider;
+  testLatency: async (providerId?: string, skipPersist = false) => {
+    const targetProvider = providerId
+      ? get().providers.find((p) => p.id === providerId)
+      : get().currentProvider;
     const nodes0 = get().nodes;
-    const list0 = currentProvider0
-      ? nodes0.filter((n) => n.providerId === currentProvider0.id && n.enabled)
+    const list0 = targetProvider
+      ? nodes0.filter((n) => n.providerId === targetProvider.id && n.enabled)
       : [];
-    if (!currentProvider0 || list0.length === 0) return;
+    if (!targetProvider || list0.length === 0) return;
 
-    const cpId = currentProvider0.id;
+    const cpId = targetProvider.id;
     const listIds = new Set(list0.map((n) => n.id));
     set((state) => {
       const nextKey = { ...state.nodeLatencyByKey };
@@ -921,7 +923,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
           
           await new Promise((r) => setTimeout(r, 450));
           
-          const cp = get().currentProvider;
+          const cp = targetProvider;
           set((state) => {
             const nextPending = { ...state.latencyPendingByNodeId };
             const nextKey = { ...state.nodeLatencyByKey };
@@ -965,8 +967,8 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
     try {
 
-      // 获取当前订阅的节点列表
-      const currentProvider = get().currentProvider;
+      // 获取目标订阅的节点列表
+      const currentProvider = targetProvider;
       const nodes = get().nodes;
       const list = currentProvider
         ? nodes.filter((n) => n.providerId === currentProvider.id && n.enabled)
@@ -997,7 +999,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
           if (settled.status === "fulfilled") {
             const result = settled.value;
-            const cp = get().currentProvider;
+            const cp = targetProvider;
             set((state) => {
               const nextPending = { ...state.latencyPendingByNodeId };
               delete nextPending[node.id];

@@ -526,7 +526,7 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
             forceClose={globalActiveSwipeId !== null && globalActiveSwipeId !== `provider-${provider.id}`}
             onRefresh={() => handleRefresh(provider.id, provider.name)}
             onDelete={() => handleDelete(provider.id, provider.name)}
-            onTestLatency={() => testLatency()}
+            onTestLatency={() => testLatency(provider.id)}
             onSwipeOpen={() => setGlobalActiveSwipeId(`provider-${provider.id}`)}
             onSwipeClose={() => {
               if (globalActiveSwipeId === `provider-${provider.id}`) {
@@ -548,7 +548,7 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
                 setGlobalActiveSwipeId(null);
               }
             }}
-            onNodeTestLatency={() => testLatency()}
+            onNodeTestLatency={() => testLatency(provider.id)}
             onShowDetails={() => onShowDetails(provider)}
           />
         ))}
