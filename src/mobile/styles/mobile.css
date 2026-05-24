@@ -481,8 +481,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--mg-divider);
+  padding: 0 14px;
   transition: background-color 0.15s ease;
   cursor: pointer;
 }

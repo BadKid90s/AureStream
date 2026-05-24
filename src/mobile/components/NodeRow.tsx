@@ -29,26 +29,28 @@ export function NodeRow({ node, isSelected, onSelect, isTesting }: NodeRowProps)
         )}
       </div>
       <span className="text-lg flex-shrink-0">{parseFlag(node.name)}</span>
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-semibold text-[var(--mg-text-primary)] truncate">
-          {node.name}
-        </span>
-        <span className="text-[11px] text-[var(--mg-text-secondary)] truncate">
-          {node.server}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs font-mono w-[52px] text-right tabular-nums">
-          {isTesting ? "" : (
-            node.delayError ? (
-              <span className="text-rose-500 font-semibold">超时</span>
-            ) : node.delay != null ? (
-              <span className="text-emerald-500 font-semibold">{node.delay}ms</span>
-            ) : (
-              <span className="text-[var(--mg-text-secondary)]">--</span>
-            )
-          )}
-        </span>
+      <div className="flex flex-1 items-center justify-between border-b border-[var(--mg-divider)] py-2.5 min-w-0">
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-sm font-semibold text-[var(--mg-text-primary)] truncate">
+            {node.name}
+          </span>
+          <span className="text-[11px] text-[var(--mg-text-secondary)] truncate">
+            {node.server}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0 pl-2">
+          <span className="text-xs font-mono w-[52px] text-right tabular-nums">
+            {isTesting ? "" : (
+              node.delayError ? (
+                <span className="text-rose-500 font-semibold">超时</span>
+              ) : node.delay != null ? (
+                <span className="text-emerald-500 font-semibold">{node.delay}ms</span>
+              ) : (
+                <span className="text-[var(--mg-text-secondary)]">--</span>
+              )
+            )}
+          </span>
+        </div>
       </div>
     </button>
   );
