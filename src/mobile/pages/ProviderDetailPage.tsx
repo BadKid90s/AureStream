@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Copy, RefreshCw, Trash2, Calendar, HardDrive, ShieldAlert, Check, Loader2, Link } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
@@ -39,8 +39,13 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
   const provider = providers.find((p) => p.id === providerId);
 
   const [copied, setCopied] = useState(false);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+
+  useEffect(() => {
+    if (provider) {
+      setNameInput(provider.name);
+    }
+  }, [provider?.name]);
 
   if (!provider) {
     // If the provider was deleted or not found, go back
@@ -87,30 +92,6 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
     }
   }, [provider.id, provider.name, deleteProvider, onBack]);
 
-  const handleStartEditName = () => {
-    setEditedName(provider.name);
-    setIsEditingName(true);
-  };
-
-  const handleSaveName = async () => {
-    const trimmed = editedName.trim();
-    if (!trimmed) {
-      toast.error("名字不能为空");
-      return;
-    }
-    try {
-      await updateProvider(provider.id, { name: trimmed });
-      setIsEditingName(false);
-      toast.success("订阅名称已更新");
-    } catch (e) {
-      toast.error("更新名称失败");
-    }
-  };
-
-  const handleCancelEditName = () => {
-    setIsEditingName(false);
-  };
-
   const total = provider.trafficTotalGB || 0;
   const used = provider.trafficUsedGB || 0;
   const remaining = Math.max(0, total - used);
@@ -154,49 +135,34 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
       {/* Details List Group */}
       <div className="mg-glass-card p-1 px-4 rounded-[24px] flex flex-col">
         {/* Row 1: Edit Name */}
-        <div
-          onClick={handleStartEditName}
-          className="flex items-center justify-between py-3.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 border-b border-[var(--mg-divider)]"
-        >
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between py-3.5 border-b border-[var(--mg-divider)]">
+          <div className="flex items-center gap-3 shrink-0">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500">
               <HardDrive className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-[var(--mg-text-primary)]">订阅名称</span>
           </div>
-          <div className="flex items-center gap-1.5 min-w-0 max-w-[60%] justify-end flex-1" onClick={(e) => isEditingName && e.stopPropagation()}>
-            {isEditingName ? (
-              <input
-                type="text"
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                onBlur={handleSaveName}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveName();
-                  if (e.key === "Escape") handleCancelEditName();
-                }}
-                className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2 py-0.5 rounded-lg text-xs font-bold text-[var(--mg-text-primary)] text-right focus:outline-none focus:border-[var(--mg-primary)] w-full"
-                autoFocus
-              />
-            ) : (
-              <>
-                <span className="text-xs text-[var(--mg-text-secondary)] font-semibold truncate">
-                  {provider.name}
-                </span>
-                <svg 
-                  className="w-3.5 h-3.5 text-[var(--mg-text-secondary)] opacity-60 hover:opacity-100 shrink-0" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-              </>
-            )}
+          <div className="flex-1 min-w-0 max-w-[65%] pl-4">
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onBlur={() => {
+                const trimmed = nameInput.trim();
+                if (trimmed && trimmed !== provider.name) {
+                  updateProvider(provider.id, { name: trimmed })
+                    .then(() => toast.success("订阅名称已更新"))
+                    .catch(() => toast.error("更新名称失败"));
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                }
+              }}
+              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[var(--mg-text-primary)] text-right focus:outline-none focus:border-[var(--mg-primary)] focus:bg-transparent"
+              placeholder="请输入订阅名称"
+            />
           </div>
         </div>
 
