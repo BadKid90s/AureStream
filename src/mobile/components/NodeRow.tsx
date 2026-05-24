@@ -23,9 +23,9 @@ export function NodeRow({ node, isSelected, onSelect, isTesting }: NodeRowProps)
       className="mg-node-row w-full text-left"
       onClick={() => onSelect(node.id)}
     >
-      <div className="w-2.5 h-2.5 flex items-center justify-center shrink-0">
+      <div className="w-1.5 h-1.5 flex items-center justify-center shrink-0">
         {isSelected && (
-          <div className="w-1.5 h-1.5 rounded-full bg-[#FF8000] shadow-[0_0_4px_rgba(255,128,0,0.6)]" />
+          <div className="w-1.5 h-1.5 rounded-full bg-[#FF8000] shadow-[0_0_3px_rgba(255,128,0,0.6)]" />
         )}
       </div>
       <span className="text-lg flex-shrink-0">{parseFlag(node.name)}</span>
