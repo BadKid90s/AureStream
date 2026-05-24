@@ -22,6 +22,13 @@ export function NodeRow({ node, isSelected, onSelect }: NodeRowProps) {
       className="mg-node-row w-full text-left"
       onClick={() => onSelect(node.id)}
     >
+      <div className="w-4 h-4 flex items-center justify-center shrink-0">
+        {isSelected ? (
+          <div className="w-2.5 h-2.5 rounded-full bg-[#FF8000] shadow-[0_0_8px_rgba(255,128,0,0.6)]" />
+        ) : (
+          <div className="w-2.5 h-2.5 rounded-full border border-slate-300 dark:border-zinc-700" />
+        )}
+      </div>
       <span className="text-lg flex-shrink-0">{parseFlag(node.name)}</span>
       <div className="flex flex-col min-w-0 flex-1">
         <span className="text-sm font-semibold text-[var(--mg-text-primary)] truncate">
@@ -35,11 +42,6 @@ export function NodeRow({ node, isSelected, onSelect }: NodeRowProps) {
         <span className="text-xs font-mono text-[var(--mg-text-secondary)] w-[52px] text-right tabular-nums">
           {node.delayError ? "超时" : node.delay != null ? `${node.delay}ms` : "--"}
         </span>
-        <div className="w-5 h-5 flex items-center justify-center">
-          {isSelected && (
-            <div className="w-2.5 h-2.5 rounded-full bg-[#FF8000] shadow-[0_0_8px_rgba(255,128,0,0.6)]" />
-          )}
-        </div>
       </div>
     </button>
   );

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { RefreshCw, Trash2, Loader2, ChevronDown, Activity } from "lucide-react";
+import { RefreshCw, Trash2, Loader2, ChevronDown, Activity, Info } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import type { Provider, Node } from "@/types";
@@ -45,6 +45,7 @@ interface SwipeCardProps {
   onGlobalSwipeOpen: (id: string) => void;
   onGlobalSwipeClose: (id: string) => void;
   onNodeTestLatency: () => void;
+  onShowDetails: () => void;
 }
 
 function ProviderSwipeCard({
@@ -68,6 +69,7 @@ function ProviderSwipeCard({
   onGlobalSwipeOpen,
   onGlobalSwipeClose,
   onNodeTestLatency,
+  onShowDetails,
 }: SwipeCardProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -210,24 +212,28 @@ function ProviderSwipeCard({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           className={`px-4 h-full flex items-center justify-between relative overflow-hidden z-10 cursor-pointer bg-[var(--mg-glass-bg)] rounded-[16px] ${
-            isActive ? "bg-[rgba(59,130,246,0.03)]" : ""
+            isActive ? "border-[var(--mg-primary)]/40 bg-[rgba(59,130,246,0.06)]" : ""
           }`}
           style={{
             transform: `translateX(${offsetX}px)`,
             transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
           }}
         >
-          {/* Left Section: Active selection dot & Info */}
-          <div className="flex items-center gap-3 min-w-0 pr-4">
-            <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
-              {isActive ? (
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FF8000] shadow-[0_0_6px_rgba(255,128,0,0.6)] animate-pulse" />
-              ) : (
-                <div className="w-2.5 h-2.5 rounded-full border border-slate-300 dark:border-zinc-700" />
-              )}
-            </div>
+          {/* Left Section: Expand Chevron & Info */}
+          <div className="flex items-center gap-2 min-w-0 pr-4 flex-1 h-full">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all shrink-0"
+              aria-label="展开节点"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
+            </button>
 
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col min-w-0 flex-1 justify-center h-full">
               <span className="font-bold text-[var(--mg-text-primary)] text-[14px] truncate">
                 {provider.name}
               </span>
@@ -237,18 +243,18 @@ function ProviderSwipeCard({
             </div>
           </div>
 
-          {/* Right Section: Expand Triangle only */}
+          {/* Right Section: Details Info icon */}
           <div className="flex items-center shrink-0 z-20">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleExpand();
+                onShowDetails();
               }}
               className="p-1.5 flex items-center justify-center text-[var(--mg-text-secondary)] hover:text-[var(--mg-text-primary)] active:scale-90 transition-all"
-              aria-label="展开节点"
+              aria-label="查看详情"
             >
-              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
+              <Info className="w-[18px] h-[18px]" />
             </button>
           </div>
         </div>
@@ -418,7 +424,11 @@ function SwipeableNodeRow({
    ProvidersPage – main page component
    ============================================================ */
 
-export function ProvidersPage() {
+interface ProvidersPageProps {
+  onShowDetails: (provider: Provider) => void;
+}
+
+export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
   const {
     providers,
     deleteProvider,
@@ -534,6 +544,7 @@ export function ProvidersPage() {
               }
             }}
             onNodeTestLatency={() => testLatency()}
+            onShowDetails={() => onShowDetails(provider)}
           />
         ))}
 
