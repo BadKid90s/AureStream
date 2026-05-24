@@ -1,16 +1,10 @@
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { MainContent } from "@/components/layout/MainContent";
-import { Dashboard } from "@/pages/Dashboard";
-import { Providers } from "@/pages/Providers";
-import { Settings } from "@/pages/Settings";
 import { useAppStore, useProxyStore } from "@/stores/appStore";
 import { loadPersistedState } from "@/lib/persistStore";
-import { Toaster } from "@/components/ui/sonner";
 import { listen } from "@tauri-apps/api/event";
-import { LoadingScreen } from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { MobileApp } from "@/mobile/MobileApp";
+import { PcApp } from "@/pc/PcApp";
 
 function applyTheme(theme: string) {
   const root = document.documentElement;
@@ -28,27 +22,22 @@ function applyTheme(theme: string) {
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState("dashboard");
   const [isInitializing, setIsInitializing] = useState(true);
   const { theme } = useAppStore();
   const isMobile = useIsMobile();
 
   useEffect(() => {
     const init = async () => {
-      // 阶段 1：并行加载设置和延迟缓存
       await Promise.allSettled([
         useAppStore.getState().loadSettings(),
         useProxyStore.getState().loadCache(),
       ]);
 
-      // 应用 theme
       applyTheme(useAppStore.getState().theme);
 
-      // 阶段 2：加载 providers（依赖缓存先就绪）
       await useProxyStore.getState().loadProviders();
       useProxyStore.getState().initAutoUpdateTimers();
 
-      // 阶段 3：恢复上次选择的 provider/node
       try {
         const savedState = await loadPersistedState();
         if (savedState.lastProviderId) {
@@ -58,8 +47,6 @@ function App() {
           );
           if (provider) {
             useProxyStore.getState().setCurrentProvider(provider);
-
-            // 恢复节点
             if (savedState.lastNodeId) {
               const nodes = useProxyStore.getState().nodes;
               const node = nodes.find((n) => n.id === savedState.lastNodeId);
@@ -73,7 +60,6 @@ function App() {
         console.warn("恢复上次状态失败:", e);
       }
 
-      // 阶段 4：自动连接（若上次退出时已连接且开启了自动连接）
       try {
         const { autoConnect } = useAppStore.getState();
         if (autoConnect && useProxyStore.getState().currentProvider) {
@@ -88,7 +74,6 @@ function App() {
 
     init();
 
-    // 监听托盘节点切换事件
     const unlisten = listen<string>("tray-select-node", async (event) => {
       const nodeId = event.payload;
       const { nodes, isConnected } = useProxyStore.getState();
@@ -104,8 +89,6 @@ function App() {
     };
   }, []);
 
-  const openProviders = () => setCurrentPage("providers");
-
   useEffect(() => {
     applyTheme(theme);
     if (theme === "system") {
@@ -116,36 +99,11 @@ function App() {
     }
   }, [theme]);
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case "dashboard":
-        return <Dashboard onOpenProviders={openProviders} />;
-      case "providers":
-        return <Providers />;
-      case "settings":
-        return <Settings />;
-      default:
-        return <Dashboard onOpenProviders={openProviders} />;
-    }
-  };
-
   if (isMobile) {
-    return (
-      <>
-        <MobileApp />
-        <LoadingScreen visible={isInitializing} />
-      </>
-    );
+    return <MobileApp />;
   }
 
-  return (
-    <div className="flex h-screen bg-background overflow-hidden gap-3 ">
-      <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-      <MainContent>{renderPage()}</MainContent>
-      <Toaster richColors />
-      <LoadingScreen visible={isInitializing} />
-    </div>
-  );
+  return <PcApp isInitializing={isInitializing} />;
 }
 
 export default App;

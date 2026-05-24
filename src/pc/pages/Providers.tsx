@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { ProviderCard } from "@/components/provider/ProviderCard";
-import { ProviderModal } from "@/components/provider/ProviderModal";
+import { ProviderCard } from "@/pc/components/provider/ProviderCard";
+import { ProviderModal } from "@/pc/components/provider/ProviderModal";
 import { logErrorDetail, userFacingMessage } from "@/lib/userErrors";
 import {
   AlertDialog,
@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PageShell } from "@/components/layout/PageShell";
+import { PageShell } from "@/pc/components/layout/PageShell";
 import { useProxyStore } from "@/stores/appStore";
 import type { Provider } from "@/types";
 

@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useState, useMemo, useRef, useId } from "react";
 import { createPortal } from "react-dom";
-import { NetworkBlock } from "@/components/dashboard/NetworkBlock";
-import { UsageBlock } from "@/components/dashboard/UsageBlock";
-import { PageShell } from "@/components/layout/PageShell";
+import { NetworkBlock } from "@/pc/components/dashboard/NetworkBlock";
+import { UsageBlock } from "@/pc/components/dashboard/UsageBlock";
+import { PageShell } from "@/pc/components/layout/PageShell";
 import { cn } from "@/lib/utils";
 import { useProxyStore, useAppStore } from "@/stores/appStore";
 import { getLatencyColor } from "@/types";

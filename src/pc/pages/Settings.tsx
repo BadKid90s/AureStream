@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { Moon, Sun, Info, Monitor, Globe, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageShell } from "@/components/layout/PageShell";
+import { PageShell } from "@/pc/components/layout/PageShell";
 import { useAppStore } from "@/stores/appStore";
 import { cn } from "@/lib/utils";
 import { getVersion, type MihomoVersion } from "tauri-plugin-mihomo-api";
