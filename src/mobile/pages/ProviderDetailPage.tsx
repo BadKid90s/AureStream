@@ -1,11 +1,12 @@
 import { useCallback, useState, useEffect } from "react";
-import { Copy, RefreshCw, Trash2, Calendar, HardDrive, ShieldAlert, Check, Loader2, Link } from "lucide-react";
+import { RefreshCw, Trash2, Calendar, HardDrive, ShieldAlert, Loader2, Link } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
-import { toast } from "sonner";
+import { mobileToast } from "@/mobile/lib/mobileToast";
 
 interface ProviderDetailPageProps {
   providerId: string;
   onBack: () => void;
+  onSave?: (saveFn: () => Promise<boolean>) => void;
 }
 
 function formatDate(dateStr?: string): string {
@@ -25,27 +26,44 @@ function formatDate(dateStr?: string): string {
   }
 }
 
-function getDomain(urlStr: string): string {
-  try {
-    const url = new URL(urlStr);
-    return url.hostname;
-  } catch {
-    return "订阅链接";
-  }
-}
-
-export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPageProps) {
+export function ProviderDetailPage({ providerId, onBack, onSave }: ProviderDetailPageProps) {
   const { providers, deleteProvider, fetchAndSaveSubscription, refreshingIds, updateProvider } = useProxyStore();
   const provider = providers.find((p) => p.id === providerId);
 
-  const [copied, setCopied] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [urlInput, setUrlInput] = useState("");
 
   useEffect(() => {
     if (provider) {
       setNameInput(provider.name);
+      setUrlInput(provider.url);
     }
-  }, [provider?.name]);
+  }, [provider?.name, provider?.url]);
+
+  // Register save function with parent nav bar
+  useEffect(() => {
+    if (!onSave || !provider) return;
+    const p = provider;
+    onSave(async () => {
+      const trimmedName = nameInput.trim();
+      const trimmedUrl = urlInput.trim();
+      if (!trimmedName || !trimmedUrl) return false;
+      let urlValid = true;
+      try { new URL(trimmedUrl); } catch { urlValid = false; }
+      if (!urlValid) return false;
+      try {
+        const updates: { name?: string; url?: string } = {};
+        if (trimmedName !== p.name) updates.name = trimmedName;
+        if (trimmedUrl !== p.url) updates.url = trimmedUrl;
+        if (Object.keys(updates).length > 0) {
+          await updateProvider(p.id, updates);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }, [onSave, nameInput, urlInput, provider]);
 
   if (!provider) {
     // If the provider was deleted or not found, go back
@@ -54,28 +72,16 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
 
   const isRefreshing = refreshingIds.has(provider.id);
 
-  const handleCopyUrl = useCallback(() => {
-    navigator.clipboard.writeText(provider.url).then(() => {
-      setCopied(true);
-      toast.success("订阅链接已复制到剪贴板");
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {
-      toast.error("复制失败");
-    });
-  }, [provider.url]);
-
   const handleRefresh = useCallback(async () => {
     try {
       const result = await fetchAndSaveSubscription(provider.id);
       if (result.success) {
-        toast.success(`「${provider.name}」订阅已成功更新`);
+        mobileToast(`「${provider.name}」订阅已成功更新`);
       } else {
-        toast.error(`「${provider.name}」订阅更新失败`, {
-          description: result.error || "网络请求错误，请稍后再试",
-        });
+        mobileToast("订阅更新失败", "error");
       }
     } catch (e) {
-      toast.error("订阅更新发生异常");
+      mobileToast("订阅更新发生异常", "error");
     }
   }, [provider.id, provider.name, fetchAndSaveSubscription]);
 
@@ -85,10 +91,10 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
     }
     try {
       await deleteProvider(provider.id);
-      toast.success(`「${provider.name}」订阅已成功删除`);
+      mobileToast(`「${provider.name}」订阅已成功删除`);
       onBack();
     } catch (e) {
-      toast.error("删除订阅失败");
+      mobileToast("删除订阅失败", "error");
     }
   }, [provider.id, provider.name, deleteProvider, onBack]);
 
@@ -151,8 +157,8 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
                 const trimmed = nameInput.trim();
                 if (trimmed && trimmed !== provider.name) {
                   updateProvider(provider.id, { name: trimmed })
-                    .then(() => toast.success("订阅名称已更新"))
-                    .catch(() => toast.error("更新名称失败"));
+                    .then(() => mobileToast("订阅名称已更新"))
+                    .catch(() => mobileToast("更新名称失败", "error"));
                 }
               }}
               onKeyDown={(e) => {
@@ -160,32 +166,28 @@ export function ProviderDetailPage({ providerId, onBack }: ProviderDetailPagePro
                   e.currentTarget.blur();
                 }
               }}
-              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[var(--mg-text-primary)] text-right focus:outline-none focus:border-[var(--mg-primary)] focus:bg-transparent"
+              className="w-full bg-transparent pr-2.5 py-1.5 rounded-xl text-xs font-semibold text-[var(--mg-text-primary)] text-right focus:outline-none"
               placeholder="请输入订阅名称"
             />
           </div>
         </div>
 
-        {/* Row 2: Copy Link */}
-        <div
-          onClick={handleCopyUrl}
-          className="flex items-center justify-between py-3.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 border-b border-[var(--mg-divider)]"
-        >
-          <div className="flex items-center gap-3">
+        {/* Row 2: Edit URL */}
+        <div className="flex items-center justify-between py-3.5 border-b border-[var(--mg-divider)]">
+          <div className="flex items-center gap-3 shrink-0">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-blue-500/10 dark:bg-blue-500/20 text-blue-500">
               <Link className="w-4 h-4" />
             </div>
             <span className="text-xs font-bold text-[var(--mg-text-primary)]">订阅链接</span>
           </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-xs text-[var(--mg-text-secondary)] font-mono truncate max-w-[150px]">
-              {getDomain(provider.url)}
-            </span>
-            {copied ? (
-              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
-            ) : (
-              <Copy className="w-3.5 h-3.5 text-[var(--mg-text-secondary)] shrink-0" />
-            )}
+          <div className="flex-1 min-w-0 max-w-[65%] pl-4">
+            <input
+              type="text"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              className="w-full bg-transparent pr-2.5 py-1.5 rounded-xl text-xs font-semibold text-[var(--mg-text-primary)] text-right focus:outline-none truncate"
+              placeholder="请输入订阅链接"
+            />
           </div>
         </div>
 

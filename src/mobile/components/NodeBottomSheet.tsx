@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { ArrowDown01, ArrowDownAZ, RefreshCw } from "lucide-react";
+import { ArrowUpDown, RefreshCw } from "lucide-react";
 import { NodeRow } from "./NodeRow";
 import type { Node } from "@/types";
 
@@ -92,44 +92,30 @@ export function NodeBottomSheet({
           transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
         }}
       >
-        <div 
+        {/* Drag handle — only this area triggers drag gesture */}
+        <div
           className="flex-none cursor-grab active:cursor-grabbing select-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           <div className="mg-sheet-handle" />
-          <div className="flex items-center justify-between px-5 pb-3">
-            <h3 className="text-base font-bold text-[var(--mg-text-primary)]">选择节点</h3>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onSortChange("delay")}
-              className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
-                sortBy === "delay"
-                  ? "bg-[var(--mg-primary)] text-white"
-                  : "text-[var(--mg-text-secondary)]"
-              }`}
-            >
-              <ArrowDown01 className="w-3.5 h-3.5 inline mr-1" />
-              延迟
-            </button>
-            <button
-              type="button"
-              onClick={() => onSortChange("name")}
-              className={`px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
-                sortBy === "name"
-                  ? "bg-[var(--mg-primary)] text-white"
-                  : "text-[var(--mg-text-secondary)]"
-              }`}
-            >
-              <ArrowDownAZ className="w-3.5 h-3.5 inline mr-1" />
-              名称
-            </button>
-          </div>
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto mg-scroll-none">
+
+        {/* Header row — safe from drag gesture */}
+        <div className="flex items-center justify-between px-5 pb-3">
+          <h3 className="text-base font-bold text-[var(--mg-text-primary)]">选择节点</h3>
+          <button
+            type="button"
+            onClick={() => onSortChange(sortBy === "delay" ? "name" : "delay")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--mg-primary)] text-white text-[11px] font-semibold active:scale-95 transition-transform"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            {sortBy === "delay" ? "延迟" : "名称"}
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto mg-scroll-none">
           {sorted.map((node, index) => (
             <NodeRow
               key={node.id}

@@ -1,6 +1,6 @@
 import "@/mobile/styles/mobile.css";
-import { useState, useCallback } from "react";
-import { Plus, QrCode, Loader2 } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Plus, QrCode, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { GlassTabBar } from "@/mobile/components/GlassTabBar";
 import { MobileNavBar } from "@/mobile/components/MobileNavBar";
 import { MeshGradientBackground } from "@/mobile/components/MeshGradientBackground";
@@ -10,7 +10,7 @@ import { SettingsPage } from "@/mobile/pages/SettingsPage";
 import { ThemePage } from "@/mobile/pages/ThemePage";
 import { ProviderDetailPage } from "@/mobile/pages/ProviderDetailPage";
 import { useProxyStore } from "@/stores/appStore";
-import { toast } from "sonner";
+import { mobileToast, onMobileToast } from "@/mobile/lib/mobileToast";
 import type { Provider } from "@/types";
 
 type Page = "home" | "providers" | "settings" | "theme" | "provider_detail";
@@ -42,6 +42,17 @@ export function MobileApp() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addUrl, setAddUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
+  const detailSaveRef = useRef<((() => Promise<boolean>) | null)>(null);
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
+
+  useEffect(() => {
+    return onMobileToast(({ message, type }) => {
+      setToastMsg(message);
+      setToastType(type);
+      setTimeout(() => setToastMsg(""), 500);
+    });
+  }, []);
 
   const { addProvider, deleteProvider, fetchAndSaveSubscription } = useProxyStore();
 
@@ -68,13 +79,13 @@ export function MobileApp() {
   const handleAddSubscription = useCallback(async () => {
     const trimmedUrl = addUrl.trim();
     if (!trimmedUrl) {
-      toast.error("请输入订阅链接");
+      mobileToast("请输入订阅链接", "error");
       return;
     }
     try {
       new URL(trimmedUrl);
     } catch {
-      toast.error("请输入有效的订阅链接");
+      mobileToast("请输入有效的订阅链接", "error");
       return;
     }
 
@@ -94,18 +105,16 @@ export function MobileApp() {
       await addProvider(newProvider);
       const result = await fetchAndSaveSubscription(id);
       if (result.success) {
-        toast.success(`订阅「${subName}」添加并下载成功`);
+        mobileToast(`订阅「${subName}」添加并下载成功`);
         setIsAddModalOpen(false);
         setAddUrl("");
       } else {
         await deleteProvider(id);
-        toast.error("订阅下载失败", {
-          description: result.error || "请检查订阅链接是否有效",
-        });
+        mobileToast("订阅下载失败", "error");
       }
     } catch (err) {
       try { await deleteProvider(id); } catch {}
-      toast.error("添加订阅时发生错误");
+      mobileToast("添加订阅时发生错误", "error");
     } finally {
       setIsDownloading(false);
     }
@@ -147,6 +156,24 @@ export function MobileApp() {
             <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 3L5 8L10 13" />
             </svg>
+          </button>
+        ),
+        right: (
+          <button
+            type="button"
+            className={NAV_BTN}
+            aria-label="保存"
+            onClick={async () => {
+              if (!detailSaveRef.current) return;
+              const ok = await detailSaveRef.current();
+              if (ok) {
+                setSelectedDetailProvider(null);
+                setCurrentPage("providers");
+                mobileToast("保存成功");
+              }
+            }}
+          >
+            <span className="text-sm font-bold text-[var(--mg-text-primary)]">保存</span>
           </button>
         ),
       };
@@ -211,6 +238,7 @@ export function MobileApp() {
               setSelectedDetailProvider(null);
               setCurrentPage("providers");
             }}
+            onSave={(saveFn) => { detailSaveRef.current = saveFn; }}
           />
         ) : (
           <ProvidersPage onShowDetails={handleShowDetails} />
@@ -276,6 +304,21 @@ export function MobileApp() {
                 {isDownloading ? "正在下载..." : "下载"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Mobile Toast */}
+      {toastMsg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className={`mg-toast ${toastType === "error" ? "mg-toast-error" : ""}`}>
+            <div className="mg-toast-icon">
+              {toastType === "error" ? (
+                <XCircle className="w-8 h-8" />
+              ) : (
+                <CheckCircle2 className="w-8 h-8" />
+              )}
+            </div>
+            <div className="mg-toast-title">{toastMsg}</div>
           </div>
         </div>
       )}

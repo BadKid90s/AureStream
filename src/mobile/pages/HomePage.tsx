@@ -5,7 +5,7 @@ import { ModeCapsuleBar } from "@/mobile/components/ModeCapsuleBar";
 import { ConnectionInfo } from "@/mobile/components/ConnectionInfo";
 import { NodeBottomSheet } from "@/mobile/components/NodeBottomSheet";
 import { useProxyStore, useAppStore } from "@/stores/appStore";
-import { toast } from "sonner";
+import { mobileToast } from "@/mobile/lib/mobileToast";
 import { logErrorDetail, userFacingMessage } from "@/lib/userErrors";
 
 function formatDuration(totalSeconds: number): string {
@@ -76,14 +76,14 @@ export function HomePage() {
       if (busy) return;
       try { await disconnect(); } catch (e) {
         logErrorDetail("HomePage.disconnect", e);
-        toast.error(userFacingMessage("disconnect"));
+        mobileToast(userFacingMessage("disconnect"), "error");
       }
       return;
     }
     if (!canConnect || isConnecting) return;
     try { await connect(); } catch (e) {
       logErrorDetail("HomePage.connect", e);
-      toast.error(userFacingMessage("connect"));
+      mobileToast(userFacingMessage("connect"), "error");
     }
   }, [isConnected, busy, canConnect, isConnecting, connect, disconnect]);
 
@@ -111,7 +111,7 @@ export function HomePage() {
     const node = activeNodes.find((n) => n.id === id);
     if (node) {
       try { await applyNodeSelection(node); } catch (e) {
-        toast.error("切换节点失败");
+        mobileToast("切换节点失败", "error");
       }
     }
   }, [activeNodes, applyNodeSelection]);

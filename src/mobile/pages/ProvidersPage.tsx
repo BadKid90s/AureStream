@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { RefreshCw, Trash2, Loader2, ChevronRight, Activity, Info } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
-import { toast } from "sonner";
+import { mobileToast } from "@/mobile/lib/mobileToast";
 import type { Provider, Node } from "@/types";
 import { NodeRow } from "@/mobile/components/NodeRow";
 
@@ -468,14 +468,12 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
     try {
       const result = await fetchAndSaveSubscription(id);
       if (result.success) {
-        toast.success(`「${name}」订阅已成功更新`);
+        mobileToast(`「${name}」订阅已成功更新`);
       } else {
-        toast.error(`「${name}」订阅更新失败`, {
-          description: result.error || "网络请求错误，请稍后再试",
-        });
+        mobileToast("订阅更新失败", "error");
       }
     } catch (e) {
-      toast.error("订阅更新发生异常");
+      mobileToast("订阅更新发生异常", "error");
     }
   }, [fetchAndSaveSubscription]);
 
@@ -485,10 +483,10 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
     }
     try {
       await deleteProvider(id);
-      toast.success(`「${name}」订阅已成功删除`);
+      mobileToast(`「${name}」订阅已成功删除`);
       setGlobalActiveSwipeId(null);
     } catch (e) {
-      toast.error("删除订阅失败");
+      mobileToast("删除订阅失败", "error");
     }
   }, [deleteProvider]);
 
@@ -501,9 +499,9 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
           await setCurrentSubscription(provider);
         }
         await applyNodeSelection(node);
-        toast.success(`已选择节点: ${node.name}`);
+        mobileToast(`已选择节点: ${node.name}`);
       } catch (e) {
-        toast.error("选择节点失败");
+        mobileToast("选择节点失败", "error");
       }
     }
   }, [nodes, providers, currentProvider, setCurrentSubscription, applyNodeSelection]);

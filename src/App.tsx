@@ -133,7 +133,6 @@ function App() {
     return (
       <>
         <MobileApp />
-        <Toaster richColors />
         <LoadingScreen visible={isInitializing} />
       </>
     );
