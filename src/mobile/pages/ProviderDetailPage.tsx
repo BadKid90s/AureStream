@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Copy, RefreshCw, Trash2, Calendar, HardDrive, ShieldAlert, Check, Loader2 } from "lucide-react";
+import { Copy, RefreshCw, Trash2, Calendar, HardDrive, ShieldAlert, Check, Loader2, Link } from "lucide-react";
 import { useProxyStore } from "@/stores/appStore";
 import { toast } from "sonner";
 import type { Provider } from "@/types";
@@ -23,6 +23,15 @@ function formatDate(dateStr?: string): string {
     });
   } catch {
     return "永久有效";
+  }
+}
+
+function getDomain(urlStr: string): string {
+  try {
+    const url = new URL(urlStr);
+    return url.hostname;
+  } catch {
+    return "订阅链接";
   }
 }
 
@@ -77,111 +86,151 @@ export function ProviderDetailPage({ provider, onBack }: ProviderDetailPageProps
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto mg-scroll-none px-4 pt-3 pb-8 gap-4">
-      {/* Overview Card */}
-      <div className="mg-glass-card p-5 rounded-[24px] flex flex-col gap-4">
-        <div className="flex flex-col">
-          <span className="text-xs font-bold text-[var(--mg-text-secondary)] uppercase tracking-wider">订阅名称</span>
-          <span className="text-xl font-extrabold text-[var(--mg-text-primary)] mt-1 truncate">
-            {provider.name}
-          </span>
+      {/* Top Header Section */}
+      <div className="flex items-center gap-3.5 px-1 py-1 shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 flex items-center justify-center border border-blue-500/10 shadow-sm shrink-0">
+          <HardDrive className="w-5.5 h-5.5 text-[var(--mg-primary)]" />
         </div>
-
-        {total > 0 && (
-          <div className="flex flex-col gap-2 mt-2">
-            <div className="flex justify-between text-xs font-bold text-[var(--mg-text-secondary)]">
-              <span>已用流量: {used.toFixed(1)} GB</span>
-              <span>剩余流量: {remaining.toFixed(1)} GB / {total.toFixed(0)} GB</span>
-            </div>
-            {/* Progress Bar */}
-            <div className="w-full h-2.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden relative">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-          </div>
-        )}
+        <div className="flex flex-col min-w-0">
+          <h2 className="text-base font-extrabold text-[var(--mg-text-primary)] truncate">{provider.name}</h2>
+          <p className="text-[10px] text-[var(--mg-text-secondary)] font-medium mt-0.5">配置订阅信息</p>
+        </div>
       </div>
 
-      {/* Details List Card */}
-      <div className="mg-glass-card p-5 rounded-[24px] flex flex-col gap-4.5">
-        {/* URL Link Row */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold text-[var(--mg-text-secondary)]">订阅链接</span>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="flex-1 text-xs text-[var(--mg-text-primary)] font-mono break-all line-clamp-2 bg-black/5 dark:bg-white/5 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
-              {provider.url}
+      {/* Overview Card (Traffic Widget Style) */}
+      {total > 0 && (
+        <div className="mg-glass-card p-5 rounded-[24px] flex flex-col gap-3.5">
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-[var(--mg-text-secondary)] uppercase tracking-wider">剩余流量</span>
+              <span className="text-2xl font-extrabold text-[var(--mg-text-primary)] mt-1">
+                {remaining.toFixed(1)} <span className="text-xs font-semibold text-[var(--mg-text-secondary)] font-normal">GB</span>
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-[var(--mg-text-secondary)] uppercase tracking-wider">使用进度</span>
+              <span className="block text-sm font-extrabold text-[var(--mg-primary)] mt-1">
+                {percent.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Premium Progress Bar */}
+          <div className="w-full h-3 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden relative border border-black/5 dark:border-white/5 p-[2px]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 ease-out"
+              style={{ width: `${percent}%`, background: "var(--mg-smart-gradient)" }}
+            />
+          </div>
+
+          <div className="flex justify-between text-[10px] font-bold text-[var(--mg-text-secondary)] mt-0.5 px-0.5">
+            <span>已用: {used.toFixed(1)} GB</span>
+            <span>总量: {total.toFixed(0)} GB</span>
+          </div>
+        </div>
+      )}
+
+      {/* Details List Group */}
+      <div className="mg-glass-card p-1 px-4 rounded-[24px] flex flex-col">
+        {/* Row 1: Copy Link */}
+        <div
+          onClick={handleCopyUrl}
+          className="flex items-center justify-between py-3.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 border-b border-[var(--mg-divider)]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-blue-500/10 dark:bg-blue-500/20 text-blue-500">
+              <Link className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold text-[var(--mg-text-primary)]">订阅链接</span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-xs text-[var(--mg-text-secondary)] font-mono truncate max-w-[150px]">
+              {getDomain(provider.url)}
             </span>
-            <button
-              type="button"
-              onClick={handleCopyUrl}
-              className="w-9 h-9 shrink-0 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 active:scale-95 transition-transform"
-              aria-label="复制链接"
-            >
-              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-[var(--mg-text-secondary)]" />}
-            </button>
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+            ) : (
+              <Copy className="w-3.5 h-3.5 text-[var(--mg-text-secondary)] shrink-0" />
+            )}
           </div>
         </div>
 
-        {/* Expiration Date Row */}
-        <div className="flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-3">
-          <div className="flex items-center gap-2 text-xs text-[var(--mg-text-secondary)] font-bold">
-            <Calendar className="w-4 h-4" />
-            <span>到期时间</span>
+        {/* Row 2: Expiration */}
+        <div className="flex items-center justify-between py-3.5 border-b border-[var(--mg-divider)]">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold text-[var(--mg-text-primary)]">到期时间</span>
           </div>
-          <span className="text-xs text-[var(--mg-text-primary)] font-semibold">
+          <span className="text-xs text-[var(--mg-text-secondary)] font-semibold">
             {formatDate(provider.expiresAt)}
           </span>
         </div>
 
-        {/* Node Count Row */}
-        <div className="flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-3">
-          <div className="flex items-center gap-2 text-xs text-[var(--mg-text-secondary)] font-bold">
-            <HardDrive className="w-4 h-4" />
-            <span>节点数量</span>
+        {/* Row 3: Node Count */}
+        <div className="flex items-center justify-between py-3.5 border-b border-[var(--mg-divider)]">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500">
+              <HardDrive className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold text-[var(--mg-text-primary)]">节点数量</span>
           </div>
-          <span className="text-xs text-[var(--mg-text-primary)] font-semibold">
+          <span className="text-xs text-[var(--mg-text-secondary)] font-semibold">
             {provider.nodeCount} 个节点
           </span>
         </div>
 
-        {/* Last Updated Row */}
-        <div className="flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-3">
-          <div className="flex items-center gap-2 text-xs text-[var(--mg-text-secondary)] font-bold">
-            <ShieldAlert className="w-4 h-4" />
-            <span>最后更新时间</span>
+        {/* Row 4: Last Updated */}
+        <div className="flex items-center justify-between py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-500">
+              <ShieldAlert className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold text-[var(--mg-text-primary)]">最后更新</span>
           </div>
-          <span className="text-xs text-[var(--mg-text-primary)] font-semibold">
+          <span className="text-xs text-[var(--mg-text-secondary)] font-semibold">
             {formatDate(provider.lastUpdated)}
           </span>
         </div>
       </div>
 
-      {/* Actions Section */}
-      <div className="flex flex-col gap-3 mt-2">
+      {/* Actions Group */}
+      <div className="mg-glass-card p-1 px-4 rounded-[24px] flex flex-col">
+        {/* Update Action Row */}
         <button
           type="button"
           disabled={isRefreshing}
           onClick={handleRefresh}
-          className="w-full h-12 rounded-2xl bg-blue-500 active:bg-blue-600 text-white font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 text-sm"
+          className="w-full flex items-center gap-3 py-3.5 text-left cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150 border-b border-[var(--mg-divider)] disabled:opacity-50"
         >
-          {isRefreshing ? (
-            <Loader2 className="w-4.5 h-4.5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4.5 h-4.5" />
-          )}
-          <span>立即更新订阅</span>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-blue-500/10 dark:bg-blue-500/20 text-blue-500">
+            {isRefreshing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+          </div>
+          <span className="text-xs font-bold text-blue-500 dark:text-blue-400">
+            {isRefreshing ? "正在更新订阅..." : "立即更新订阅"}
+          </span>
         </button>
 
+        {/* Delete Action Row */}
         <button
           type="button"
           onClick={handleDelete}
-          className="w-full h-12 rounded-2xl bg-rose-500 active:bg-rose-600 text-white font-bold flex items-center justify-center gap-2 transition-colors text-sm"
+          className="w-full flex items-center gap-3 py-3.5 text-left cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors duration-150"
         >
-          <Trash2 className="w-4.5 h-4.5" />
-          <span>删除订阅</span>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-rose-500/10 dark:bg-rose-500/20 text-rose-500">
+            <Trash2 className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-rose-500 dark:text-rose-400">
+            删除订阅
+          </span>
         </button>
       </div>
     </div>
   );
 }
+
