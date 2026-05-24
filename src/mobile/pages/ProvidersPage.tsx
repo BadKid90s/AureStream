@@ -230,7 +230,7 @@ function ProviderSwipeCard({
                 {provider.name}
               </span>
               <span className="text-[10px] text-[var(--mg-text-secondary)] mt-0.5 font-mono truncate">
-                {provider.nodeCount}个节点 · {used.toFixed(1)}G/{total.toFixed(0)}G · {formatDate(provider.expiresAt)}
+                {used.toFixed(1)}G/{total.toFixed(0)}G · {formatDate(provider.expiresAt)}
               </span>
             </div>
           </div>
