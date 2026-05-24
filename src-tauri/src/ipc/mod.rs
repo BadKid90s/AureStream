@@ -7,4 +7,5 @@ pub mod network_info;
 pub mod node;
 pub mod settings;
 pub mod subscription;
+#[cfg(not(target_os = "android"))]
 pub mod tray;

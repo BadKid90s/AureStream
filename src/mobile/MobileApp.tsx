@@ -302,7 +302,7 @@ export function MobileApp() {
   };
 
   return (
-    <div className="mobile-app relative flex flex-col h-dvh w-full overflow-hidden">
+    <div className="mobile-app relative flex flex-col h-screen w-full overflow-hidden">
       <MeshGradientBackground />
 
       <div className="flex-1 min-h-0 flex flex-col" style={{ animation: "page-enter 0.25s ease-out" }}>

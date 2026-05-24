@@ -26,14 +26,15 @@ use ipc::subscription::{
     add_provider, delete_provider, delete_subscription_file, download_subscription, get_providers,
     get_subscription_path, update_provider,
 };
-use ipc::tray::update_tray_menu;
 use models::proxy_config::ProxyState;
 use storage::database;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
+#[allow(unused_imports)]
 use tauri::{AppHandle, Emitter, Manager, Runtime, Window};
 
 /// 隐藏主窗口进入托盘模式（不退出进程）。macOS 使用 `Accessory` 激活策略。
+#[cfg(not(target_os = "android"))]
 fn enter_tray_mode<R: Runtime>(window: &Window<R>) {
     if let Err(e) = window.hide() {
         tracing::warn!(error = %e, "进入托盘模式时隐藏窗口失败");
@@ -52,6 +53,7 @@ fn enter_tray_mode<R: Runtime>(window: &Window<R>) {
 }
 
 /// 从托盘恢复主界面。
+#[cfg(not(target_os = "android"))]
 fn show_main_window<R: Runtime>(app: &tauri::AppHandle<R>) {
     #[cfg(target_os = "macos")]
     if let Err(e) = app.set_activation_policy(ActivationPolicy::Regular) {
@@ -149,6 +151,7 @@ fn init_runtime(
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[allow(unused_variables)]
 pub fn run() {
     ensure_loopback_in_no_proxy_env();
 
@@ -156,10 +159,26 @@ pub fn run() {
     // PluginInitialization("log", "attempted to set a logger after...") panic。
     // 勿在 Builder 之前手动 tracing_subscriber::init / try_init。
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            show_main_window(app);
-        }))
+    let mut builder = tauri::Builder::default();
+
+    // 桌面专属插件
+    #[cfg(not(target_os = "android"))]
+    {
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                show_main_window(app);
+            }))
+            .plugin(tauri_plugin_autostart::Builder::new().build())
+            .plugin(tauri_plugin_mihomo::Builder::new().build());
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        builder = builder
+            .plugin(tauri_plugin_shell::init());
+    }
+
+    builder
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
@@ -191,10 +210,7 @@ pub fn run() {
                 .level(log::LevelFilter::Info)
                 .build(),
         )
-        .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_mihomo::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .setup(move |app| {
             if let Ok(log_dir) = app.path().app_log_dir() {
@@ -209,74 +225,111 @@ pub fn run() {
             app.manage(ProxyState::default());
             tracing::info!("应用状态初始化完成");
 
-            // 托盘菜单（固定 3 项：显示主界面、状态、退出应用）
-            let show_i =
-                tauri::menu::MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
-            let not_connected =
-                tauri::menu::MenuItem::with_id(app, "not_connected", "未连接", false, None::<&str>)?;
-            let quit_i =
-                tauri::menu::MenuItem::with_id(app, "quit", "退出应用", true, None::<&str>)?;
-            let menu = tauri::menu::Menu::with_items(app, &[&show_i, &not_connected, &quit_i])?;
+            // 托盘菜单（仅桌面端）
+            #[cfg(not(target_os = "android"))]
+            {
+                let show_i =
+                    tauri::menu::MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
+                let not_connected =
+                    tauri::menu::MenuItem::with_id(app, "not_connected", "未连接", false, None::<&str>)?;
+                let quit_i =
+                    tauri::menu::MenuItem::with_id(app, "quit", "退出应用", true, None::<&str>)?;
+                let menu = tauri::menu::Menu::with_items(app, &[&show_i, &not_connected, &quit_i])?;
 
-            tauri::tray::TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().unwrap().clone())
-                .menu(&menu)
-                .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => show_main_window(&app),
-                    "quit" => app.exit(0),
-                    id if id.starts_with("node_") => {
-                        let _ = app.emit("tray-select-node", &id[5..]);
-                    }
-                    _ => {}
-                })
-                .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::Click {
-                        button: tauri::tray::MouseButton::Left,
-                        button_state: tauri::tray::MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        show_main_window(tray.app_handle());
-                    }
-                })
-                .build(app)?;
+                tauri::tray::TrayIconBuilder::with_id("main")
+                    .icon(app.default_window_icon().unwrap().clone())
+                    .menu(&menu)
+                    .show_menu_on_left_click(false)
+                    .on_menu_event(|app, event| match event.id.as_ref() {
+                        "show" => show_main_window(&app),
+                        "quit" => app.exit(0),
+                        id if id.starts_with("node_") => {
+                            let _ = app.emit("tray-select-node", &id[5..]);
+                        }
+                        _ => {}
+                    })
+                    .on_tray_icon_event(|tray, event| {
+                        if let tauri::tray::TrayIconEvent::Click {
+                            button: tauri::tray::MouseButton::Left,
+                            button_state: tauri::tray::MouseButtonState::Up,
+                            ..
+                        } = event
+                        {
+                            show_main_window(tray.app_handle());
+                        }
+                    })
+                    .build(app)?;
+            }
 
             Ok(())
         })
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
+                #[cfg(not(target_os = "android"))]
                 enter_tray_mode(window);
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![
-            start_proxy,
-            stop_proxy,
-            get_proxy_status,
-            set_current_node,
-            update_proxy_config,
-            get_proxy_config,
-            update_tray_menu,
-            add_provider,
-            update_provider,
-            delete_provider,
-            get_providers,
-            get_nodes,
-            get_nodes_by_provider,
-            test_node_latency,
-            test_all_nodes_latency,
-            download_subscription,
-            get_subscription_path,
-            delete_subscription_file,
-            build_runtime_config,
-            start_runtime_engine,
-            stop_runtime_engine,
-            load_app_settings,
-            save_app_settings,
-            get_network_info,
-        ])
+        .invoke_handler({
+            #[cfg(not(target_os = "android"))]
+            {
+                tauri::generate_handler![
+                    start_proxy,
+                    stop_proxy,
+                    get_proxy_status,
+                    set_current_node,
+                    update_proxy_config,
+                    get_proxy_config,
+                    ipc::tray::update_tray_menu,
+                    add_provider,
+                    update_provider,
+                    delete_provider,
+                    get_providers,
+                    get_nodes,
+                    get_nodes_by_provider,
+                    test_node_latency,
+                    test_all_nodes_latency,
+                    download_subscription,
+                    get_subscription_path,
+                    delete_subscription_file,
+                    build_runtime_config,
+                    start_runtime_engine,
+                    stop_runtime_engine,
+                    load_app_settings,
+                    save_app_settings,
+                    get_network_info,
+                ]
+            }
+            #[cfg(target_os = "android")]
+            {
+                tauri::generate_handler![
+                    start_proxy,
+                    stop_proxy,
+                    get_proxy_status,
+                    set_current_node,
+                    update_proxy_config,
+                    get_proxy_config,
+                    add_provider,
+                    update_provider,
+                    delete_provider,
+                    get_providers,
+                    get_nodes,
+                    get_nodes_by_provider,
+                    test_node_latency,
+                    test_all_nodes_latency,
+                    download_subscription,
+                    get_subscription_path,
+                    delete_subscription_file,
+                    build_runtime_config,
+                    start_runtime_engine,
+                    stop_runtime_engine,
+                    load_app_settings,
+                    save_app_settings,
+                    get_network_info,
+                ]
+            }
+        })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| match event {

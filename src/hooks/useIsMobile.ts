@@ -3,11 +3,17 @@ import { useState, useEffect } from "react";
 export function useIsMobile(threshold = 768): boolean {
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("mobile")) return true;
+    if (params.has("desktop")) return false;
     return window.innerWidth <= threshold;
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("mobile") || params.has("desktop")) return;
 
     const mediaQuery = window.matchMedia(`(max-width: ${threshold}px)`);
     const handler = (e: MediaQueryListEvent) => {
