@@ -240,8 +240,8 @@ export function MobileApp() {
 
       {/* Add Subscription Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md px-4">
-          <div className="mg-glass-card w-full max-w-[340px] p-6 rounded-[24px] flex flex-col gap-4 border border-white/10 shadow-2xl relative animate-[page-enter_0.2s_ease-out]">
+        <div className="mg-modal-overlay">
+          <div className="mg-modal-card w-full max-w-[340px] p-6 flex flex-col gap-4 border shadow-2xl relative animate-[page-enter_0.2s_ease-out]">
             <h3 className="text-base font-extrabold text-[var(--mg-text-primary)]">添加订阅</h3>
             <p className="text-[11px] text-[var(--mg-text-secondary)] -mt-2">
               粘贴订阅链接后将自动下载配置并获取服务商名称。
@@ -270,7 +270,7 @@ export function MobileApp() {
                 type="button"
                 onClick={handleAddSubscription}
                 disabled={isDownloading || !addUrl.trim()}
-                className="flex-1 h-10 rounded-xl bg-blue-500 text-white text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 h-10 rounded-xl bg-[var(--mg-primary)] text-white text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {isDownloading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {isDownloading ? "正在下载..." : "下载"}

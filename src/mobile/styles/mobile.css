@@ -529,3 +529,36 @@
 .mg-chevron-icon.expanded {
   transform: rotate(90deg);
 }
+
+/* ===== Modal / Dialog ===== */
+.mg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(26, 26, 46, 0.15); /* Light theme: soft blue/indigo shadow backdrop */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .mg-modal-overlay {
+  background: rgba(0, 0, 0, 0.45); /* Dark theme: dark backdrop */
+}
+
+.mg-modal-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.08), var(--mg-glass-shadow);
+  border-radius: 24px;
+}
+
+.dark .mg-modal-card {
+  background: rgba(22, 22, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
