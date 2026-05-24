@@ -38,6 +38,7 @@ export function HomePage() {
     applyNodeSelection,
     testLatency,
     isTestingLatency,
+    latencyPendingByNodeId,
     uploadSpeed,
     downloadSpeed,
   } = useProxyStore();
@@ -232,6 +233,7 @@ export function HomePage() {
         onSelect={handleSelectNode}
         onTestLatency={() => testLatency()}
         isTesting={isTestingLatency}
+        latencyPendingByNodeId={latencyPendingByNodeId}
       />
     </div>
   );

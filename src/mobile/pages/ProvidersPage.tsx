@@ -39,6 +39,7 @@ interface SwipeCardProps {
   currentNodeId?: string;
   onSelectNode: (nodeId: string) => void;
   isTesting: boolean;
+  latencyPendingByNodeId: Record<string, boolean>;
   // Global swipe sync (unified for provider cards + node rows)
   globalActiveSwipeId: string | null;
   onGlobalSwipeOpen: (id: string) => void;
@@ -63,6 +64,7 @@ function ProviderSwipeCard({
   currentNodeId,
   onSelectNode,
   isTesting,
+  latencyPendingByNodeId,
   globalActiveSwipeId,
   onGlobalSwipeOpen,
   onGlobalSwipeClose,
@@ -278,6 +280,7 @@ function ProviderSwipeCard({
               onSelect={onSelectNode}
               onTestLatency={onNodeTestLatency}
               isTesting={isTesting}
+              isPending={isTesting && !!latencyPendingByNodeId[node.id]}
               forceClose={globalActiveSwipeId !== null && globalActiveSwipeId !== `node-${node.id}`}
               onSwipeOpen={() => onGlobalSwipeOpen(`node-${node.id}`)}
               onSwipeClose={() => onGlobalSwipeClose(`node-${node.id}`)}
@@ -305,6 +308,7 @@ interface SwipeableNodeRowProps {
   onSelect: (id: string) => void;
   onTestLatency: () => void;
   isTesting: boolean;
+  isPending: boolean;
   forceClose: boolean;
   onSwipeOpen: () => void;
   onSwipeClose: () => void;
@@ -316,6 +320,7 @@ function SwipeableNodeRow({
   onSelect,
   onTestLatency,
   isTesting,
+  isPending,
   forceClose,
   onSwipeOpen,
   onSwipeClose,
@@ -396,7 +401,7 @@ function SwipeableNodeRow({
           }}
           className="h-full w-[70px] bg-teal-500 text-white flex flex-col items-center justify-center gap-1 active:bg-teal-600 transition-colors disabled:opacity-50"
         >
-          {isTesting ? (
+          {isPending ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <Activity className="w-3.5 h-3.5" />
@@ -421,7 +426,7 @@ function SwipeableNodeRow({
           node={node}
           isSelected={isSelected}
           onSelect={() => {/* handled by parent onClick */}}
-          isTesting={isTesting}
+          isTesting={isPending}
         />
       </div>
     </div>
@@ -449,6 +454,7 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
     applyNodeSelection,
     testLatency,
     isTestingLatency,
+    latencyPendingByNodeId,
   } = useProxyStore();
 
   const [globalActiveSwipeId, setGlobalActiveSwipeId] = useState<string | null>(null);
@@ -541,6 +547,7 @@ export function ProvidersPage({ onShowDetails }: ProvidersPageProps) {
             currentNodeId={currentNode?.id}
             onSelectNode={handleSelectNode}
             isTesting={isTestingLatency}
+            latencyPendingByNodeId={latencyPendingByNodeId}
             globalActiveSwipeId={globalActiveSwipeId}
             onGlobalSwipeOpen={(id) => setGlobalActiveSwipeId(id)}
             onGlobalSwipeClose={(id) => {

@@ -13,6 +13,7 @@ interface NodeBottomSheetProps {
   onSelect: (id: string) => void;
   onTestLatency: () => void;
   isTesting: boolean;
+  latencyPendingByNodeId: Record<string, boolean>;
 }
 
 export function NodeBottomSheet({
@@ -25,6 +26,7 @@ export function NodeBottomSheet({
   onSelect,
   onTestLatency,
   isTesting,
+  latencyPendingByNodeId,
 }: NodeBottomSheetProps) {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -134,7 +136,7 @@ export function NodeBottomSheet({
               node={node}
               isSelected={node.id === currentNodeId}
               onSelect={onSelect}
-              isTesting={isTesting}
+              isTesting={isTesting && !!latencyPendingByNodeId[node.id]}
             />
           ))}
         </div>
