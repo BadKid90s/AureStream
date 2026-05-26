@@ -36,14 +36,14 @@ pub struct GeodataEntry {
 pub const GEODATA: &[GeodataEntry] = &[
     GeodataEntry {
         geox_key: "geoip",
-        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db",
+        url: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db",
     },
     GeodataEntry {
         geox_key: "mmdb",
-        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb",
+        url: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb",
     },
     GeodataEntry {
         geox_key: "geosite",
-        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat",
+        url: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat",
     },
 ];

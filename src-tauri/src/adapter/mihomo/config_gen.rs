@@ -391,12 +391,10 @@ fn build_rules(smart: &crate::models::SmartRoutingProfile) -> Vec<String> {
                     rules.push(rule.clone());
                 }
             } else {
-                // Geosite 规则
-                rules.push(format!("GEOSITE,openai,{}", GROUP_AI));
-                rules.push(format!("GEOSITE,anthropic,{}", GROUP_AI));
-                rules.push(format!("GEOSITE,gemini,{}", GROUP_AI));
-                rules.push(format!("GEOSITE,google-gemini,{}", GROUP_AI));
-                rules.push(format!("GEOSITE,copilot,{}", GROUP_AI));
+                // Geosite 规则（仅保留 geosite.dat 中确认存在的分类）
+                rules.push(format!("GEOSITE,openai,{}", GROUP_AI));    // 19 records
+                rules.push(format!("GEOSITE,anthropic,{}", GROUP_AI)); // 7 records
+                // gemini / google-gemini / copilot 在 geosite.dat 中不存在，使用下方 DOMAIN-SUFFIX 兜底
 
                 // ChatGPT / OpenAI
                 rules.push(format!("DOMAIN-SUFFIX,openai.com,{}", GROUP_AI));
