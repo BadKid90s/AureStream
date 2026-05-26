@@ -1,0 +1,96 @@
+/* iOS Liquid Glass Mobile Design System */
+
+/* Background */
+.mob-bg {
+  background: linear-gradient(180deg, #0B1020 0%, #0E1328 100%);
+}
+
+/* Liquid glass surface — per spec: rgba(255,255,255,0.08), blur 28~40, inner highlight */
+@utility mob-glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Strong glass — for tab bar */
+@utility mob-glass-strong {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Deep blue glass — for idle connect button */
+@utility mob-glass-deep {
+  background: linear-gradient(145deg, rgba(77, 163, 255, 0.15), rgba(77, 163, 255, 0.05));
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 0.5px solid rgba(77, 163, 255, 0.15);
+  box-shadow: inset 0 1px 0 rgba(77, 163, 255, 0.10);
+}
+
+/* Cyan-green glass — for connected connect button */
+@utility mob-glass-cyan {
+  background: linear-gradient(145deg, rgba(110, 231, 249, 0.20), rgba(74, 222, 128, 0.10));
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 0.5px solid rgba(110, 231, 249, 0.15);
+  box-shadow: inset 0 1px 0 rgba(110, 231, 249, 0.10), 0 0 40px rgba(110, 231, 249, 0.10);
+}
+
+/* Text colors per spec */
+.mob-text-primary { color: #FFFFFF; }
+.mob-text-secondary { color: rgba(255, 255, 255, 0.65); }
+.mob-text-tertiary { color: rgba(255, 255, 255, 0.35); }
+
+/* Per spec: card radius 32, button radius 28, capsule 9999 */
+.mob-radius-card { border-radius: 32px; }
+.mob-radius-btn { border-radius: 28px; }
+.mob-radius-capsule { border-radius: 9999px; }
+
+/* Animations */
+
+/* Breathing glow — idle button */
+@keyframes mob-breathing {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(77, 163, 255, 0.08), 0 0 40px rgba(77, 163, 255, 0.04);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(77, 163, 255, 0.15), 0 0 60px rgba(77, 163, 255, 0.08);
+  }
+}
+
+/* Rotating ring — connecting */
+@keyframes mob-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Ripple wave — connecting/connected */
+@keyframes mob-ripple {
+  0% { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Connected glow pulse */
+@keyframes mob-connected-pulse {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(110, 231, 249, 0.12), 0 0 60px rgba(74, 222, 128, 0.06);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(110, 231, 249, 0.20), 0 0 80px rgba(74, 222, 128, 0.10);
+  }
+}
+
+/* Fade in up */
+@keyframes mob-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Safe area */
+.mob-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

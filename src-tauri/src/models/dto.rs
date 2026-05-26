@@ -33,4 +33,12 @@ pub struct Node {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delay: Option<u32>,
     pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai_support: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub streaming_support: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub score: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country: Option<String>,
 }

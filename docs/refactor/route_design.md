@@ -1,4 +1,4 @@
-# AureStream 技术设计文档（AI Route / 智能分流版）
+# AureStream 技术设计文档（内核原生 + 数据库区域感知版）
 
 > 项目定位：
 >
@@ -34,29 +34,29 @@ AureStream 自动完成：
 
 # 二、核心设计原则
 
-| 原则                | 说明                    |
-| ----------------- | --------------------- |
-| UI 不感知内核          | UI 不直接操作 Mihomo       |
-| 数据库是主数据           | SQLite 存储全部状态         |
-| Runtime Generated | 所有配置动态生成              |
-| Endpoint 抽象       | 所有节点统一模型              |
-| Adapter 模式        | Mihomo / sing-box 可切换 |
-| Smart Route First | “策略”高于“内核”            |
-| AI Route Native   | AI 服务作为一级路由目标         |
-| 事件驱动              | EventBus 解耦模块         |
+| 原则                | 说明                                                         |
+| ----------------- | ------------------------------------------------------------ |
+| UI 不感知内核      | UI 不直接操作 Mihomo，通过统一 API 与状态机通信              |
+| 数据库是主数据       | SQLite 存储全部节点状态与区域信息                            |
+| Runtime Generated | 所有配置动态生成，不修改用户原始订阅                         |
+| Endpoint 抽象       | 所有节点统一模型，屏蔽底层协议差异                           |
+| 内核原生探测 (New)  | 避免复杂的后台探测线程，将探针与故障转移委托给内核组 `url-test` |
+| 区域感知与匹配 (New)| 订阅解析时自动提取国家/地区，存入 DB，用于前端国旗展示与代理组动态匹配 |
+| AI Route Native   | AI 服务作为一级路由目标                                      |
+| 事件驱动            | EventBus 解耦模块                                            |
 
 ---
 
-# 三、最终系统架构
+# 三、系统架构
 
-```text id="w0y4y9"
+```text
 ┌─────────────────────────────┐
-│         React UI            │
+│         React UI            │ (显示节点列表、国旗、一键连接)
 │      Zustand + IPC          │
 └─────────────┬───────────────┘
               │
 ┌─────────────▼───────────────┐
-│            IPC              │
+│            IPC              │ (get_nodes, build_runtime_config)
 └─────────────┬───────────────┘
               │
 ┌─────────────▼───────────────┐
@@ -65,691 +65,263 @@ AureStream 自动完成：
 │ │ StateMachine            │ │
 │ │ SessionManager          │ │
 │ │ CoreManager             │ │
-│ │ ProxyManager            │ │
 │ │ EventBus                │ │
 │ └─────────────────────────┘ │
 └─────────────┬───────────────┘
               │
 ┌─────────────▼───────────────┐
-│      Smart Route Layer      │
-│ ┌─────────────────────────┐ │
-│ │ Rule Generator          │ │
-│ │ AI Route Engine         │ │
-│ │ Streaming Engine        │ │
-│ │ AdBlock Engine          │ │
-│ │ ProxyGroup Generator    │ │
-│ │ Route Scorer            │ │
-│ └─────────────────────────┘ │
+│    Config Generator (New)   │ (从 SQLite 读取节点区域，动态组装策略组)
+│   RuntimeProfile → YAML     │ (利用正则 filter 将特定地区节点分配给 AI/STREAM 组)
 └─────────────┬───────────────┘
               │
-┌─────────────▼───────────────┐
-│      Config Generator       │
-│ RuntimeProfile → YAML       │
-└─────────────┬───────────────┘
-              │
-      runtime.yaml
+      runtime.yaml (Mihomo 配置文件)
               │
 ┌─────────────▼───────────────┐
-│      Mihomo / sing-box      │
-│   DNS / TUN / Routing       │
+│      Mihomo / sing-box      │ (运行 url-test 进行服务可用性测试)
+│   DNS / TUN / Routing       │ (对 OpenAI 探针与 Netflix 探针进行测试与智能故障转移)
 └─────────────────────────────┘
 ```
 
 ---
 
-# 四、目录结构（最终版）
+# 四、目录结构
 
-```text id="mrz5q0"
+```text
 src-tauri/src/
 ├── main.rs
 ├── lib.rs
 ├── error.rs
 │
 ├── models/
-│   ├── endpoint.rs
-│   ├── runtime.rs
-│   ├── routing.rs
-│   ├── ai_route.rs
-│   ├── subscription.rs
-│   ├── state.rs
-│   └── event.rs
+│   ├── endpoint.rs         (统一 Endpoint 模型，包含 metadata.country)
+│   ├── runtime.rs          (RuntimeProfile, SmartRoutingProfile)
+│   ├── subscription.rs     (订阅模型)
+│   ├── state.rs            (状态定义)
+│   └── dto.rs              (传输对象，含 country, 用于前端展示国旗)
 │
 ├── storage/
-│   ├── database.rs
-│   ├── endpoint_repo.rs
-│   ├── subscription_repo.rs
-│   ├── routing_repo.rs
-│   └── app_state_repo.rs
+│   ├── database.rs         (数据库连接与初始化)
+│   ├── endpoint_repo.rs    (节点增删改查)
+│   └── subscription_repo.rs(订阅增删改查)
 │
 ├── subscription/
-│   ├── fetcher.rs
-│   ├── registry.rs
-│   ├── cache.rs
-│   │
-│   ├── format/
-│   │   ├── clash.rs
-│   │   ├── v2ray.rs
-│   │   ├── singbox.rs
-│   │   └── surge.rs
-│   │
-│   └── protocol/
-│       ├── vmess.rs
-│       ├── vless.rs
-│       ├── trojan.rs
-│       ├── shadowsocks.rs
-│       ├── tuic.rs
-│       └── hysteria2.rs
-│
-├── smart_route/
-│   ├── mod.rs
-│   │
-│   ├── rules/
-│   │   ├── rule_generator.rs
-│   │   ├── geoip.rs
-│   │   ├── geosite.rs
-│   │   └── adblock.rs
-│   │
-│   ├── ai/
-│   │   ├── ai_route_engine.rs
-│   │   ├── ai_detector.rs
-│   │   ├── ai_domains.rs
-│   │   ├── ai_region_policy.rs
-│   │   └── ai_score.rs
-│   │
-│   ├── streaming/
-│   │   ├── netflix.rs
-│   │   ├── disney.rs
-│   │   ├── youtube.rs
-│   │   └── streaming_detector.rs
-│   │
-│   ├── groups/
-│   │   ├── proxy_group_generator.rs
-│   │   ├── auto_group.rs
-│   │   ├── ai_group.rs
-│   │   └── streaming_group.rs
-│   │
-│   └── scorer/
-│       ├── latency.rs
-│       ├── availability.rs
-│       ├── packet_loss.rs
-│       └── smart_score.rs
+│   ├── fetcher.rs          (订阅拉取)
+│   ├── registry.rs         (格式与协议分发)
+│   ├── normalizer.rs       (地区推测：解析节点名字推导国家代码如 US/SG，填入 country)
+│   └── deduplicator.rs     (去重)
 │
 ├── adapter/
 │   ├── mod.rs
-│   │
-│   ├── mihomo/
-│   │   ├── adapter.rs
-│   │   ├── api_client.rs
-│   │   ├── config_generator.rs
-│   │   └── rule_provider.rs
-│   │
-│   └── singbox/
-│       └── (future)
+│   └── mihomo/
+│       ├── adapter.rs          (内核适配)
+│       ├── api_client.rs       (External Controller 交互)
+│       └── config_gen.rs       (动态生成运行时 YAML，带区域 filter 与专有探针)
 │
 ├── runtime/
 │   ├── mod.rs
 │   ├── state_machine.rs
 │   ├── session_manager.rs
 │   ├── core_manager.rs
-│   ├── proxy_manager.rs
-│   └── event_bus.rs
+│   └── mihomo_sidecar.rs   (Mihomo 进程管理)
 │
-├── network/
-│   ├── system_proxy/
-│   ├── tun/
-│   ├── dns/
-│   └── routing/
-│
-├── ipc/
-│   ├── connection_commands.rs
-│   ├── subscription_commands.rs
-│   ├── ai_route_commands.rs
-│   ├── settings_commands.rs
-│   └── tray_commands.rs
-│
-└── util/
-    ├── hash.rs
-    ├── port.rs
-    └── geo.rs
+└── ipc/
+    ├── connection.rs       (启停代理)
+    ├── node.rs             (获取节点，向前端传递 country)
+    └── subscription.rs     (订阅管理)
 ```
 
 ---
 
 # 五、核心数据模型
 
----
+### Endpoint（统一节点模型）
 
-# Endpoint（统一节点模型）
-
-```rust id="gf16kr"
+```rust
 pub struct Endpoint {
     pub id: String,
-
     pub name: String,
-
     pub protocol: Protocol,
-
     pub server: String,
-
     pub port: u16,
-
     pub auth: AuthInfo,
-
     pub transport: TransportInfo,
-
     pub metadata: EndpointMetadata,
-
     pub source_id: String,
-
     pub unique_hash: String,
 }
 ```
 
----
+### EndpointMetadata（核心）
 
-# EndpointMetadata（核心）
-
-```rust id="2dby7h"
+```rust
 pub struct EndpointMetadata {
+    // 关键：订阅解析时通过 normalizer 自动识别的 ISO 国家/地区代码（如 "US", "SG", "JP"）
     pub country: Option<String>,
-
     pub city: Option<String>,
-
     pub provider: Option<String>,
-
     pub latency: Option<u32>,
-
     pub packet_loss: Option<f32>,
-
     pub score: Option<f32>,
-
     pub tags: Vec<String>,
-
-    pub ai_support: AiSupport,
-
-    pub streaming_support: StreamingSupport,
 }
 ```
 
 ---
 
-# AI 支持能力
+# 六、节点区域识别与入库（国旗展示核心）
 
-```rust id="jlwm13"
-pub struct AiSupport {
-    pub openai: bool,
+为了让前端能够正确显示国旗，并在生成配置时进行区域匹配，系统在节点入库时执行**区域规范化**：
 
-    pub claude: bool,
+### 1. 区域提取机制（Normalizer）
+在 `src-tauri/src/subscription/normalizer.rs` 中维护常见区域的关键字和 Emoji 映射：
+* 示例：检测到节点名称中包含 `新加坡`、`SG`、`🇸🇬`，则提取国家代码为 `"SG"`。
+* 提取出的国家代码存入 `EndpointMetadata.country`。
 
-    pub gemini: bool,
+### 2. 数据库存储
+直接序列化至 `endpoints` 表的 `metadata_json` 字段中：
+* 在 SQLite 数据库中无需修改核心 schema，充分利用 `metadata_json` 的半结构化特性。
 
-    pub grok: bool,
-
-    pub perplexity: bool,
+### 3. IPC 传输（DTO）
+通过 `ipc/node.rs` 返回给前端的 `Node` 传输对象中增加 `country` 字段，前端 React 拿到该字段后，直接渲染对应的国旗：
+```typescript
+export interface Node {
+  id: string;
+  name: string;
+  providerId: string;
+  type: string;
+  server: string;
+  port: number;
+  delay?: number;
+  country?: string; // ISO 国家/地区代码，用于在列表显示国旗
+  enabled: boolean;
 }
 ```
 
 ---
 
-# 流媒体支持
+# 七、AI Route 系统（内核原生）
 
-```rust id="e48p4v"
-pub struct StreamingSupport {
-    pub netflix: bool,
+不再使用 Rust 后端对每个节点去发起 OpenAI 的 TCP/HTTP 探测，而是利用**区域匹配配置生成** + **内核专用探针组**来实现。
 
-    pub disney: bool,
+### 1. 区域过滤（生成侧）
+* AI 服务的推荐区域为：`US`, `SG`, `JP`, `TW`, `KR` 等。
+* 在配置生成器 `config_gen.rs` 中，从数据库获取当前订阅下的所有节点。
+* 过滤出 `country` 字段在上述推荐区域的节点。
+* 构建一个匹配这些节点名字的精确正则表达式。例如匹配节点 "SG-01" 和 "US-02"：
+  `filter: "^(SG-01|US-02)$"`
 
-    pub youtube_premium: bool,
-}
+### 2. 内核专用探针（执行侧）
+在 Mihomo 配置中生成 `AI` 优选组，使用 `url-test` 类型，并将测试地址设为 OpenAI 的探针：
+```yaml
+proxy-groups:
+  - name: AI
+    type: url-test
+    use:
+      - AureStream_Sub
+    # 由 Config Generator 动态生成的正则表达式，只测试支持 AI 区域的节点
+    filter: "^(SG-01|US-02|JP-01)$"
+    # OpenAI 探针地址：如果节点被 OpenAI 封锁，握手或请求会失败，内核会自动剔除该节点
+    url: "https://chat.openai.com/cdn-cgi/trace"
+    interval: 300
+    tolerance: 50
 ```
 
----
-
-# 六、AI Route 系统（核心）
+* **智能故障转移**：由 Mihomo 内核在后台自动检测，一旦首选节点不可用，秒级自动切换到其他优选节点，对上层应用完全透明。
 
 ---
 
-# AI Route 是什么
+# 八、流媒体系统（内核原生）
 
-AI 服务：
+流媒体解锁也采用相同的机制。
 
-| 服务         | 推荐区域         |
-| ---------- | ------------ |
-| OpenAI     | SG / JP / US |
-| Claude     | US / JP      |
-| Gemini     | US           |
-| Grok       | US           |
-| Perplexity | SG           |
+### 1. 区域过滤与正则生成
+* 推荐流媒体解锁区域：`HK`, `TW`, `SG`, `JP`, `US` 等。
+* 配置生成器过滤出 `country` 在该列表中的节点，生成精确正则：`filter: "^(HK-01|TW-02|SG-01)$"`。
 
-AureStream 自动：
-
-```text id="nd6q98"
-识别 AI 服务
-↓
-自动选择支持该 AI 的节点
-↓
-自动选择最低延迟节点
-↓
-自动切换
-```
-
----
-
-# AI Route 架构
-
-```text id="0n69cb"
-AI Domain
-    ↓
-AI Rule
-    ↓
-AI Proxy Group
-    ↓
-AI Route Engine
-    ↓
-Best AI Node
-```
-
----
-
-# 七、AI Detector（最重要）
-
-负责检测：
-
-```text id="6r0vay"
-某节点是否支持：
-- OpenAI
-- Claude
-- Gemini
-```
-
----
-
-# 技术方案
-
-通过该节点访问：
-
-```text id="gjmllh"
-https://chat.openai.com
-https://claude.ai
-https://gemini.google.com
-```
-
-判断：
-
-```text id="kg29ws"
-200
-403
-region blocked
-```
-
----
-
-# 结果写入：
-
-```rust id="wbx4p0"
-EndpointMetadata.ai_support
-```
-
----
-
-# 八、智能分流系统
-
----
-
-# Rule Generator
-
-自动生成：
-
-```yaml id="ffjzgn"
-rules:
-  - GEOSITE,category-ads-all,REJECT
-  - GEOSITE,openai,AI
-  - GEOSITE,anthropic,AI
-  - GEOSITE,netflix,STREAM
-  - GEOSITE,cn,DIRECT
-  - MATCH,AUTO
+### 2. 内核专用探针
+在 Mihomo 配置中生成 `STREAM` 优选组，测试地址设为 Netflix 的视频详情探针：
+```yaml
+proxy-groups:
+  - name: STREAM
+    type: url-test
+    use:
+      - AureStream_Sub
+    filter: "^(HK-01|TW-02|SG-01)$"
+    # Netflix 探针地址：如果该节点未解锁 Netflix 导致 403/451，内核将自动识别并排除
+    url: "https://www.netflix.com/title/80018499"
+    interval: 300
+    tolerance: 50
 ```
 
 ---
 
 # 九、广告拦截系统
 
----
-
-# 方案
-
-直接使用：
-
-```text id="rj7g8f"
-geosite:category-ads-all
-```
-
----
-
-# 生成：
-
-```yaml id="qg13u6"
-- GEOSITE,category-ads-all,REJECT
-```
-
----
-
-# 十、流媒体系统
-
----
-
-# Streaming Detector
-
-检测：
-
-```text id="0q0zk4"
-Netflix
-Disney+
-YouTube Premium
-```
-
----
-
-# 自动生成：
-
-```yaml id="tt7jmn"
-proxy-groups:
-  - STREAM
-```
-
----
-
-# 规则：
-
-```yaml id="xjpvga"
-- GEOSITE,netflix,STREAM
-```
-
----
-
-# 十一、节点评分系统（Smart Score）
-
----
-
-# 评分维度
-
-| 指标     | 权重  |
-| ------ | --- |
-| 延迟     | 40% |
-| 丢包     | 25% |
-| AI 可用性 | 20% |
-| 流媒体支持  | 15% |
-
----
-
-# 评分公式
-
-```rust id="0u6d0x"
-score =
-    latency_score * 0.4 +
-    packet_loss_score * 0.25 +
-    ai_support_score * 0.2 +
-    streaming_score * 0.15;
-```
-
----
-
-# 十二、代理组自动生成
-
----
-
-# 输入
-
-```text id="x3dz6k"
-Endpoint[]
-```
-
----
-
-# 输出
-
-```yaml id="rqk5vn"
-proxy-groups:
-  - AUTO
-  - AI
-  - STREAM
-  - FALLBACK
-```
-
----
-
-# AUTO
-
-普通自动代理。
-
----
-
-# AI
-
-AI 服务专用。
-
----
-
-# STREAM
-
-流媒体专用。
-
----
-
-# FALLBACK
-
-故障转移。
-
----
-
-# 十三、Config Generator（核心）
-
----
-
-# 输入
-
-```rust id="2dkh84"
-RuntimeProfile
-```
-
----
-
-# 输出
-
-```text id="skxld5"
-runtime.yaml
-```
-
----
-
-# 自动生成：
-
-```yaml id="jlwm07"
-dns:
+直接使用内核支持的 GeoSite 拦截规则，零额外开销。
+```yaml
 rules:
-proxy-groups:
-proxies:
-tun:
-rule-providers:
+  - GEOSITE,category-ads-all,REJECT
 ```
 
 ---
 
-# 十四、RuntimeProfile（最终版）
+# 十、智能分流系统
 
-```rust id="jlwm31"
-pub struct RuntimeProfile {
-    pub endpoints: Vec<Endpoint>,
-
-    pub routing: SmartRoutingProfile,
-
-    pub dns: DnsProfile,
-
-    pub tun: TunProfile,
-}
-```
-
----
-
-# SmartRoutingProfile
-
-```rust id="jlwm38"
-pub struct SmartRoutingProfile {
-    pub enable_ai_route: bool,
-
-    pub enable_streaming: bool,
-
-    pub enable_adblock: bool,
-
-    pub auto_select_best_node: bool,
-}
-```
-
----
-
-# 十五、事件总线
-
-```rust id="jlwm46"
-pub enum AppEvent {
-    ConnectionStateChanged(ConnectionState),
-
-    TrafficUpdated {
-        upload: u64,
-        download: u64,
-    },
-
-    AiRouteChanged {
-        service: String,
-        node_id: String,
-    },
-
-    StreamingUnlocked {
-        service: String,
-        node_id: String,
-    },
-}
-```
-
----
-
-# 十六、数据库设计（新增）
-
----
-
-# endpoint 表新增
-
-```sql id="jlwm55"
-ALTER TABLE endpoints
-ADD COLUMN ai_support_json TEXT;
-
-ALTER TABLE endpoints
-ADD COLUMN streaming_support_json TEXT;
-
-ALTER TABLE endpoints
-ADD COLUMN score REAL;
-```
-
----
-
-# 十七、真正推荐的 Mihomo 配置
-
----
-
-# DNS
-
-```yaml id="jlwm63"
-dns:
-  enable: true
-  enhanced-mode: fake-ip
-```
-
----
-
-# TUN
-
-```yaml id="jlwm71"
-tun:
-  enable: true
-  auto-route: true
-```
-
----
-
-# AI Route
-
-```yaml id="jlwm79"
-proxy-groups:
-  - name: AI
-    type: url-test
-```
-
----
-
-# AI Rules
-
-```yaml id="jlwm87"
+通过规则段编排，将不同的网络请求导向正确的代理组：
+```yaml
 rules:
+  - DOMAIN,localhost,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - GEOIP,private,DIRECT
+  
+  # 1. 广告拦截
+  - GEOSITE,category-ads-all,REJECT
+  
+  # 2. AI 流量路由到 AI 优选组
   - GEOSITE,openai,AI
   - GEOSITE,anthropic,AI
-  - GEOSITE,gemini,AI
+  - DOMAIN-SUFFIX,gemini.google.com,AI
+  
+  # 3. 流媒体流量路由到流媒体组
+  - GEOSITE,netflix,STREAM
+  - GEOSITE,disney,STREAM
+  - GEOSITE,youtube,STREAM
+  
+  # 4. 国内直连
+  - GEOSITE,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  
+  # 5. 默认走自动优选组（AUTO 为全节点 url-test 延迟选优）
+  - MATCH,AUTO
 ```
 
 ---
 
+# 十一、Config Generator（核心实现）
 
-# 十八、真正的产品核心
+配置生成器根据 `RuntimeProfile` 和数据库节点数据，动态生成最终的运行时配置文件 `aurestream-mihomo.yaml`。
 
-AureStream 最终不是：
+### 1. 输入数据获取
+Tauri 命令 `build_runtime_config` 接收到请求后：
+1. 通过 `RuntimeManager` 获取数据库连接。
+2. 从 SQLite 查询当前订阅的全部节点 `Endpoint`。
+3. 将包含国家代码（`country`）的节点列表装入 `RuntimeProfile.endpoints` 中。
 
-```text id="jlwm95"
-Clash GUI
-```
-
-而是：
-
-# “AI 网络优化平台”
-
-真正价值在于：
-
-| 能力               | 价值        |
-| ---------------- | --------- |
-| AI Route         | AI 自动最佳线路 |
-| Smart Route      | 自动分流      |
-| Streaming        | 自动流媒体解锁   |
-| Runtime          | 多内核统一     |
-| Endpoint         | 统一抽象      |
-| Config Generator | 动态策略系统    |
+### 2. 动态 YAML 生成
+`config_gen.rs` 在生成配置时：
+* 遍历 `profile.endpoints`，根据 `country` 属性提取出 AI 区域节点名称和流媒体区域节点名称。
+* 动态渲染 `AI` 组和 `STREAM` 组的 `filter` 正则。
+* 组装 DNS（Fake-IP 模式）、TUN 模式、分流规则以及对应的代理组配置，写入最终文件。
 
 ---
 
-# 二十、最终用户体验
+# 十二、最终用户体验与优势
 
-用户只需要：
+### 用户侧
+1. **国旗展示**：节点列表中自动显示每个节点所在国家/地区的国旗，一目了然。
+2. **零配置智能冲浪**：只需导入订阅一键连接，即可同时完美享受去广告、Netflix 流媒体解锁和 ChatGPT 稳定访问，完全无需手动切换节点。
 
-```text id="jlwm103"
-导入订阅
-```
-
-AureStream 自动：
-
-```text id="jlwm111"
-识别 AI 节点
-↓
-识别 Netflix 节点
-↓
-自动测速
-↓
-自动评分
-↓
-自动生成规则
-↓
-自动切换最优线路
-```
-
-用户：
-
-```text id="jlwm119"
-完全不需要懂 Clash / Mihomo
-```
-
-这才是 AureStream 的真正方向。
+### 开发侧（系统优势）
+1. **架构极简**：剔除了复杂的后台探测代码、多线程同步和庞大的 SQLite 读写。
+2. **高稳定性**：利用了 Mihomo/sing-box 内核经过多年打磨的底层网络探针，避开了 Rust 应用层探测可能遇到的系统代理环回、套接字泄漏和超时等问题。
+3. **零延迟故障切换**：内核在连接失败时能够以毫秒级实现无缝故障切换，用户体验极佳。

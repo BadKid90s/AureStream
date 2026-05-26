@@ -14,7 +14,7 @@ pub use subscription::Subscription;
 pub use state::ConnectionState;
 pub use runtime::{
     DnsProfile, OutboundStrategy, RoutingMode, RuntimePolicy, RuntimeProfile, RuntimeSession,
-    TunProfile,
+    SmartRoutingProfile, TunProfile,
 };
 pub use event::AppEvent;
 pub use telemetry::{LatencySample, TrafficStats};

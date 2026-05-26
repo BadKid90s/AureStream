@@ -25,6 +25,8 @@ import {
   savePersistedState,
   loadPersistedLatencyCache,
   savePersistedLatencyCache,
+  type SmartRoutingProfile,
+  DEFAULT_SMART_ROUTING,
 } from "@/lib/persistStore";
 import {
   reloadConfig,
@@ -52,6 +54,7 @@ interface AppStore {
   smartAdBlock: boolean;
   streamingRoute: boolean;
   aiRoute: boolean;
+  smartRouting: SmartRoutingProfile;
   /** 从后端 YAML 加载设置 */
   loadSettings: () => Promise<void>;
   setTheme: (theme: "light" | "dark" | "system") => void;
@@ -65,6 +68,7 @@ interface AppStore {
   setMixedPort: (value: number) => void;
   setStreamingRoute: (value: boolean) => Promise<void>;
   setAiRoute: (value: boolean) => Promise<void>;
+  setSmartRouting: (updates: Partial<SmartRoutingProfile>) => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>()((set, get) => ({
@@ -78,6 +82,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   smartAdBlock: false,
   streamingRoute: false,
   aiRoute: false,
+  smartRouting: DEFAULT_SMART_ROUTING,
 
   loadSettings: async () => {
     try {
@@ -98,6 +103,13 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         smartAdBlock: settings.smartAdBlock ?? false,
         streamingRoute: settings.streamingRoute ?? false,
         aiRoute: settings.aiRoute ?? false,
+        smartRouting: settings.smartRouting ?? {
+          enableSmartRoute: loadedSmartRoute,
+          enableAdblock: settings.smartAdBlock ?? false,
+          enableAiRoute: settings.aiRoute ?? false,
+          enableStreaming: settings.streamingRoute ?? false,
+          autoSelectBestNode: false,
+        },
       });
     } catch (e) {
       console.error("Failed to load app settings:", e);
@@ -165,25 +177,38 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
 
   setSmartRoute: async (value) => {
-    set({ smartRoute: value });
-    savePersistedSettings({ smartRoute: value } as any).catch(console.error);
+    const smartRouting = { ...get().smartRouting, enableSmartRoute: value };
+    set({ smartRoute: value, smartRouting });
+    savePersistedSettings({ smartRoute: value, smartRouting } as any).catch(console.error);
     const mode = value ? "rule" : "global";
     await get().setProxyMode(mode);
   },
 
   setSmartAdBlock: async (value) => {
-    set({ smartAdBlock: value });
-    savePersistedSettings({ smartAdBlock: value } as any).catch(console.error);
-  },
-
-  setStreamingRoute: async (value) => {
-    set({ streamingRoute: value });
-    savePersistedSettings({ streamingRoute: value } as any).catch(console.error);
+    const smartRouting = { ...get().smartRouting, enableAdblock: value };
+    set({ smartAdBlock: value, smartRouting });
+    savePersistedSettings({ smartAdBlock: value, smartRouting } as any).catch(console.error);
     if (useProxyStore.getState().isConnected) {
       try {
         const { currentProvider } = useProxyStore.getState();
         if (!currentProvider) return;
-        const path = await buildRuntimeConfig(currentProvider.id, value, get().aiRoute);
+        const path = await buildRuntimeConfig(currentProvider.id, get().smartRouting);
+        await reloadConfig(true, path);
+      } catch (e) {
+        console.error("Failed to reload config for adblock toggle:", e);
+      }
+    }
+  },
+
+  setStreamingRoute: async (value) => {
+    const smartRouting = { ...get().smartRouting, enableStreaming: value };
+    set({ streamingRoute: value, smartRouting });
+    savePersistedSettings({ streamingRoute: value, smartRouting } as any).catch(console.error);
+    if (useProxyStore.getState().isConnected) {
+      try {
+        const { currentProvider } = useProxyStore.getState();
+        if (!currentProvider) return;
+        const path = await buildRuntimeConfig(currentProvider.id, get().smartRouting);
         await reloadConfig(true, path);
       } catch (e) {
         console.error("Failed to reload config for streaming route toggle:", e);
@@ -192,16 +217,45 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
 
   setAiRoute: async (value) => {
-    set({ aiRoute: value });
-    savePersistedSettings({ aiRoute: value } as any).catch(console.error);
+    const smartRouting = { ...get().smartRouting, enableAiRoute: value };
+    set({ aiRoute: value, smartRouting });
+    savePersistedSettings({ aiRoute: value, smartRouting } as any).catch(console.error);
     if (useProxyStore.getState().isConnected) {
       try {
         const { currentProvider } = useProxyStore.getState();
         if (!currentProvider) return;
-        const path = await buildRuntimeConfig(currentProvider.id, get().streamingRoute, value);
+        const path = await buildRuntimeConfig(currentProvider.id, get().smartRouting);
         await reloadConfig(true, path);
       } catch (e) {
         console.error("Failed to reload config for AI route toggle:", e);
+      }
+    }
+  },
+
+  setSmartRouting: async (updates) => {
+    const smartRouting = { ...get().smartRouting, ...updates };
+    set({
+      smartRouting,
+      smartRoute: smartRouting.enableSmartRoute,
+      smartAdBlock: smartRouting.enableAdblock,
+      streamingRoute: smartRouting.enableStreaming,
+      aiRoute: smartRouting.enableAiRoute,
+    });
+    savePersistedSettings({
+      smartRouting,
+      smartRoute: smartRouting.enableSmartRoute,
+      smartAdBlock: smartRouting.enableAdblock,
+      streamingRoute: smartRouting.enableStreaming,
+      aiRoute: smartRouting.enableAiRoute,
+    } as any).catch(console.error);
+    if (useProxyStore.getState().isConnected) {
+      try {
+        const { currentProvider } = useProxyStore.getState();
+        if (!currentProvider) return;
+        const path = await buildRuntimeConfig(currentProvider.id, smartRouting);
+        await reloadConfig(true, path);
+      } catch (e) {
+        console.error("Failed to reload config for smart routing update:", e);
       }
     }
   },
@@ -310,31 +364,39 @@ function startMihomoTrafficPoll(get: () => ProxyStore) {
   mihomoTrafficTimer = setInterval(() => void tick(), 1000);
 }
 
-/** 校正当前选中订阅：仅存 1 条时一律视为当前使用中；零条清空；多条时校正无效引用 */
+/** 校正当前选中订阅：无订阅时清空；有订阅时自动补全默认选中的订阅和首个启用节点 */
 function normalizeCurrentSubscriptionSelection(
   providers: Provider[],
   currentProvider: Provider | undefined,
   currentNode: Node | undefined,
+  allNodes: Node[],
 ): { currentProvider: Provider | undefined; currentNode: Node | undefined } {
   if (providers.length === 0) {
     return { currentProvider: undefined, currentNode: undefined };
   }
-  if (providers.length === 1) {
-    const only = providers[0];
-    const nodeOk =
-      currentNode?.providerId === only.id ? currentNode : undefined;
-    return { currentProvider: only, currentNode: nodeOk };
+
+  let targetProvider: Provider | undefined = currentProvider;
+  if (!targetProvider || !providers.some((p) => p.id === targetProvider!.id)) {
+    targetProvider = providers[0];
   }
-  if (currentProvider && !providers.some((p) => p.id === currentProvider.id)) {
+
+  if (!targetProvider) {
     return { currentProvider: undefined, currentNode: undefined };
   }
-  const nodeOk =
+
+  let nodeOk =
     currentNode &&
-    currentProvider &&
-    currentNode.providerId === currentProvider.id
+    currentNode.providerId === targetProvider.id
       ? currentNode
       : undefined;
-  return { currentProvider, currentNode: nodeOk };
+
+  if (!nodeOk && allNodes && allNodes.length > 0) {
+    nodeOk = allNodes.find(
+      (n) => n && n.providerId === targetProvider.id && n.enabled
+    );
+  }
+
+  return { currentProvider: targetProvider, currentNode: nodeOk };
 }
 
 interface ProxyStore {
@@ -425,15 +487,15 @@ const MOCK_PROVIDERS: Provider[] = [
 ];
 
 const MOCK_NODES: Node[] = [
-  { id: "mock-node-1", name: "香港 · IPLC 极速 01", providerId: "mock-provider-1", type: "ss", server: "hk1.aurestream.xyz", port: 443, delay: 18, enabled: true },
-  { id: "mock-node-2", name: "日本 · 东京 Pro 02", providerId: "mock-provider-1", type: "vless", server: "jp1.aurestream.xyz", port: 443, delay: 32, enabled: true },
-  { id: "mock-node-3", name: "台湾 · 台北 BGP 03", providerId: "mock-provider-1", type: "trojan", server: "tw1.aurestream.xyz", port: 443, delay: 45, enabled: true },
-  { id: "mock-node-4", name: "新加坡 · 亚太专线 04", providerId: "mock-provider-1", type: "ss", server: "sg1.aurestream.xyz", port: 443, delay: 60, enabled: true },
-  { id: "mock-node-5", name: "美国 · 硅谷 Core 05", providerId: "mock-provider-1", type: "vless", server: "us1.aurestream.xyz", port: 443, delay: 120, enabled: true },
-  { id: "mock-node-6", name: "美国 · 洛杉矶 BGP 06", providerId: "mock-provider-1", type: "ss", server: "us2.aurestream.xyz", port: 443, delay: 145, enabled: true },
-  { id: "mock-node-7", name: "香港 · 免费 01", providerId: "mock-provider-2", type: "ss", server: "hkfree.aurestream.xyz", port: 80, delay: 25, enabled: true },
-  { id: "mock-node-8", name: "日本 · 免费 02", providerId: "mock-provider-2", type: "vless", server: "jpfree.aurestream.xyz", port: 80, delay: 85, enabled: true },
-  { id: "mock-node-9", name: "美国 · 免费 03", providerId: "mock-provider-2", type: "trojan", server: "usfree.aurestream.xyz", port: 80, delay: 220, enabled: true }
+  { id: "mock-node-1", name: "香港 · IPLC 极速 01", providerId: "mock-provider-1", type: "ss", server: "hk1.aurestream.xyz", port: 443, delay: 18, country: "HK", enabled: true },
+  { id: "mock-node-2", name: "日本 · 东京 Pro 02", providerId: "mock-provider-1", type: "vless", server: "jp1.aurestream.xyz", port: 443, delay: 32, country: "JP", enabled: true },
+  { id: "mock-node-3", name: "台湾 · 台北 BGP 03", providerId: "mock-provider-1", type: "trojan", server: "tw1.aurestream.xyz", port: 443, delay: 45, country: "TW", enabled: true },
+  { id: "mock-node-4", name: "新加坡 · 亚太专线 04", providerId: "mock-provider-1", type: "ss", server: "sg1.aurestream.xyz", port: 443, delay: 60, country: "SG", enabled: true },
+  { id: "mock-node-5", name: "美国 · 硅谷 Core 05", providerId: "mock-provider-1", type: "vless", server: "us1.aurestream.xyz", port: 443, delay: 120, country: "US", enabled: true },
+  { id: "mock-node-6", name: "美国 · 洛杉矶 BGP 06", providerId: "mock-provider-1", type: "ss", server: "us2.aurestream.xyz", port: 443, delay: 145, country: "US", enabled: true },
+  { id: "mock-node-7", name: "香港 · 免费 01", providerId: "mock-provider-2", type: "ss", server: "hkfree.aurestream.xyz", port: 80, delay: 25, country: "HK", enabled: true },
+  { id: "mock-node-8", name: "日本 · 免费 02", providerId: "mock-provider-2", type: "vless", server: "jpfree.aurestream.xyz", port: 80, delay: 85, country: "JP", enabled: true },
+  { id: "mock-node-9", name: "美国 · 免费 03", providerId: "mock-provider-2", type: "trojan", server: "usfree.aurestream.xyz", port: 80, delay: 220, country: "US", enabled: true }
 ];
 
 export const useProxyStore = create<ProxyStore>()((set, get) => ({
@@ -474,6 +536,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
           providers,
           get().currentProvider,
           get().currentNode,
+          nodes,
         );
         set({ providers, nodes, ...cur });
       } else {
@@ -481,6 +544,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
           get().providers,
           get().currentProvider,
           get().currentNode,
+          get().nodes,
         );
         set({ ...cur });
       }
@@ -490,6 +554,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         get().providers,
         get().currentProvider,
         get().currentNode,
+        get().nodes,
       );
       set({ ...cur });
     }
@@ -553,6 +618,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       newProviders,
       currentProvider,
       get().currentNode,
+      get().nodes,
     );
     const prefix = `${id}:`;
     set((state) => {
@@ -694,7 +760,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
 
       // 对齐 external-controller、启动 Mihomo sidecar（内部轮询 API 就绪）
       const appState = useAppStore.getState();
-      const runtimePath = await buildRuntimeConfig(currentProvider.id, appState.streamingRoute, appState.aiRoute);
+      const runtimePath = await buildRuntimeConfig(currentProvider.id, appState.smartRouting);
       await startRuntimeEngine(runtimePath);
 
       // 刷新节点列表，若首次为空（provider 尚未加载），重试最多 5 次
@@ -1079,6 +1145,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         providers,
         currentProvider,
         get().currentNode,
+        get().nodes,
       );
       set({ providers, ...sel });
       await get().refreshSubscriptionNodesFromDb();
@@ -1088,7 +1155,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
           const sp = await getSubscriptionPath(id);
           if (sp) {
             const as = useAppStore.getState();
-            const runtimePath = await buildRuntimeConfig(id, as.streamingRoute, as.aiRoute);
+            const runtimePath = await buildRuntimeConfig(id, as.smartRouting);
             await reloadConfig(true, runtimePath);
           }
         } catch (e) {
@@ -1115,7 +1182,7 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       const path = await getSubscriptionPath(provider.id);
       if (path && get().isConnected) {
         const as = useAppStore.getState();
-        const runtimePath = await buildRuntimeConfig(provider.id, as.streamingRoute, as.aiRoute);
+        const runtimePath = await buildRuntimeConfig(provider.id, as.smartRouting);
         await reloadConfig(true, runtimePath);
       }
     } catch (e) {

@@ -163,3 +163,21 @@ fn parse_network(s: &str) -> Option<TransportNetwork> {
         _ => None,
     }
 }
+
+pub async fn update_country(pool: &SqlitePool, id: &str, country: Option<String>) -> Result<(), AppError> {
+    let row = sqlx::query("SELECT metadata_json FROM endpoints WHERE id = ?1")
+        .bind(id)
+        .fetch_one(pool)
+        .await?;
+    let metadata_json: String = row.try_get("metadata_json")?;
+    let mut metadata: EndpointMetadata = serde_json::from_str(&metadata_json)?;
+    metadata.country = country;
+    let new_metadata_json = serde_json::to_string(&metadata)?;
+
+    sqlx::query("UPDATE endpoints SET metadata_json = ?1 WHERE id = ?2")
+        .bind(new_metadata_json)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}

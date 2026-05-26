@@ -101,8 +101,16 @@ export async function deleteSubscriptionFile(
   return await invoke<void>("delete_subscription_file", { providerId });
 }
 
-export async function buildRuntimeConfig(providerId: string, streamingRoute: boolean, aiRoute: boolean): Promise<string> {
-  return await invoke<string>("build_runtime_config", { providerId, streamingRoute, aiRoute });
+export async function buildRuntimeConfig(providerId: string, smartRouting: import("@/lib/persistStore").SmartRoutingProfile): Promise<string> {
+  // Convert camelCase frontend type to snake_case for Rust backend
+  const snakeCaseRouting = {
+    enable_smart_route: smartRouting.enableSmartRoute,
+    enable_adblock: smartRouting.enableAdblock,
+    enable_ai_route: smartRouting.enableAiRoute,
+    enable_streaming: smartRouting.enableStreaming,
+    auto_select_best_node: smartRouting.autoSelectBestNode,
+  };
+  return await invoke<string>("build_runtime_config", { providerId, smartRouting: snakeCaseRouting });
 }
 
 /** 启动或重启本地代理内核侧进程（使用 buildRuntimeConfig 生成的配置绝对路径） */
@@ -126,4 +134,21 @@ export interface NetworkInfo {
 
 export async function getNetworkInfo(): Promise<NetworkInfo> {
   return await invoke<NetworkInfo>("get_network_info");
+}
+
+// --- GeoX database download ---
+
+export async function downloadGeoxDatabases(): Promise<void> {
+  return await invoke<void>("download_geox_databases");
+}
+
+export async function checkGeoxCached(): Promise<boolean> {
+  return await invoke<boolean>("check_geox_cached");
+}
+
+export async function updateNodeCountryByIpInfo(
+  nodeId: string,
+  countryName: string,
+): Promise<void> {
+  return await invoke<void>("update_node_country_by_ip_info", { nodeId, countryName });
 }

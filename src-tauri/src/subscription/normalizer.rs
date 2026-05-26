@@ -4,17 +4,17 @@ use crate::models::Endpoint;
 
 /// 国家/地区代码映射表（emoji、中文、英文缩写、英文全名 → ISO 代码）。
 const COUNTRY_MAPPINGS: &[(&[&str], &str)] = &[
-    (&["🇭🇰", "香港", "HK", "Hong Kong", "HongKong"], "HK"),
-    (&["🇯🇵", "日本", "JP", "Japan"], "JP"),
-    (&["🇺🇸", "美国", "US", "USA", "America"], "US"),
-    (&["🇸🇬", "新加坡", "SG", "Singapore"], "SG"),
-    (&["🇹🇼", "台湾", "台灣", "TW", "Taiwan"], "TW"),
-    (&["🇰🇷", "韩国", "韓國", "KR", "Korea"], "KR"),
-    (&["🇬🇧", "英国", "UK", "GB", "Britain", "England"], "GB"),
-    (&["🇩🇪", "德国", "德國", "DE", "Germany"], "DE"),
-    (&["🇫🇷", "法国", "法國", "FR", "France"], "FR"),
-    (&["🇦🇺", "澳大利亚", "澳洲", "AU", "Australia"], "AU"),
-    (&["🇨🇦", "加拿大", "CA", "Canada"], "CA"),
+    (&["🇭🇰", "香港", "HK", "HKG", "Hong Kong", "HongKong"], "HK"),
+    (&["🇯🇵", "日本", "JP", "JPN", "Japan", "NRT", "HND", "KIX", "OSA", "TYO"], "JP"),
+    (&["🇺🇸", "美国", "US", "USA", "America", "United States", "LAX", "SJC", "SFO", "SEA", "ORD", "JFK", "EWR", "IAD", "MIA", "PHX"], "US"),
+    (&["🇸🇬", "新加坡", "SG", "SGP", "Singapore", "SIN"], "SG"),
+    (&["🇹🇼", "台湾", "台灣", "TW", "TWN", "Taiwan", "TPE", "KHH"], "TW"),
+    (&["🇰🇷", "韩国", "韓國", "KR", "KOR", "Korea", "ICN", "GMP"], "KR"),
+    (&["🇬🇧", "英国", "UK", "GB", "GBR", "Britain", "England", "United Kingdom", "LHR", "LGW", "MAN"], "GB"),
+    (&["🇩🇪", "德国", "德國", "DE", "DEU", "Germany", "FRA", "MUC"], "DE"),
+    (&["🇫🇷", "法国", "法國", "FR", "FRA", "France"], "FR"),
+    (&["🇦🇺", "澳大利亚", "澳洲", "AU", "AUS", "Australia"], "AU"),
+    (&["🇨🇦", "加拿大", "CA", "CAN", "Canada"], "CA"),
     (&["🇮🇳", "印度", "IN", "India"], "IN"),
     (&["🇧🇷", "巴西", "BR", "Brazil"], "BR"),
     (&["🇷🇺", "俄罗斯", "俄羅斯", "RU", "Russia"], "RU"),
@@ -55,12 +55,20 @@ const COUNTRY_MAPPINGS: &[(&[&str], &str)] = &[
 ];
 
 /// 从节点名称推测国家/地区代码。
-fn detect_country(name: &str) -> Option<&'static str> {
+pub fn detect_country(name: &str) -> Option<&'static str> {
     let lower = name.to_lowercase();
     for &(patterns, code) in COUNTRY_MAPPINGS {
         for &pat in patterns {
-            if lower.contains(&pat.to_lowercase()) {
-                return Some(code);
+            let is_short_english = pat.len() <= 3 && pat.chars().all(|c| c.is_ascii_alphabetic());
+            if is_short_english {
+                // 短英文代码（如 US, SG, HKG）大小写敏感匹配，避免匹配类似 "dev", "nodes", "youtube"
+                if name.contains(pat) {
+                    return Some(code);
+                }
+            } else {
+                if lower.contains(&pat.to_lowercase()) {
+                    return Some(code);
+                }
             }
         }
     }

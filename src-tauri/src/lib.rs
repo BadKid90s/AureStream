@@ -13,14 +13,19 @@ pub mod subscription;
 use std::sync::Arc;
 
 use commands::builtin_config::build_runtime_config;
+use commands::geox::{download_geox_databases, check_geox_cached};
 use commands::mihomo_kernel::{start_runtime_engine, stop_runtime_engine};
+use commands::smart_route::{probe_node_capabilities, probe_streaming_capabilities};
 use config::AureConfigState;
 use ipc::connection::{
     get_proxy_config, get_proxy_status, set_current_node, start_proxy, stop_proxy,
     update_proxy_config,
 };
 use ipc::network_info::get_network_info;
-use ipc::node::{get_nodes, get_nodes_by_provider, test_all_nodes_latency, test_node_latency};
+use ipc::node::{
+    get_nodes, get_nodes_by_provider, test_all_nodes_latency, test_node_latency,
+    update_node_country_by_ip_info,
+};
 use ipc::settings::{load_app_settings, save_app_settings};
 use ipc::subscription::{
     add_provider, delete_provider, delete_subscription_file, download_subscription, get_providers,
@@ -209,6 +214,26 @@ pub fn run() {
             app.manage(ProxyState::default());
             tracing::info!("应用状态初始化完成");
 
+            // 后台下载 geox 数据库（不阻塞启动）
+            let app_handle_for_geox = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let data_dir = match app_handle_for_geox.path().app_local_data_dir() {
+                    Ok(d) => d,
+                    Err(e) => {
+                        tracing::warn!("无法获取本地数据目录: {}", e);
+                        return;
+                    }
+                };
+                let rt_manager = app_handle_for_geox.state::<runtime::RuntimeManager>();
+                tracing::info!("开始下载 geox 数据库...");
+                if let Err(e) = network::geox::download_all(&data_dir, rt_manager.events()).await {
+                    tracing::warn!("geox 数据库下载失败: {}", e);
+                } else {
+                    tracing::info!("geox 数据库下载完成");
+                    ipc::subscription::resolve_all_nodes_geoip(rt_manager.pool()).await;
+                }
+            });
+
             // 托盘菜单（固定 3 项：显示主界面、状态、退出应用）
             let show_i =
                 tauri::menu::MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
@@ -267,6 +292,7 @@ pub fn run() {
             get_nodes_by_provider,
             test_node_latency,
             test_all_nodes_latency,
+            update_node_country_by_ip_info,
             download_subscription,
             get_subscription_path,
             delete_subscription_file,
@@ -276,6 +302,10 @@ pub fn run() {
             load_app_settings,
             save_app_settings,
             get_network_info,
+            probe_node_capabilities,
+            probe_streaming_capabilities,
+            download_geox_databases,
+            check_geox_cached,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

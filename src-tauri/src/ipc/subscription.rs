@@ -166,6 +166,122 @@ pub async fn get_providers(
         .collect())
 }
 
+/// 对节点列表进行并行的 DNS 解析与 IP-API 批量查询，自动填充/更正国家/地区元数据。
+pub async fn resolve_and_geoip_endpoints(endpoints: &mut [crate::models::Endpoint]) {
+    let mut handles = Vec::with_capacity(endpoints.len());
+
+    for (index, ep) in endpoints.iter().enumerate() {
+        if ep.metadata.country.is_some() {
+            continue;
+        }
+        let server = ep.server.trim().to_string();
+        let port = ep.port;
+
+        handles.push(tokio::spawn(async move {
+            let ip_addr = if let Ok(ip) = server.parse::<std::net::IpAddr>() {
+                Some(ip)
+            } else {
+                let host_port = format!("{}:{}", server, port);
+                match tokio::time::timeout(
+                    std::time::Duration::from_millis(1500),
+                    tokio::net::lookup_host(host_port)
+                ).await {
+                    Ok(Ok(mut addrs)) => addrs.next().map(|socket_addr| socket_addr.ip()),
+                    _ => None,
+                }
+            };
+            (index, ip_addr)
+        }));
+    }
+
+    let mut ip_to_indices = std::collections::HashMap::new();
+    let mut ip_list = Vec::new();
+
+    for handle in handles {
+        if let Ok((index, Some(ip))) = handle.await {
+            let ip_str = ip.to_string();
+            ip_to_indices.entry(ip_str.clone()).or_insert_with(Vec::new).push(index);
+            if !ip_list.contains(&ip_str) {
+                ip_list.push(ip_str);
+            }
+        }
+    }
+
+    if ip_list.is_empty() {
+        return;
+    }
+
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    for chunk in ip_list.chunks(100) {
+        let payload = serde_json::to_value(chunk).unwrap();
+        let url = "http://ip-api.com/batch?lang=zh-CN";
+        match client.post(url).json(&payload).send().await {
+            Ok(resp) => {
+                if let Ok(results) = resp.json::<serde_json::Value>().await {
+                    if let Some(arr) = results.as_array() {
+                        for item in arr {
+                            if let (Some(query), Some(country_code)) = (
+                                item["query"].as_str(),
+                                item["countryCode"].as_str(),
+                            ) {
+                                if let Some(indices) = ip_to_indices.get(query) {
+                                    for &index in indices {
+                                        let code = country_code.to_uppercase();
+                                        endpoints[index].metadata.country = Some(code.clone());
+                                        tracing::info!(
+                                            "IP-API Batch 成功识别节点 '{}' ({}) 归属地为 {}",
+                                            endpoints[index].name,
+                                            query,
+                                            code
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::warn!("IP-API Batch 请求失败: {}", e);
+            }
+        }
+    }
+}
+
+/// 扫描数据库中的所有节点，对缺失国家属性的节点执行并行的 IP-API 批量解析与回写。
+pub async fn resolve_all_nodes_geoip(pool: &sqlx::SqlitePool) {
+    let Ok(endpoints) = endpoint_repo::list_all(pool).await else {
+        return;
+    };
+
+    let mut missing = Vec::new();
+    for ep in endpoints {
+        if ep.metadata.country.is_none() {
+            missing.push(ep);
+        }
+    }
+
+    if missing.is_empty() {
+        return;
+    }
+
+    let mut to_resolve = missing;
+    resolve_and_geoip_endpoints(&mut to_resolve).await;
+
+    for ep in to_resolve {
+        if let Some(ref country) = ep.metadata.country {
+            let _ = endpoint_repo::update_country(pool, &ep.id, Some(country.clone())).await;
+        }
+    }
+}
+
 /// 下载订阅：UA 竞速 → 解析 → 入库。
 #[tauri::command]
 pub async fn download_subscription(
@@ -210,8 +326,9 @@ pub async fn download_subscription(
         .map_err(|e| format!("写入订阅文件失败: {e}"))?;
 
     let registry = ParserRegistry::default();
-    let endpoints = registry.ingest_subscription_bytes(&content, &provider_id);
+    let mut endpoints = registry.ingest_subscription_bytes(&content, &provider_id);
     if !endpoints.is_empty() {
+        resolve_and_geoip_endpoints(&mut endpoints).await;
         ensure_subscription_row(&rt, &*state, &provider_id, &url).await?;
         endpoint_repo::replace_for_source(rt.pool(), &provider_id, &endpoints)
             .await

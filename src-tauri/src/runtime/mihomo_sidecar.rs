@@ -104,11 +104,23 @@ impl MihomoSidecar {
             return Err("运行配置不存在".into());
         }
 
-        let work_dir = app
+        let data_dir = app
             .path()
             .app_local_data_dir()
-            .map_err(|e| format!("无法获取本地数据目录: {}", e))?
-            .join(crate::adapter::mihomo::constants::MIHOMO_WORK_DIR);
+            .map_err(|e| format!("无法获取本地数据目录: {}", e))?;
+
+        // 确保启动前，配置数据库已下载完毕
+        if !crate::network::geox::all_cached(&data_dir).await {
+            tracing::info!("[mihomo.startup] 检查到数据库未下载完毕，开始提前同步下载...");
+            let rt_manager = app.state::<crate::runtime::RuntimeManager>();
+            if let Err(e) = crate::network::geox::download_all(&data_dir, rt_manager.events()).await {
+                tracing::warn!("[mihomo.startup] 提前下载数据库失败: {}", e);
+            } else {
+                tracing::info!("[mihomo.startup] 提前下载数据库成功");
+            }
+        }
+
+        let work_dir = data_dir.join(crate::adapter::mihomo::constants::MIHOMO_WORK_DIR);
         tokio::fs::create_dir_all(&work_dir)
             .await
             .map_err(|e| format!("创建工作目录失败: {}", e))?;
@@ -116,6 +128,34 @@ impl MihomoSidecar {
         tokio::fs::create_dir_all(&providers_cache)
             .await
             .map_err(|e| format!("创建 providers 缓存目录失败: {}", e))?;
+
+        // 复制 geox 数据库缓存到 mihomo 工作目录，并使用 mihomo 默认期待的名称
+        let cache_dir = data_dir.join("geox-cache");
+
+        let copies = [
+            ("geoip.db", "geoip.db"),
+            ("geoip.db", "geoip.metadb"),
+            ("country.mmdb", "Country.mmdb"),
+            ("geosite.dat", "geosite.dat"),
+        ];
+
+        for (src_name, dest_name) in &copies {
+            let src_path = cache_dir.join(src_name);
+            let dest_path = work_dir.join(dest_name);
+            if src_path.is_file() {
+                if let Err(e) = tokio::fs::copy(&src_path, &dest_path).await {
+                    tracing::warn!("复制 geox 数据库失败 {} -> {}: {}", src_name, dest_name, e);
+                } else {
+                    tracing::debug!("已复制 geox 数据库: {} -> {}", src_name, dest_name);
+                }
+            } else {
+                // 如果缓存中还没有完整数据库文件，则清理工作目录中的旧文件，防止内核加载残余的 -lite 数据库导致崩毁
+                if dest_path.is_file() {
+                    let _ = tokio::fs::remove_file(&dest_path).await;
+                    tracing::info!("清理了工作目录下的过期数据库文件: {}", dest_name);
+                }
+            }
+        }
 
         {
             let mut guard = self.inner.lock().await;
@@ -135,6 +175,15 @@ impl MihomoSidecar {
                 let _ = child.kill();
             }
         }
+
+        // 终止可能残留的孤儿进程（仅针对当前应用的配置文件）
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = std::process::Command::new("pkill")
+                .args(["-f", "aurestream-mihomo.yaml"])
+                .output();
+        }
+
         tracing::debug!("[mihomo.startup] 工作目录准备完成 ({:.0}ms)", t0.elapsed().as_millis());
 
         let t_spawn = std::time::Instant::now();

@@ -28,6 +28,17 @@ pub enum AppEvent {
         message: String,
     },
 
+    // ── Background Tasks ──────────────────────────────────────
+    GeoxDownloadStarted,
+    GeoxDownloadProgress {
+        file: String,
+        percent: u8,
+    },
+    GeoxDownloadCompleted {
+        success: bool,
+        message: String,
+    },
+
     // ── Telemetry Channel ────────────────────────────────────
     TrafficUpdated {
         upload_bytes: u64,

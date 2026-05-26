@@ -4,143 +4,13 @@
 //! 避免 Windows 上使用绝对规范化路径与用户目录推导不一致而导致 fatal。
 //! 数据源仍在应用配置目录 `subscriptions/` 下，生成运行配置时会复制到 `mihomo-work/subscriptions/`。
 
-use super::mihomo_constants::{
-    AURESTREAM_NODE_SELECTOR, DEFAULT_MIXED_PORT, EXTERNAL_CONTROLLER, GEODATA, LATENCY_TEST_URL,
-};
+use super::mihomo_constants::DEFAULT_MIXED_PORT;
 use super::proxy::ProxyState;
-use serde_yaml::{Mapping, Value};
+use crate::adapter::mihomo::config_gen;
+use crate::models::{RuntimePolicy, RuntimeProfile, SmartRoutingProfile};
 use std::path::PathBuf;
+use crate::runtime::RuntimeManager;
 use tauri::{AppHandle, Manager, State};
-
-const PROXY_PROVIDER_KEY: &str = "AureStream_Sub";
-
-fn build_config_value(subscription_path_relative_home: &str, listen: &str, mixed_port: u16, streaming_route: bool, ai_route: bool) -> Value {
-    let mut root = Mapping::new();
-    root.insert(
-        Value::String("bind-address".to_string()),
-        Value::String(listen.to_string()),
-    );
-    root.insert(
-        Value::String("mixed-port".to_string()),
-        Value::Number(mixed_port.into()),
-    );
-    root.insert(Value::String("ipv6".to_string()), Value::Bool(false));
-    root.insert(
-        Value::String("mode".to_string()),
-        Value::String("rule".to_string()),
-    );
-    root.insert(
-        Value::String("log-level".to_string()),
-        Value::String("info".to_string()),
-    );
-    root.insert(Value::String("allow-lan".to_string()), Value::Bool(false));
-    root.insert(
-        Value::String("external-controller".to_string()),
-        Value::String(EXTERNAL_CONTROLLER.to_string()),
-    );
-    root.insert(
-        Value::String("secret".to_string()),
-        Value::String(String::new()),
-    );
-
-    let mut geox_url = Mapping::new();
-    for entry in GEODATA {
-        geox_url.insert(
-            Value::String(entry.geox_key.to_string()),
-            Value::String(entry.url.to_string()),
-        );
-    }
-    root.insert(
-        Value::String("geox-url".to_string()),
-        Value::Mapping(geox_url),
-    );
-
-    let mut hc = Mapping::new();
-    hc.insert(Value::String("enable".to_string()), Value::Bool(true));
-    hc.insert(
-        Value::String("interval".to_string()),
-        Value::Number(300.into()),
-    );
-    hc.insert(
-        Value::String("url".to_string()),
-        Value::String(LATENCY_TEST_URL.to_string()),
-    );
-
-    let mut prov = Mapping::new();
-    prov.insert(
-        Value::String("type".to_string()),
-        Value::String("file".to_string()),
-    );
-    prov.insert(
-        Value::String("path".to_string()),
-        Value::String(subscription_path_relative_home.to_string()),
-    );
-    prov.insert(
-        Value::String("interval".to_string()),
-        Value::Number(3600.into()),
-    );
-    prov.insert(
-        Value::String("health-check".to_string()),
-        Value::Mapping(hc),
-    );
-
-    let mut providers = Mapping::new();
-    providers.insert(
-        Value::String(PROXY_PROVIDER_KEY.to_string()),
-        Value::Mapping(prov),
-    );
-    root.insert(
-        Value::String("proxy-providers".to_string()),
-        Value::Mapping(providers),
-    );
-
-    let mut group = Mapping::new();
-    group.insert(
-        Value::String("name".to_string()),
-        Value::String(AURESTREAM_NODE_SELECTOR.to_string()),
-    );
-    group.insert(
-        Value::String("type".to_string()),
-        Value::String("select".to_string()),
-    );
-    group.insert(
-        Value::String("use".to_string()),
-        Value::Sequence(vec![Value::String(PROXY_PROVIDER_KEY.to_string())]),
-    );
-    root.insert(
-        Value::String("proxy-groups".to_string()),
-        Value::Sequence(vec![Value::Mapping(group)]),
-    );
-
-    let mut rules_vec: Vec<String> = vec![
-        // 本机环回必须直连：开发服务、本机 HTTP（含 :80）等需能访问；无进程监听时仍会 connection refused，属正常。
-        "DOMAIN,localhost,DIRECT".to_string(),
-        "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve".to_string(),
-        "GEOIP,private,DIRECT".to_string(),
-        "GEOIP,CN,DIRECT".to_string(),
-        "GEOSITE,cn,DIRECT".to_string(),
-    ];
-
-    if streaming_route {
-        for svc in &["netflix", "youtube", "disney", "spotify", "bilibili"] {
-            rules_vec.push(format!("GEOSITE,{},{}", svc, AURESTREAM_NODE_SELECTOR));
-        }
-    }
-
-    if ai_route {
-        for svc in &["openai", "anthropic"] {
-            rules_vec.push(format!("GEOSITE,{},{}", svc, AURESTREAM_NODE_SELECTOR));
-        }
-    }
-
-    rules_vec.push(format!("MATCH,{}", AURESTREAM_NODE_SELECTOR));
-    root.insert(
-        Value::String("rules".to_string()),
-        Value::Sequence(rules_vec.into_iter().map(Value::String).collect()),
-    );
-
-    Value::Mapping(root)
-}
 
 /// 写入 `runtime/aurestream-mihomo.yaml`：`proxy-providers.type: file` 的 `path` 为相对 `-d` 的 **`subscriptions/<provider_id>.yaml`**（实体文件位于 `.../mihomo-work/subscriptions/`）。
 /// 数据源为应用配置目录下 `subscriptions/<provider_id>.yaml`；每次生成时复制到镜像目录以同步内容。
@@ -148,8 +18,7 @@ fn build_config_value(subscription_path_relative_home: &str, listen: &str, mixed
 pub async fn build_runtime_config(
     app: AppHandle,
     provider_id: String,
-    streaming_route: bool,
-    ai_route: bool,
+    smart_routing: SmartRoutingProfile,
     proxy_state: State<'_, ProxyState>,
 ) -> Result<String, String> {
     let (listen, mixed_port) = {
@@ -179,21 +48,31 @@ pub async fn build_runtime_config(
         .app_local_data_dir()
         .map_err(|e| format!("无法获取本地数据目录: {}", e))?
         .join(super::mihomo_constants::MIHOMO_WORK_DIR);
-    let mirrored_subscriptions = work_dir.join("subscriptions");
-    tokio::fs::create_dir_all(&mirrored_subscriptions)
-        .await
-        .map_err(|e| format!("创建工作目录 subscriptions 镜像失败: {}", e))?;
 
-    let dest = mirrored_subscriptions.join(format!("{}.yaml", provider_id));
-    tokio::fs::copy(&src, &dest)
+    let rel_path = config_gen::mirror_subscription_to_workdir(&src, &work_dir, &provider_id)
         .await
         .map_err(|e| format!("同步订阅文件到 mihomo-work 失败: {}", e))?;
 
-    let rel_path = format!("subscriptions/{provider_id}.yaml");
-    let yaml_value = build_config_value(&rel_path, &listen, mixed_port, streaming_route, ai_route);
+    let rt = app.state::<RuntimeManager>();
+    let endpoints = crate::storage::endpoint_repo::list_by_source(rt.pool(), &provider_id)
+        .await
+        .map_err(|e| format!("从数据库加载节点失败: {}", e))?;
 
-    let text =
-        serde_yaml::to_string(&yaml_value).map_err(|e| format!("序列化内置配置失败: {}", e))?;
+    let profile = RuntimeProfile {
+        endpoints,
+        selected_node_id: None,
+        policy: RuntimePolicy {
+            smart_routing,
+            ..Default::default()
+        },
+        dns: Default::default(),
+        tun: Default::default(),
+        listen,
+        mixed_port,
+    };
+
+    let text = config_gen::generate_full_config(&rel_path, &profile)
+        .map_err(|e| format!("生成配置失败: {}", e))?;
 
     let runtime_dir = config_dir.join("runtime");
     tokio::fs::create_dir_all(&runtime_dir)

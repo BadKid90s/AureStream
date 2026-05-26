@@ -116,6 +116,10 @@ pub fn endpoint_to_node(ep: &Endpoint) -> crate::models::Node {
         port: ep.port,
         delay: ep.metadata.latency,
         enabled: true,
+        ai_support: ep.metadata.ai_support,
+        streaming_support: ep.metadata.streaming_support,
+        score: ep.metadata.score,
+        country: ep.metadata.country.clone(),
     }
 }
 

@@ -6,6 +6,12 @@ pub const LATENCY_TEST_URL: &str = "https://www.gstatic.com/generate_204";
 /// 与插件约定一致的默认 selector 名，便于前端与 REST 切换节点。
 pub const AURESTREAM_NODE_SELECTOR: &str = "AureStream_Node_Selector";
 
+/// 智能代理组名称
+pub const GROUP_AUTO: &str = "AUTO";
+pub const GROUP_AI: &str = "AI";
+pub const GROUP_STREAM: &str = "STREAM";
+pub const GROUP_FALLBACK: &str = "FALLBACK";
+
 /// Mihomo External Controller 地址。
 pub const EXTERNAL_CONTROLLER: &str = "127.0.0.1:9090";
 
@@ -29,15 +35,15 @@ pub struct GeodataEntry {
 /// GeoIP/GeoSite 规则数据库（单一数据源）。
 pub const GEODATA: &[GeodataEntry] = &[
     GeodataEntry {
-        geox_key: "geoip-lite",
-        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.db",
+        geox_key: "geoip",
+        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.db",
     },
     GeodataEntry {
         geox_key: "mmdb",
-        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country-lite.mmdb",
+        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb",
     },
     GeodataEntry {
         geox_key: "geosite",
-        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite-lite.dat",
+        url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat",
     },
 ];

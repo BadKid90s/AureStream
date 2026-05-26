@@ -3,7 +3,7 @@
 //! Mihomo sidecar 由 [`MihomoSidecar`] 持有；与 [`MihomoAdapter`] 的 `set_sidecar_running` 同步。
 
 mod core_manager;
-mod event_bus;
+pub mod event_bus;
 mod mihomo_sidecar;
 mod proxy_manager;
 mod session_manager;
@@ -21,10 +21,11 @@ use crate::models::ConnectionState;
 use tauri::AppHandle;
 
 use self::core_manager::CoreManager;
-use self::event_bus::EventBus;
 use self::mihomo_sidecar::MihomoSidecar;
 use self::proxy_manager::ProxyManager;
 use self::session_manager::SessionManager;
+
+pub use self::event_bus::EventBus;
 
 #[derive(Clone)]
 pub struct RuntimeManager {
@@ -62,6 +63,10 @@ impl RuntimeManager {
 
     pub fn pool(&self) -> &SqlitePool {
         &self.inner.pool
+    }
+
+    pub fn events(&self) -> &EventBus {
+        &self.inner.events
     }
 
     /// 使用 `build_runtime_config` 等生成的 YAML 启动侧进程，并在就绪后尝试系统代理。

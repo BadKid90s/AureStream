@@ -124,7 +124,47 @@ pub struct EndpointMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub latency: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub packet_loss: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai_support: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub streaming_support: Option<bool>,
+}
+
+impl EndpointMetadata {
+    /// 综合评分：延迟 40% + 丢包 25% + AI 可用性 20% + 流媒体支持 15%
+    pub fn compute_score(&self) -> f32 {
+        let latency_score = self
+            .latency
+            .map(|l| {
+                // 延迟越低分越高，200ms 以上为 0 分
+                ((200.0 - l.min(200) as f32) / 200.0).max(0.0)
+            })
+            .unwrap_or(0.0);
+
+        let packet_loss_score = self
+            .packet_loss
+            .map(|pl| (1.0 - pl.min(1.0)).max(0.0))
+            .unwrap_or(1.0); // 无丢包数据视为 0 丢包
+
+        let ai_score = if self.ai_support.unwrap_or(false) {
+            1.0
+        } else {
+            0.0
+        };
+
+        let streaming_score = if self.streaming_support.unwrap_or(false) {
+            1.0
+        } else {
+            0.0
+        };
+
+        latency_score * 0.4 + packet_loss_score * 0.25 + ai_score * 0.2 + streaming_score * 0.15
+    }
 }
 
 impl Endpoint {

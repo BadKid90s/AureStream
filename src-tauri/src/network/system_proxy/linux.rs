@@ -96,6 +96,7 @@ fn apply_gnome(host: &str, port: &str, bypass_domains: &str) -> Result<(), Strin
 
     gsettings_set("org.gnome.system.proxy.http", "host", host)?;
     gsettings_set("org.gnome.system.proxy.http", "port", port)?;
+    gsettings_set("org.gnome.system.proxy.http", "enabled", "true")?;
 
     gsettings_set("org.gnome.system.proxy.https", "host", host)?;
     gsettings_set("org.gnome.system.proxy.https", "port", port)?;
@@ -103,12 +104,15 @@ fn apply_gnome(host: &str, port: &str, bypass_domains: &str) -> Result<(), Strin
     gsettings_set("org.gnome.system.proxy.socks", "host", host)?;
     gsettings_set("org.gnome.system.proxy.socks", "port", port)?;
 
+    gsettings_set("org.gnome.system.proxy", "use-same-proxy", "false")?;
+
     let ignore = build_gnome_ignore_hosts(bypass_domains);
     gsettings_set("org.gnome.system.proxy", "ignore-hosts", &ignore)?;
     Ok(())
 }
 
 fn clear_gnome() -> Result<(), String> {
+    let _ = gsettings_set("org.gnome.system.proxy.http", "enabled", "false");
     gsettings_set("org.gnome.system.proxy", "mode", "'none'")
 }
 

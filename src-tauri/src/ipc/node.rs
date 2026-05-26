@@ -32,6 +32,10 @@ pub async fn get_nodes(
                 port: node.port,
                 delay: node.delay,
                 enabled: node.enabled,
+                ai_support: None,
+                streaming_support: None,
+                score: None,
+                country: None,
             });
         }
     }
@@ -65,6 +69,10 @@ pub async fn get_nodes_by_provider(
                 port: n.port,
                 delay: n.delay,
                 enabled: n.enabled,
+                ai_support: None,
+                streaming_support: None,
+                score: None,
+                country: None,
             })
             .collect())
     } else {
@@ -115,4 +123,19 @@ pub async fn test_all_nodes_latency(
         out.push(test_node_latency(ep.id.clone(), ep.server.clone(), ep.port).await);
     }
     Ok(out)
+}
+
+/// 根据获取到的真实网络 IP 信息中的国家名称更新节点的国家属性。
+#[tauri::command]
+pub async fn update_node_country_by_ip_info(
+    rt: State<'_, RuntimeManager>,
+    node_id: String,
+    country_name: String,
+) -> Result<(), String> {
+    if let Some(code) = crate::subscription::normalizer::detect_country(&country_name) {
+        endpoint_repo::update_country(rt.pool(), &node_id, Some(code.to_string()))
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }

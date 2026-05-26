@@ -4,6 +4,8 @@
 //! 此模块仅保留 Tauri command handler。
 
 pub mod builtin_config;
+pub mod geox;
 pub mod mihomo_constants;
 pub mod mihomo_kernel;
 pub mod proxy;
+pub mod smart_route;

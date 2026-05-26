@@ -40,6 +40,22 @@ async function getLatencyCacheStore(): Promise<Store> {
 
 // ---- Settings ----
 
+export interface SmartRoutingProfile {
+  enableSmartRoute: boolean;
+  enableAdblock: boolean;
+  enableAiRoute: boolean;
+  enableStreaming: boolean;
+  autoSelectBestNode: boolean;
+}
+
+export const DEFAULT_SMART_ROUTING: SmartRoutingProfile = {
+  enableSmartRoute: true,
+  enableAdblock: false,
+  enableAiRoute: false,
+  enableStreaming: false,
+  autoSelectBestNode: false,
+};
+
 export interface PersistedSettings {
   theme: "light" | "dark" | "system";
   proxyBypassDomains: string;
@@ -50,6 +66,7 @@ export interface PersistedSettings {
   smartAdBlock: boolean;
   streamingRoute: boolean;
   aiRoute: boolean;
+  smartRouting: SmartRoutingProfile;
 }
 
 const DEFAULT_SETTINGS: PersistedSettings = {
@@ -62,6 +79,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   smartAdBlock: false,
   streamingRoute: false,
   aiRoute: false,
+  smartRouting: DEFAULT_SMART_ROUTING,
 };
 
 export async function loadPersistedSettings(): Promise<PersistedSettings> {
@@ -84,6 +102,14 @@ export async function loadPersistedSettings(): Promise<PersistedSettings> {
     (await store.get<boolean>("streamingRoute")) ?? DEFAULT_SETTINGS.streamingRoute;
   const aiRoute =
     (await store.get<boolean>("aiRoute")) ?? DEFAULT_SETTINGS.aiRoute;
+  const smartRouting =
+    (await store.get<SmartRoutingProfile>("smartRouting")) ?? {
+      enableSmartRoute: smartRoute,
+      enableAdblock: smartAdBlock,
+      enableAiRoute: aiRoute,
+      enableStreaming: streamingRoute,
+      autoSelectBestNode: false,
+    };
   return {
     theme: theme as "light" | "dark" | "system",
     proxyBypassDomains,
@@ -94,6 +120,7 @@ export async function loadPersistedSettings(): Promise<PersistedSettings> {
     smartAdBlock,
     streamingRoute,
     aiRoute,
+    smartRouting,
   };
 }
 

@@ -36,9 +36,7 @@ pub struct RuntimePolicy {
     pub routing_mode: RoutingMode,
     pub outbound_strategy: OutboundStrategy,
     #[serde(default)]
-    pub streaming_route: bool,
-    #[serde(default)]
-    pub ai_route: bool,
+    pub smart_routing: SmartRoutingProfile,
 }
 
 impl Default for RuntimePolicy {
@@ -46,8 +44,43 @@ impl Default for RuntimePolicy {
         Self {
             routing_mode: RoutingMode::RuleBased,
             outbound_strategy: OutboundStrategy::Selected(String::new()),
-            streaming_route: false,
-            ai_route: false,
+            smart_routing: SmartRoutingProfile::default(),
+        }
+    }
+}
+
+/// 智能路由配置（技术设计文档 §5.14）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SmartRoutingProfile {
+    pub enable_smart_route: bool,
+    pub enable_adblock: bool,
+    pub enable_ai_route: bool,
+    pub enable_streaming: bool,
+    pub auto_select_best_node: bool,
+
+    // 扩展配置槽位：若为空，则使用默认的内置规则集；若不为空，则使用自定义配置的规则
+    #[serde(default)]
+    pub adblock_rules: Vec<String>,
+    #[serde(default)]
+    pub ai_rules: Vec<String>,
+    #[serde(default)]
+    pub streaming_rules: Vec<String>,
+    #[serde(default)]
+    pub custom_rules: Vec<String>,
+}
+
+impl Default for SmartRoutingProfile {
+    fn default() -> Self {
+        Self {
+            enable_smart_route: true,
+            enable_adblock: false,
+            enable_ai_route: false,
+            enable_streaming: false,
+            auto_select_best_node: false,
+            adblock_rules: Vec::new(),
+            ai_rules: Vec::new(),
+            streaming_rules: Vec::new(),
+            custom_rules: Vec::new(),
         }
     }
 }

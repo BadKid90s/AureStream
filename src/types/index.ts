@@ -25,6 +25,7 @@ export interface Node {
   /** 测速失败（如连接超时） */
   delayError?: boolean;
   enabled: boolean;
+  country?: string;
 }
 
 export function getLatencyColor(delay?: number): string {
@@ -32,4 +33,17 @@ export function getLatencyColor(delay?: number): string {
   if (delay < 100) return "text-primary";
   if (delay < 300) return "text-yellow-500";
   return "text-red-500";
+}
+
+export function getFlagEmoji(countryCode?: string): string {
+  if (!countryCode) return "";
+  const codePoints = countryCode
+    .toUpperCase()
+    .split("")
+    .map((char) => 127397 + char.charCodeAt(0));
+  try {
+    return String.fromCodePoint(...codePoints);
+  } catch {
+    return "";
+  }
 }

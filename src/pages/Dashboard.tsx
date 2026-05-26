@@ -5,7 +5,7 @@ import { UsageBlock } from "@/components/dashboard/UsageBlock";
 import { PageShell } from "@/components/layout/PageShell";
 import { cn } from "@/lib/utils";
 import { useProxyStore, useAppStore } from "@/stores/appStore";
-import { getLatencyColor } from "@/types";
+import { getLatencyColor, getFlagEmoji } from "@/types";
 import type { Node } from "@/types";
 import { toast } from "sonner";
 import { logErrorDetail, userFacingMessage } from "@/lib/userErrors";
@@ -635,7 +635,7 @@ export function Dashboard({
                           >
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <span className="text-xl leading-none shrink-0" aria-hidden>
-                                {nLine.flag}
+                                {node.country ? getFlagEmoji(node.country) : nLine.flag}
                               </span>
                               <div className="min-w-0 flex-1">
                                 <div className="text-xs font-semibold truncate leading-tight">
