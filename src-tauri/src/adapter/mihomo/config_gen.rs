@@ -112,14 +112,27 @@ pub fn generate_full_config(
     );
 
     // rules
-    let rules_vec: Vec<String> = vec![
+    let mut rules_vec: Vec<String> = vec![
         "DOMAIN,localhost,DIRECT".into(),
         "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve".into(),
         "GEOIP,private,DIRECT".into(),
         "GEOIP,CN,DIRECT".into(),
         "GEOSITE,cn,DIRECT".into(),
-        format!("MATCH,{}", AURESTREAM_NODE_SELECTOR),
     ];
+
+    if profile.policy.streaming_route {
+        for svc in &["netflix", "youtube", "disney", "spotify", "bilibili"] {
+            rules_vec.push(format!("GEOSITE,{},{}", svc, AURESTREAM_NODE_SELECTOR));
+        }
+    }
+
+    if profile.policy.ai_route {
+        for svc in &["openai", "anthropic"] {
+            rules_vec.push(format!("GEOSITE,{},{}", svc, AURESTREAM_NODE_SELECTOR));
+        }
+    }
+
+    rules_vec.push(format!("MATCH,{}", AURESTREAM_NODE_SELECTOR));
     root.insert(
         Value::String("rules".into()),
         Value::Sequence(rules_vec.into_iter().map(Value::String).collect()),

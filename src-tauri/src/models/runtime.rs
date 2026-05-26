@@ -35,6 +35,10 @@ impl Default for TunProfile {
 pub struct RuntimePolicy {
     pub routing_mode: RoutingMode,
     pub outbound_strategy: OutboundStrategy,
+    #[serde(default)]
+    pub streaming_route: bool,
+    #[serde(default)]
+    pub ai_route: bool,
 }
 
 impl Default for RuntimePolicy {
@@ -42,6 +46,8 @@ impl Default for RuntimePolicy {
         Self {
             routing_mode: RoutingMode::RuleBased,
             outbound_strategy: OutboundStrategy::Selected(String::new()),
+            streaming_route: false,
+            ai_route: false,
         }
     }
 }

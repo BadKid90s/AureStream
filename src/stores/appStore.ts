@@ -44,11 +44,14 @@ function nodeLatencyCacheKey(providerId: string, nodeId: string): string {
 interface AppStore {
   theme: "light" | "dark" | "system";
   proxyBypassDomains: string;
+  mixedPort: number;
   autoStart: boolean;
   autoConnect: boolean;
   proxyMode: "rule" | "global" | "direct";
   smartRoute: boolean;
   smartAdBlock: boolean;
+  streamingRoute: boolean;
+  aiRoute: boolean;
   /** 从后端 YAML 加载设置 */
   loadSettings: () => Promise<void>;
   setTheme: (theme: "light" | "dark" | "system") => void;
@@ -59,16 +62,22 @@ interface AppStore {
   setProxyMode: (mode: "rule" | "global" | "direct") => Promise<void>;
   setSmartRoute: (value: boolean) => Promise<void>;
   setSmartAdBlock: (value: boolean) => Promise<void>;
+  setMixedPort: (value: number) => void;
+  setStreamingRoute: (value: boolean) => Promise<void>;
+  setAiRoute: (value: boolean) => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>()((set, get) => ({
   theme: "system",
   proxyBypassDomains: DEFAULT_PROXY_BYPASS_DOMAINS,
+  mixedPort: 7890,
   autoStart: false,
   autoConnect: false,
   proxyMode: "rule",
   smartRoute: true,
   smartAdBlock: false,
+  streamingRoute: false,
+  aiRoute: false,
 
   loadSettings: async () => {
     try {
@@ -81,11 +90,14 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       set({
         theme: settings.theme,
         proxyBypassDomains: settings.proxyBypassDomains,
+        mixedPort: settings.mixedPort ?? 7890,
         autoStart: settings.autoStart,
         autoConnect: settings.autoConnect,
         proxyMode: (settings as any).proxyMode || (loadedSmartRoute ? "rule" : "global"),
         smartRoute: loadedSmartRoute,
         smartAdBlock: settings.smartAdBlock ?? false,
+        streamingRoute: settings.streamingRoute ?? false,
+        aiRoute: settings.aiRoute ?? false,
       });
     } catch (e) {
       console.error("Failed to load app settings:", e);
@@ -100,6 +112,11 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   setProxyBypassDomains: (value) => {
     set({ proxyBypassDomains: value });
     savePersistedSettings({ proxyBypassDomains: value }).catch(console.error);
+  },
+
+  setMixedPort: (value) => {
+    set({ mixedPort: value });
+    savePersistedSettings({ mixedPort: value }).catch(console.error);
   },
 
   toggleTheme: () => {
@@ -157,6 +174,36 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   setSmartAdBlock: async (value) => {
     set({ smartAdBlock: value });
     savePersistedSettings({ smartAdBlock: value } as any).catch(console.error);
+  },
+
+  setStreamingRoute: async (value) => {
+    set({ streamingRoute: value });
+    savePersistedSettings({ streamingRoute: value } as any).catch(console.error);
+    if (useProxyStore.getState().isConnected) {
+      try {
+        const { currentProvider } = useProxyStore.getState();
+        if (!currentProvider) return;
+        const path = await buildRuntimeConfig(currentProvider.id, value, get().aiRoute);
+        await reloadConfig(true, path);
+      } catch (e) {
+        console.error("Failed to reload config for streaming route toggle:", e);
+      }
+    }
+  },
+
+  setAiRoute: async (value) => {
+    set({ aiRoute: value });
+    savePersistedSettings({ aiRoute: value } as any).catch(console.error);
+    if (useProxyStore.getState().isConnected) {
+      try {
+        const { currentProvider } = useProxyStore.getState();
+        if (!currentProvider) return;
+        const path = await buildRuntimeConfig(currentProvider.id, get().streamingRoute, value);
+        await reloadConfig(true, path);
+      } catch (e) {
+        console.error("Failed to reload config for AI route toggle:", e);
+      }
+    }
   },
 }));
 
@@ -636,16 +683,18 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
       const path = await getSubscriptionPath(currentProvider.id);
       if (!path) throw new Error("订阅配置文件不存在，请先更新订阅");
 
-      const proxyBypassDomains = useAppStore.getState().proxyBypassDomains;
+      const appStatePre = useAppStore.getState();
       const proxyConfig = await getProxyConfig();
       await updateProxyConfig({
         ...proxyConfig,
-        bypass_domains: proxyBypassDomains,
+        bypass_domains: appStatePre.proxyBypassDomains,
+        mixed_port: appStatePre.mixedPort,
       });
       await startProxy();
 
       // 对齐 external-controller、启动 Mihomo sidecar（内部轮询 API 就绪）
-      const runtimePath = await buildRuntimeConfig(currentProvider.id);
+      const appState = useAppStore.getState();
+      const runtimePath = await buildRuntimeConfig(currentProvider.id, appState.streamingRoute, appState.aiRoute);
       await startRuntimeEngine(runtimePath);
 
       // 刷新节点列表，若首次为空（provider 尚未加载），重试最多 5 次
@@ -1038,7 +1087,8 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
         try {
           const sp = await getSubscriptionPath(id);
           if (sp) {
-            const runtimePath = await buildRuntimeConfig(id);
+            const as = useAppStore.getState();
+            const runtimePath = await buildRuntimeConfig(id, as.streamingRoute, as.aiRoute);
             await reloadConfig(true, runtimePath);
           }
         } catch (e) {
@@ -1064,7 +1114,8 @@ export const useProxyStore = create<ProxyStore>()((set, get) => ({
     try {
       const path = await getSubscriptionPath(provider.id);
       if (path && get().isConnected) {
-        const runtimePath = await buildRuntimeConfig(provider.id);
+        const as = useAppStore.getState();
+        const runtimePath = await buildRuntimeConfig(provider.id, as.streamingRoute, as.aiRoute);
         await reloadConfig(true, runtimePath);
       }
     } catch (e) {

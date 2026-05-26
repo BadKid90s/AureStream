@@ -21,6 +21,8 @@ import {
   Compass,
   Shield,
   HelpCircle,
+  Tv,
+  Sparkles,
 } from "lucide-react";
 
 const SERIES_LEN = 48;
@@ -96,8 +98,12 @@ export function Dashboard({
   const {
     smartRoute,
     smartAdBlock,
+    streamingRoute,
+    aiRoute,
     setSmartRoute,
     setSmartAdBlock,
+    setStreamingRoute,
+    setAiRoute,
   } = useAppStore();
 
   const [uploadSeries, setUploadSeries] = useState(emptySeries);
@@ -105,7 +111,7 @@ export function Dashboard({
   const [nowTick, setNowTick] = useState(() => Date.now());
   const [sortBy, setSortBy] = useState<"name" | "delay">("delay");
   const [frozenIds, setFrozenIds] = useState<string[] | null>(null);
-  const [helpPopover, setHelpPopover] = useState<{ type: "route" | "ad"; rect: DOMRect } | null>(null);
+  const [helpPopover, setHelpPopover] = useState<{ type: "route" | "ad" | "streaming" | "ai"; rect: DOMRect } | null>(null);
   const wasTestingRef = useRef(false);
 
   // 1. 本次会话流量数据转换
@@ -390,20 +396,20 @@ export function Dashboard({
                 </div>
 
                 {/* 智能开关卡片组 */}
-                <div className="rounded-2xl border border-border/40 bg-black/[0.01] dark:bg-white/[0.01] divide-y divide-border/30">
+                <div className="rounded-2xl border border-border/40 bg-black/[0.01] dark:bg-white/[0.01] grid grid-cols-2 divide-x divide-y divide-border/30 overflow-hidden">
                   {/* 智能分流 */}
                   <button
                     type="button"
                     onClick={() => void setSmartRoute(!smartRoute)}
-                    className="flex items-center gap-3 px-3 py-2.5 w-full transition-colors cursor-pointer select-none group rounded-t-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                    className="flex items-center gap-2 px-2.5 py-2 transition-colors cursor-pointer select-none hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                   >
                     <div className={cn(
-                      "w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0",
+                      "w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0",
                       smartRoute ? "bg-primary/15 text-primary" : "bg-muted/10 text-muted-foreground"
                     )}>
-                      <Compass className="w-4 h-4" />
+                      <Compass className="w-3.5 h-3.5" />
                     </div>
-                    <span className={cn("text-xs font-semibold flex-1 text-left", smartRoute ? "text-primary" : "text-foreground")}>
+                    <span className={cn("text-[11px] font-semibold flex-1 text-left", smartRoute ? "text-primary" : "text-foreground")}>
                       智能分流
                     </span>
                     <button
@@ -412,7 +418,7 @@ export function Dashboard({
                       onMouseLeave={() => setHelpPopover(null)}
                       className="p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
                     >
-                      <HelpCircle className="w-3.5 h-3.5" />
+                      <HelpCircle className="w-3 h-3" />
                     </button>
                     <div
                       className={cn(
@@ -433,15 +439,15 @@ export function Dashboard({
                   <button
                     type="button"
                     onClick={() => void setSmartAdBlock(!smartAdBlock)}
-                    className="flex items-center gap-3 px-3 py-2.5 w-full transition-colors cursor-pointer select-none group rounded-b-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                    className="flex items-center gap-2 px-2.5 py-2 transition-colors cursor-pointer select-none hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                   >
                     <div className={cn(
-                      "w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0",
+                      "w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0",
                       smartAdBlock ? "bg-primary/15 text-primary" : "bg-muted/10 text-muted-foreground"
                     )}>
-                      <Shield className="w-4 h-4" />
+                      <Shield className="w-3.5 h-3.5" />
                     </div>
-                    <span className={cn("text-xs font-semibold flex-1 text-left", smartAdBlock ? "text-primary" : "text-foreground")}>
+                    <span className={cn("text-[11px] font-semibold flex-1 text-left", smartAdBlock ? "text-primary" : "text-foreground")}>
                       去广告
                     </span>
                     <button
@@ -450,7 +456,7 @@ export function Dashboard({
                       onMouseLeave={() => setHelpPopover(null)}
                       className="p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
                     >
-                      <HelpCircle className="w-3.5 h-3.5" />
+                      <HelpCircle className="w-3 h-3" />
                     </button>
                     <div
                       className={cn(
@@ -462,6 +468,82 @@ export function Dashboard({
                         className={cn(
                           "absolute top-[2px] left-[2px] w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-300",
                           smartAdBlock && "translate-x-3",
+                        )}
+                      />
+                    </div>
+                  </button>
+
+                  {/* 流媒体 */}
+                  <button
+                    type="button"
+                    onClick={() => void setStreamingRoute(!streamingRoute)}
+                    className="flex items-center gap-2 px-2.5 py-2 transition-colors cursor-pointer select-none hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0",
+                      streamingRoute ? "bg-blue-500/15 text-blue-500" : "bg-muted/10 text-muted-foreground"
+                    )}>
+                      <Tv className="w-3.5 h-3.5" />
+                    </div>
+                    <span className={cn("text-[11px] font-semibold flex-1 text-left", streamingRoute ? "text-blue-500" : "text-foreground")}>
+                      流媒体
+                    </span>
+                    <button
+                      type="button"
+                      onMouseEnter={(e) => setHelpPopover({ type: "streaming", rect: e.currentTarget.getBoundingClientRect() })}
+                      onMouseLeave={() => setHelpPopover(null)}
+                      className="p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <HelpCircle className="w-3 h-3" />
+                    </button>
+                    <div
+                      className={cn(
+                        "relative w-7 h-4 rounded-full transition-colors duration-300 shrink-0",
+                        streamingRoute ? "bg-blue-500" : "bg-black/15 dark:bg-white/15",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "absolute top-[2px] left-[2px] w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-300",
+                          streamingRoute && "translate-x-3",
+                        )}
+                      />
+                    </div>
+                  </button>
+
+                  {/* AI Route */}
+                  <button
+                    type="button"
+                    onClick={() => void setAiRoute(!aiRoute)}
+                    className="flex items-center gap-2 px-2.5 py-2 transition-colors cursor-pointer select-none hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0",
+                      aiRoute ? "bg-violet-500/15 text-violet-500" : "bg-muted/10 text-muted-foreground"
+                    )}>
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <span className={cn("text-[11px] font-semibold flex-1 text-left", aiRoute ? "text-violet-500" : "text-foreground")}>
+                      AI Route
+                    </span>
+                    <button
+                      type="button"
+                      onMouseEnter={(e) => setHelpPopover({ type: "ai", rect: e.currentTarget.getBoundingClientRect() })}
+                      onMouseLeave={() => setHelpPopover(null)}
+                      className="p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <HelpCircle className="w-3 h-3" />
+                    </button>
+                    <div
+                      className={cn(
+                        "relative w-7 h-4 rounded-full transition-colors duration-300 shrink-0",
+                        aiRoute ? "bg-violet-500" : "bg-black/15 dark:bg-white/15",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "absolute top-[2px] left-[2px] w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-300",
+                          aiRoute && "translate-x-3",
                         )}
                       />
                     </div>
@@ -712,6 +794,8 @@ export function Dashboard({
           >
             {helpPopover.type === "route" && "根据规则自动分流：国内站点直连，境外流量走代理。关闭后所有流量均走代理。"}
             {helpPopover.type === "ad" && "自动拦截常见广告、跟踪器及恶意域名，净化上网体验。"}
+            {helpPopover.type === "streaming" && "将 Netflix、YouTube、Disney+、Spotify、Bilibili 等流媒体服务通过代理节点访问，解锁地区限制内容。"}
+            {helpPopover.type === "ai" && "将 OpenAI、Claude 等 AI 服务通过代理节点访问，解决部分地区无法访问的问题。"}
             <div className="absolute left-1/2 -translate-x-1/2 -top-1 size-2 rotate-45 bg-white dark:bg-zinc-900 border-l border-t border-border/60" />
           </div>,
           document.body,

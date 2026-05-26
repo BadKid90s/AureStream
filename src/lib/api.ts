@@ -101,8 +101,8 @@ export async function deleteSubscriptionFile(
   return await invoke<void>("delete_subscription_file", { providerId });
 }
 
-export async function buildRuntimeConfig(providerId: string): Promise<string> {
-  return await invoke<string>("build_runtime_config", { providerId });
+export async function buildRuntimeConfig(providerId: string, streamingRoute: boolean, aiRoute: boolean): Promise<string> {
+  return await invoke<string>("build_runtime_config", { providerId, streamingRoute, aiRoute });
 }
 
 /** 启动或重启本地代理内核侧进程（使用 buildRuntimeConfig 生成的配置绝对路径） */

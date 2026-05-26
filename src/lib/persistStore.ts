@@ -43,19 +43,25 @@ async function getLatencyCacheStore(): Promise<Store> {
 export interface PersistedSettings {
   theme: "light" | "dark" | "system";
   proxyBypassDomains: string;
+  mixedPort: number;
   autoStart: boolean;
   autoConnect: boolean;
   smartRoute: boolean;
   smartAdBlock: boolean;
+  streamingRoute: boolean;
+  aiRoute: boolean;
 }
 
 const DEFAULT_SETTINGS: PersistedSettings = {
   theme: "light",
   proxyBypassDomains: "",
+  mixedPort: 7890,
   autoStart: false,
   autoConnect: false,
   smartRoute: true,
   smartAdBlock: false,
+  streamingRoute: false,
+  aiRoute: false,
 };
 
 export async function loadPersistedSettings(): Promise<PersistedSettings> {
@@ -64,6 +70,8 @@ export async function loadPersistedSettings(): Promise<PersistedSettings> {
   const proxyBypassDomains =
     (await store.get<string>("proxyBypassDomains")) ??
     DEFAULT_SETTINGS.proxyBypassDomains;
+  const mixedPort =
+    (await store.get<number>("mixedPort")) ?? DEFAULT_SETTINGS.mixedPort;
   const autoStart =
     (await store.get<boolean>("autoStart")) ?? DEFAULT_SETTINGS.autoStart;
   const autoConnect =
@@ -72,13 +80,20 @@ export async function loadPersistedSettings(): Promise<PersistedSettings> {
     (await store.get<boolean>("smartRoute")) ?? DEFAULT_SETTINGS.smartRoute;
   const smartAdBlock =
     (await store.get<boolean>("smartAdBlock")) ?? DEFAULT_SETTINGS.smartAdBlock;
+  const streamingRoute =
+    (await store.get<boolean>("streamingRoute")) ?? DEFAULT_SETTINGS.streamingRoute;
+  const aiRoute =
+    (await store.get<boolean>("aiRoute")) ?? DEFAULT_SETTINGS.aiRoute;
   return {
     theme: theme as "light" | "dark" | "system",
     proxyBypassDomains,
+    mixedPort,
     autoStart,
     autoConnect,
     smartRoute,
     smartAdBlock,
+    streamingRoute,
+    aiRoute,
   };
 }
 

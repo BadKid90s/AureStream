@@ -14,6 +14,8 @@ export function Settings() {
     setTheme,
     proxyBypassDomains,
     setProxyBypassDomains,
+    mixedPort,
+    setMixedPort,
     autoStart,
     autoConnect,
     setAutoStart,
@@ -114,6 +116,27 @@ export function Settings() {
               </div>
             </div>
             <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="mixedPort"
+                  className="text-xs font-semibold ml-1"
+                >
+                  代理端口
+                </Label>
+                <Input
+                  id="mixedPort"
+                  type="number"
+                  min={1024}
+                  max={65535}
+                  value={mixedPort}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v) && v >= 1024 && v <= 65535) setMixedPort(v);
+                  }}
+                  placeholder="7890"
+                  className="h-11 rounded-xl bg-black/5 dark:bg-white/5 border-none focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
+                />
+              </div>
               <div className="space-y-1.5">
                 <Label
                   htmlFor="proxyBypassDomains"

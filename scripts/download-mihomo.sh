@@ -8,6 +8,7 @@ set -euo pipefail
 REPO="MetaCubeX/mihomo"
 BINARIES_DIR="src-tauri/binaries"
 VERSION="${1:-}"
+GH_PROXY="https://gh-proxy.org/"
 
 mkdir -p "$BINARIES_DIR"
 
@@ -59,7 +60,7 @@ fi
 if [ -z "$VERSION" ]; then
   echo "获取最新 release 版本..."
   # 方式 1：跟踪重定向从最终 URL 提取 tag
-  FINAL_URL=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest" 2>/dev/null || true)
+  FINAL_URL=$(curl -fsSL -o /dev/null -w '%{url_effective}' "${GH_PROXY}https://github.com/$REPO/releases/latest" 2>/dev/null || true)
   if [ -n "$FINAL_URL" ]; then
     VERSION=$(echo "$FINAL_URL" | sed -n 's|.*/tag/\([^/]*\)$|\1|p')
   fi
@@ -82,7 +83,7 @@ if [ "$PLATFORM" = "windows" ]; then
   ASSET_NAME="mihomo-${PLATFORM}-${ARCH_NAME}-${VERSION}.zip"
 fi
 
-DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/$ASSET_NAME"
+DOWNLOAD_URL="${GH_PROXY}https://github.com/$REPO/releases/download/$VERSION/$ASSET_NAME"
 
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT

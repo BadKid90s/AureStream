@@ -14,7 +14,7 @@ use tauri::{AppHandle, Manager, State};
 
 const PROXY_PROVIDER_KEY: &str = "AureStream_Sub";
 
-fn build_config_value(subscription_path_relative_home: &str, listen: &str, mixed_port: u16) -> Value {
+fn build_config_value(subscription_path_relative_home: &str, listen: &str, mixed_port: u16, streaming_route: bool, ai_route: bool) -> Value {
     let mut root = Mapping::new();
     root.insert(
         Value::String("bind-address".to_string()),
@@ -112,15 +112,28 @@ fn build_config_value(subscription_path_relative_home: &str, listen: &str, mixed
         Value::Sequence(vec![Value::Mapping(group)]),
     );
 
-    let rules_vec: Vec<String> = vec![
+    let mut rules_vec: Vec<String> = vec![
         // 本机环回必须直连：开发服务、本机 HTTP（含 :80）等需能访问；无进程监听时仍会 connection refused，属正常。
         "DOMAIN,localhost,DIRECT".to_string(),
         "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve".to_string(),
         "GEOIP,private,DIRECT".to_string(),
         "GEOIP,CN,DIRECT".to_string(),
         "GEOSITE,cn,DIRECT".to_string(),
-        format!("MATCH,{}", AURESTREAM_NODE_SELECTOR),
     ];
+
+    if streaming_route {
+        for svc in &["netflix", "youtube", "disney", "spotify", "bilibili"] {
+            rules_vec.push(format!("GEOSITE,{},{}", svc, AURESTREAM_NODE_SELECTOR));
+        }
+    }
+
+    if ai_route {
+        for svc in &["openai", "anthropic"] {
+            rules_vec.push(format!("GEOSITE,{},{}", svc, AURESTREAM_NODE_SELECTOR));
+        }
+    }
+
+    rules_vec.push(format!("MATCH,{}", AURESTREAM_NODE_SELECTOR));
     root.insert(
         Value::String("rules".to_string()),
         Value::Sequence(rules_vec.into_iter().map(Value::String).collect()),
@@ -135,6 +148,8 @@ fn build_config_value(subscription_path_relative_home: &str, listen: &str, mixed
 pub async fn build_runtime_config(
     app: AppHandle,
     provider_id: String,
+    streaming_route: bool,
+    ai_route: bool,
     proxy_state: State<'_, ProxyState>,
 ) -> Result<String, String> {
     let (listen, mixed_port) = {
@@ -175,7 +190,7 @@ pub async fn build_runtime_config(
         .map_err(|e| format!("同步订阅文件到 mihomo-work 失败: {}", e))?;
 
     let rel_path = format!("subscriptions/{provider_id}.yaml");
-    let yaml_value = build_config_value(&rel_path, &listen, mixed_port);
+    let yaml_value = build_config_value(&rel_path, &listen, mixed_port, streaming_route, ai_route);
 
     let text =
         serde_yaml::to_string(&yaml_value).map_err(|e| format!("序列化内置配置失败: {}", e))?;
