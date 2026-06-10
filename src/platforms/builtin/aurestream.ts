@@ -1,47 +1,62 @@
-// AureStream official subscription platform.
+// AureStream official subscription platform — OAuth device authorization flow.
+// User opens a browser, enters a short code, and the app polls for completion.
 
 import type {
+  DeviceAuthorization,
   PlatformCredential,
   PlatformSubscription,
   SubscriptionPlatform,
 } from "@/types/platform"
 
-const AUTH_BASE = "https://api.aurestream.io"
-const REDIRECT_URI = "aurestream://oauth/callback"
+const API_BASE = "https://api.aurestream.io"
 
 export const AureStreamPlatform: SubscriptionPlatform = {
   id: "aurestream",
   name: "AureStream 官方平台",
-  description: "登录 AureStream 账号，自动同步订阅配置",
-  authMethod: "oauth",
+  description: "在浏览器中输入授权码完成登录，自动同步订阅配置",
+  authMethod: "oauth_device",
 
-  getAuthorizationUrl: () => {
-    const params = new URLSearchParams({
-      response_type: "code",
-      client_id: "aurestream-desktop",
-      redirect_uri: REDIRECT_URI,
-      scope: "subscription:read",
+  requestDeviceAuthorization: async () => {
+    const resp = await fetch(`${API_BASE}/oauth/device/code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ client_id: "aurestream-desktop" }),
     })
-    return Promise.resolve(`${AUTH_BASE}/oauth/authorize?${params}`)
+    if (!resp.ok) {
+      throw new Error(`Device authorization request failed: ${resp.status}`)
+    }
+    const json = await resp.json()
+    return {
+      verificationUri: json.verification_uri,
+      userCode: json.user_code,
+      verificationUriComplete: json.verification_uri_complete,
+      interval: json.interval ?? 5,
+      expiresAt: Date.now() + (json.expires_in ?? 600) * 1000,
+    }
   },
 
-  handleAuthCallback: async (callbackUrl: string) => {
-    const url = new URL(callbackUrl)
-    const code = url.searchParams.get("code")
-    if (!code) throw new Error("Missing authorization code in callback")
-
-    const resp = await fetch(`${AUTH_BASE}/oauth/token`, {
+  pollForToken: async (device: DeviceAuthorization) => {
+    const resp = await fetch(`${API_BASE}/oauth/token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        grant_type: "authorization_code",
-        code,
+        grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+        device_code: device.userCode, // server returns device_code in first step
         client_id: "aurestream-desktop",
-        redirect_uri: REDIRECT_URI,
       }),
     })
-    if (!resp.ok) throw new Error(`Token exchange failed: ${resp.status}`)
-
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}))
+      // authorization_pending = user hasn't completed yet (not an error)
+      if (err.error === "authorization_pending") {
+        return null as unknown as PlatformCredential
+      }
+      // slow_down = polling too fast
+      if (err.error === "slow_down") {
+        return null as unknown as PlatformCredential
+      }
+      throw new Error(`Token request failed: ${resp.status} ${err.error ?? ""}`)
+    }
     const json = await resp.json()
     return {
       providerId: "aurestream",
@@ -52,11 +67,10 @@ export const AureStreamPlatform: SubscriptionPlatform = {
   },
 
   fetchSubscriptions: async (cred: PlatformCredential) => {
-    const resp = await fetch(`${AUTH_BASE}/v1/subscriptions`, {
+    const resp = await fetch(`${API_BASE}/v1/subscriptions`, {
       headers: { Authorization: `Bearer ${cred.accessToken}` },
     })
     if (!resp.ok) throw new Error(`Failed to fetch subscriptions: ${resp.status}`)
-
     const json = await resp.json()
     return (json.subscriptions ?? []).map(
       (sub: any): PlatformSubscription => ({
@@ -73,7 +87,7 @@ export const AureStreamPlatform: SubscriptionPlatform = {
 
   refreshCredential: async (cred: PlatformCredential) => {
     if (!cred.refreshToken) throw new Error("No refresh token available")
-    const resp = await fetch(`${AUTH_BASE}/oauth/token`, {
+    const resp = await fetch(`${API_BASE}/oauth/token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

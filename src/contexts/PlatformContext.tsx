@@ -1,4 +1,5 @@
 // Platform context — manages selected platform, auth state, and subscription sync.
+// Supports OAuth device flow (user enters code in browser) and authorization code flow.
 
 import {
   createContext,
@@ -6,9 +7,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import type {
+  DeviceAuthorization,
   PlatformCredential,
   SubscriptionPlatform,
 } from "@/types/platform"
@@ -20,6 +23,13 @@ import {
 } from "@/action/platform-auth"
 import { listen } from "@tauri-apps/api/event"
 import { invoke } from "@tauri-apps/api/core"
+
+interface DeviceLoginState {
+  device: DeviceAuthorization
+  platformId: string
+  status: "pending" | "completed" | "expired" | "error"
+  error?: string
+}
 
 interface PlatformState {
   platformId: string
@@ -41,6 +51,8 @@ interface PlatformContextValue {
   logout: (id: string) => Promise<void>
   syncSubscriptions: (id: string) => Promise<void>
   oauthPending: boolean
+  deviceLogin: DeviceLoginState | null
+  cancelDeviceLogin: () => void
 }
 
 const PlatformContext = createContext<PlatformContextValue | null>(null)
@@ -60,6 +72,8 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
   const [selectedId, setSelectedId] = useState("manual")
   const [state, setState] = useState<PlatformState>(EMPTY_STATE)
   const [oauthPending, setOAuthPending] = useState(false)
+  const [deviceLogin, setDeviceLogin] = useState<DeviceLoginState | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Restore saved credential when switching platforms
   useEffect(() => {
@@ -79,24 +93,18 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
       })
       .catch((err) => {
         if (cancelled) return
-        setState((s) => ({
-          ...s,
-          loading: false,
-          error: String(err),
-        }))
+        setState((s) => ({ ...s, loading: false, error: String(err) }))
       })
 
     return () => { cancelled = true }
   }, [selectedId])
 
-  // Listen for OAuth deep link callback
+  // Listen for OAuth deep link callback (authorization code flow only)
   useEffect(() => {
     const unlisten = listen("deep_link_oauth", async () => {
       setOAuthPending(true)
       try {
-        const callback = await invoke<{ url: string } | null>(
-          "get_pending_oauth"
-        )
+        const callback = await invoke<{ url: string } | null>("get_pending_oauth")
         if (callback?.url) {
           await handleOAuthCallbackInternal(callback.url)
         }
@@ -107,34 +115,36 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
     return () => { unlisten.then((fn) => fn()) }
   }, [selectedId])
 
+  const finishAuth = useCallback(
+    async (platform: SubscriptionPlatform, cred: PlatformCredential) => {
+      await saveCredential(platform.id, cred)
+      setState((s) => ({
+        ...s,
+        platformId: platform.id,
+        loggedIn: true,
+        credential: cred,
+        loading: false,
+        error: null,
+      }))
+      // Auto-sync subscriptions after login
+      await syncSubscriptionsInternal(platform, cred)
+    },
+    []
+  )
+
   const handleOAuthCallbackInternal = useCallback(
     async (url: string) => {
       const platform = platforms.find((p) => p.id === selectedId)
-      if (!platform) throw new Error(`Unknown platform: ${selectedId}`)
-
+      if (!platform?.handleAuthCallback) throw new Error("OAuth not supported")
       setState((s) => ({ ...s, loading: true }))
       try {
         const cred = await platform.handleAuthCallback(url)
-        await saveCredential(platform.id, cred)
-        setState((s) => ({
-          ...s,
-          platformId: platform.id,
-          loggedIn: true,
-          credential: cred,
-          loading: false,
-          error: null,
-        }))
-        // Auto-sync subscriptions after login
-        await syncSubscriptionsInternal(platform, cred)
+        await finishAuth(platform, cred)
       } catch (err) {
-        setState((s) => ({
-          ...s,
-          loading: false,
-          error: String(err),
-        }))
+        setState((s) => ({ ...s, loading: false, error: String(err) }))
       }
     },
-    [selectedId, platforms]
+    [selectedId, platforms, finishAuth]
   )
 
   const syncSubscriptionsInternal = useCallback(
@@ -142,7 +152,6 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, syncing: true, error: null }))
       try {
         const subs = await platform.fetchSubscriptions(cred)
-        // Import each subscription using the existing flow
         const { insertSubscription } = await import("@/action/db")
         let count = 0
         for (const sub of subs) {
@@ -159,26 +168,68 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
 
   const selectPlatform = useCallback((id: string) => {
     setSelectedId(id)
+    cancelDeviceLogin()
   }, [])
 
+  const cancelDeviceLogin = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    setDeviceLogin(null)
+  }, [])
+
+  // Device flow: request code + poll for completion
   const startLogin = useCallback(
     async (id: string) => {
       const platform = platforms.find((p) => p.id === id)
-      if (!platform || platform.authMethod !== "oauth") throw new Error("OAuth not supported")
+      if (!platform) throw new Error(`Unknown platform: ${id}`)
 
-      const redirectUri = "aurestream://oauth/callback"
-      const authUrl = await platform.getAuthorizationUrl(redirectUri)
+      if (platform.authMethod === "oauth_device" && platform.requestDeviceAuthorization) {
+        // --- Device flow ---
+        setState((s) => ({ ...s, loading: true, error: null }))
+        try {
+          const device = await platform.requestDeviceAuthorization()
+          setDeviceLogin({ device, platformId: id, status: "pending" })
+          setState((s) => ({ ...s, loading: false }))
 
-      // Open system browser
-      const { openUrl } = await import("@tauri-apps/plugin-opener")
-      await openUrl(authUrl)
+          // Start polling
+          pollRef.current = setInterval(async () => {
+            if (!platform.pollForToken) return
+            try {
+              const cred = await platform.pollForToken(device)
+              if (cred) {
+                // Got token
+                if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+                setDeviceLogin((d) => d ? { ...d, status: "completed" } : null)
+                await finishAuth(platform, cred)
+              }
+              // null = still pending, keep polling
+              if (Date.now() > device.expiresAt) {
+                if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+                setDeviceLogin((d) => d ? { ...d, status: "expired" } : null)
+              }
+            } catch (err) {
+              if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+              setDeviceLogin((d) => d ? { ...d, status: "error", error: String(err) } : null)
+            }
+          }, device.interval * 1000)
+        } catch (err) {
+          setState((s) => ({ ...s, loading: false, error: String(err) }))
+        }
+      } else if (platform.authMethod === "oauth" && platform.getAuthorizationUrl) {
+        // --- Authorization code flow ---
+        const redirectUri = "aurestream://oauth/callback"
+        const authUrl = await platform.getAuthorizationUrl(redirectUri)
+        const { openUrl } = await import("@tauri-apps/plugin-opener")
+        await openUrl(authUrl)
+      } else {
+        throw new Error("OAuth not supported on this platform")
+      }
     },
-    [platforms]
+    [platforms, finishAuth]
   )
 
   const handleOAuthCallback = useCallback(
     async (url: string) => {
-      setSelectedId("aurestream") // Default to aurestream for OAuth
+      setSelectedId("aurestream")
       await handleOAuthCallbackInternal(url)
     },
     [handleOAuthCallbackInternal]
@@ -187,23 +238,17 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(
     async (id: string) => {
       await deleteCredential(id)
-      setState(() => ({
-        ...EMPTY_STATE,
-        platformId: id,
-        loading: false,
-      }))
+      setState(() => ({ ...EMPTY_STATE, platformId: id, loading: false }))
+      cancelDeviceLogin()
     },
-    []
+    [cancelDeviceLogin]
   )
 
   const syncSubscriptions = useCallback(
     async (id: string) => {
       const platform = platforms.find((p) => p.id === id)
       if (!platform || !state.credential) {
-        setState((s) => ({
-          ...s,
-          error: "Not logged in",
-        }))
+        setState((s) => ({ ...s, error: "Not logged in" }))
         return
       }
       await syncSubscriptionsInternal(platform, state.credential)
@@ -222,17 +267,13 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
       logout,
       syncSubscriptions,
       oauthPending,
+      deviceLogin,
+      cancelDeviceLogin,
     }),
     [
-      platforms,
-      selectedId,
-      state,
-      selectPlatform,
-      startLogin,
-      handleOAuthCallback,
-      logout,
-      syncSubscriptions,
-      oauthPending,
+      platforms, selectedId, state, selectPlatform, startLogin,
+      handleOAuthCallback, logout, syncSubscriptions, oauthPending,
+      deviceLogin, cancelDeviceLogin,
     ]
   )
 
