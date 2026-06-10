@@ -93,6 +93,7 @@ export function SubscriptionPage() {
     selectSubscription,
     requireIdleForMutation,
   } = useSubscriptions()
+  const { selectedId } = usePlatform()
 
   const [name, setName] = useState("")
   const [url, setUrl] = useState("")
@@ -378,9 +379,9 @@ export function SubscriptionPage() {
 
         {/* Right side: Add subscription & Info card */}
         <div className="flex min-h-0 flex-col gap-3 sm:gap-4 lg:h-full lg:overflow-hidden">
-          {/* Add subscription Form */}
+          {/* Add subscription card */}
           <Card className="shrink-0 rounded-[20px]">
-            <CardContent className="flex flex-col gap-3.5 py-4 px-4">
+            <CardContent className="flex flex-col gap-4 py-4 px-4">
               <div className="flex items-center gap-2">
                 <div className={iconBadge.blue}>
                   <PlusIcon />
@@ -390,75 +391,77 @@ export function SubscriptionPage() {
 
               <PlatformSelector />
 
-              <form onSubmit={handleAdd} className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className={type.label}>{t("subscription_name_optional")}</label>
-                  <input
-                    type="text"
-                    placeholder={t("auto_generate_name")}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="ui-input"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className={type.label}>{t("subscription_url")}</label>
-                  <textarea
-                    placeholder={t("paste_subscription_url")}
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    rows={3}
-                    className="ui-textarea"
-                    required
-                  />
-                </div>
-
-                <div className={cn(surface.row, "flex items-center justify-between px-3 py-2 mt-0.5")}>
-                  <div className="flex flex-col">
-                    <span className={type.label}>{t("auto_update")}</span>
-                    <span className={type.caption}>{t("auto_update_enabled")}</span>
-                  </div>
-                  <Switch size="sm" checked={autoUpdate} onCheckedChange={handleAutoUpdateChange} />
-                </div>
-
-                {autoUpdate && (
+              {selectedId === "manual" && (
+                <form onSubmit={handleAdd} className="flex flex-col gap-3 border-t border-border pt-4">
                   <div className="flex flex-col gap-1">
-                    <label className={type.label}>{t("update_interval")}</label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {(["30m", "1h", "2h", "3h", "6h", "12h", "24h", "7d"] as const).map((interval) => (
-                        <button
-                          key={interval}
-                          type="button"
-                          onClick={() => handleUpdateIntervalChange(interval)}
-                          className={cn(
-                            btn.pill,
-                            "h-8",
-                            updateInterval === interval && btn.pillActive
-                          )}
-                        >
-                          {interval === "30m" && t("30minutes")}
-                          {interval === "1h" && t("1hour")}
-                          {interval === "2h" && t("2hours")}
-                          {interval === "3h" && t("3hours")}
-                          {interval === "6h" && t("6hours")}
-                          {interval === "12h" && t("12hours")}
-                          {interval === "24h" && t("every_day")}
-                          {interval === "7d" && t("every_week")}
-                        </button>
-                      ))}
-                    </div>
+                    <label className={type.label}>{t("subscription_name_optional")}</label>
+                    <input
+                      type="text"
+                      placeholder={t("auto_generate_name")}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="ui-input"
+                    />
                   </div>
-                )}
 
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs shadow-sm mt-1 transition-all"
-                >
-                  {isSubmitting ? t("fetching") : t("save_subscription")}
-                </Button>
-              </form>
+                  <div className="flex flex-col gap-1">
+                    <label className={type.label}>{t("subscription_url")}</label>
+                    <textarea
+                      placeholder={t("paste_subscription_url")}
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      rows={3}
+                      className="ui-textarea"
+                      required
+                    />
+                  </div>
+
+                  <div className={cn(surface.row, "flex items-center justify-between px-3 py-2 mt-0.5")}>
+                    <div className="flex flex-col">
+                      <span className={type.label}>{t("auto_update")}</span>
+                      <span className={type.caption}>{t("auto_update_enabled")}</span>
+                    </div>
+                    <Switch size="sm" checked={autoUpdate} onCheckedChange={handleAutoUpdateChange} />
+                  </div>
+
+                  {autoUpdate && (
+                    <div className="flex flex-col gap-1">
+                      <label className={type.label}>{t("update_interval")}</label>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {(["30m", "1h", "2h", "3h", "6h", "12h", "24h", "7d"] as const).map((interval) => (
+                          <button
+                            key={interval}
+                            type="button"
+                            onClick={() => handleUpdateIntervalChange(interval)}
+                            className={cn(
+                              btn.pill,
+                              "h-8",
+                              updateInterval === interval && btn.pillActive
+                            )}
+                          >
+                            {interval === "30m" && t("30minutes")}
+                            {interval === "1h" && t("1hour")}
+                            {interval === "2h" && t("2hours")}
+                            {interval === "3h" && t("3hours")}
+                            {interval === "6h" && t("6hours")}
+                            {interval === "12h" && t("12hours")}
+                            {interval === "24h" && t("every_day")}
+                            {interval === "7d" && t("every_week")}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs shadow-sm mt-1 transition-all"
+                  >
+                    {isSubmitting ? t("fetching") : t("save_subscription")}
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
 
