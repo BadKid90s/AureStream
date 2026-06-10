@@ -216,7 +216,7 @@ fn register_deep_link(app: &tauri::App) {
         show_dashboard(handle.clone());
 
         for url in urls {
-            if let Some(payload) = extract_deep_link_data(url) {
+            if let Some(payload) = extract_deep_link_data(&url) {
                 log::info!(
                     "Received config data: {} apply={}",
                     payload.data,
@@ -226,7 +226,7 @@ fn register_deep_link(app: &tauri::App) {
                 handle.emit("deep_link_pending", ()).unwrap_or_else(|e| {
                     log::error!("Failed to emit deep_link_pending signal: {}", e);
                 });
-            } else if let Some(oauth) = extract_oauth_callback(url) {
+            } else if let Some(oauth) = extract_oauth_callback(&url) {
                 log::info!("Received OAuth callback: {:?}", oauth);
                 store_pending_oauth(&handle.state::<crate::state::AppData>(), oauth);
                 handle.emit("deep_link_oauth", ()).unwrap_or_else(|e| {
