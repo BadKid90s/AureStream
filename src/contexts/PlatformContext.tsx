@@ -120,6 +120,8 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
         if (id) count++
       }
       setState((s) => ({ ...s, syncing: false, subscriptionCount: count }))
+      // Notify UI to refresh subscription list
+      window.dispatchEvent(new CustomEvent("subscription-synced"))
     } catch (err) {
       setState((s) => ({ ...s, syncing: false, error: String(err) }))
     }

@@ -7,7 +7,7 @@ import type {
   SubscriptionPlatform,
 } from "@/types/platform"
 
-const API_BASE = "https://api.aurestream.io"
+const API_BASE = "http://localhost:8787"
 
 export const AureStreamPlatform: SubscriptionPlatform = {
   id: "aurestream",

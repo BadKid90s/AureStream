@@ -4,7 +4,7 @@
 
 use std::net::TcpListener;
 use std::sync::Mutex;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 static CALLBACK_STATE: Mutex<Option<CallbackState>> = Mutex::new(None);
 
@@ -27,12 +27,6 @@ fn find_free_port() -> Option<u16> {
 pub fn start_oauth_server(app: AppHandle) -> Result<u16, String> {
     let port = find_free_port().ok_or("No free port available for OAuth callback")?;
 
-    let state = std::sync::Arc::new(CallbackState {
-        port,
-        code: Mutex::new(None),
-        error: Mutex::new(None),
-    });
-
     {
         let mut guard = CALLBACK_STATE.lock().map_err(|e| e.to_string())?;
         *guard = Some(CallbackState {
@@ -47,7 +41,7 @@ pub fn start_oauth_server(app: AppHandle) -> Result<u16, String> {
 
     std::thread::spawn(move || {
         // Accept exactly one request
-        if let Some(req) = server.recv_timeout(std::time::Duration::from_secs(120)) {
+        if let Ok(Some(req)) = server.recv_timeout(std::time::Duration::from_secs(120)) {
             let url = req.url().to_string();
             log::info!("[oauth] callback received: {}", url);
 
@@ -69,13 +63,12 @@ pub fn start_oauth_server(app: AppHandle) -> Result<u16, String> {
                 }
 
                 let html = r#"<!DOCTYPE html><html><head><meta charset="utf-8"><title>授权完成</title></head><body style="font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0"><div style="text-align:center"><h2>授权成功</h2><p>您可以关闭此页面并返回 AureStream</p></div></body></html>"#;
-
-                let _ = req.respond(tiny_http::Response::from_string(html)
-                    .with_header("Content-Type: text/html; charset=utf-8".parse::<tiny_http::Header>().unwrap()));
+                let header: tiny_http::Header = "Content-Type: text/html; charset=utf-8".parse().unwrap();
+                let _ = req.respond(tiny_http::Response::from_string(html).with_header(header));
             }
         }
         log::info!("[oauth] callback server stopped");
-        let _ = app.emit("oauth_callback_received", ());
+        let _ = app.emit("oauth_callback_received", "");
     });
 
     Ok(port)

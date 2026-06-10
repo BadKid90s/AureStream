@@ -109,6 +109,13 @@ export function SubscriptionPage() {
     getStoreValue(UPDATE_INTERVAL_STORE_KEY, "24h").then((v) => setUpdateInterval(v as UpdateInterval))
   }, [])
 
+  // Refresh list when platform sync adds subscriptions
+  useEffect(() => {
+    const handler = () => refresh()
+    window.addEventListener("subscription-synced", handler)
+    return () => window.removeEventListener("subscription-synced", handler)
+  }, [refresh])
+
   const handleAutoUpdateChange = async (val: boolean) => {
     setAutoUpdate(val)
     await setStoreValue(AUTO_UPDATE_STORE_KEY, val)
