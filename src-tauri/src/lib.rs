@@ -56,6 +56,10 @@ pub fn run() {
             commands::shell::restart,
             commands::shell::get_pending_deep_link,
             commands::shell::get_pending_oauth,
+            // oauth loopback server
+            commands::oauth::start_oauth_server,
+            commands::oauth::get_oauth_callback_code,
+            commands::oauth::stop_oauth_server,
             // network commands
             commands::network::ping_tcp,
             commands::network::get_geoip_info,

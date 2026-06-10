@@ -8,9 +8,7 @@ export const ManualPlatform: SubscriptionPlatform = {
   description: "直接粘贴订阅链接导入",
   authMethod: "none",
 
-  getAuthorizationUrl: () => Promise.resolve(""),
-  handleAuthCallback: () =>
-    Promise.resolve({ providerId: "manual" }),
-
+  buildAuthorizationUrl: () => "",
+  exchangeCodeForToken: () => Promise.resolve({ providerId: "manual" }),
   fetchSubscriptions: () => Promise.resolve([]),
 }
