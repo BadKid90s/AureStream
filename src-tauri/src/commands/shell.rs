@@ -135,6 +135,17 @@ pub fn get_pending_deep_link(
 }
 
 #[tauri::command]
+pub fn get_pending_oauth(
+    app_data: tauri::State<AppData>,
+) -> Option<crate::state::OAuthCallback> {
+    if let Ok(mut pending) = app_data.pending_oauth.lock() {
+        pending.take()
+    } else {
+        None
+    }
+}
+
+#[tauri::command]
 pub async fn version(app: tauri::AppHandle) -> Result<String, String> {
     let sidecar_command = app
         .shell()

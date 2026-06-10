@@ -26,6 +26,8 @@ import { getStoreValue, setStoreValue } from "@/single/store"
 import { AUTO_UPDATE_STORE_KEY, UPDATE_INTERVAL_STORE_KEY } from "@/types/definition"
 import type { UpdateInterval } from "@/types/definition"
 import { syncActiveConnectionConfig } from "@/lib/config-sync"
+import { usePlatform } from "@/contexts/PlatformContext"
+import { PlatformSelector } from "@/components/subscription/PlatformSelector"
 
 const getFriendlyNameFromUrl = (urlStr: string, t: (key: string) => string): string => {
   try {
@@ -385,6 +387,8 @@ export function SubscriptionPage() {
                 </div>
                 <span className={type.sectionTitle}>{t("add_subscription")}</span>
               </div>
+
+              <PlatformSelector />
 
               <form onSubmit={handleAdd} className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">

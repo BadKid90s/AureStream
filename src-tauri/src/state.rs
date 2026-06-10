@@ -7,10 +7,16 @@ pub struct DeepLinkPayload {
     pub apply: bool,
 }
 
+#[derive(Serialize, Clone, Debug)]
+pub struct OAuthCallback {
+    pub url: String,
+}
+
 pub struct AppData {
     pub log_buffer: Mutex<Vec<String>>,
     pub error_log_buffer: Mutex<Vec<String>>,
     pub pending_deep_link: Mutex<Option<DeepLinkPayload>>,
+    pub pending_oauth: Mutex<Option<OAuthCallback>>,
 }
 
 pub enum LogType {
@@ -24,6 +30,7 @@ impl AppData {
             log_buffer: Mutex::new(Vec::new()),
             error_log_buffer: Mutex::new(Vec::new()),
             pending_deep_link: Mutex::new(None),
+            pending_oauth: Mutex::new(None),
         }
     }
 

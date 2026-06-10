@@ -189,6 +189,24 @@ fn store_pending_deep_link(
     }
 }
 
+fn extract_oauth_callback(url: &Url) -> Option<crate::state::OAuthCallback> {
+    if url.scheme() != "aurestream" || url.host_str() != Some("oauth") {
+        return None;
+    }
+    Some(crate::state::OAuthCallback {
+        url: url.to_string(),
+    })
+}
+
+fn store_pending_oauth(
+    app_data: &crate::state::AppData,
+    payload: crate::state::OAuthCallback,
+) {
+    if let Ok(mut pending) = app_data.pending_oauth.lock() {
+        *pending = Some(payload);
+    }
+}
+
 /// 注册 deep link 回调
 fn register_deep_link(app: &tauri::App) {
     let handle = app.handle().clone();
@@ -197,16 +215,24 @@ fn register_deep_link(app: &tauri::App) {
         log::info!("Received deep link: {:#?}", urls);
         show_dashboard(handle.clone());
 
-        if let Some(payload) = urls.first().and_then(extract_deep_link_data) {
-            log::info!(
-                "Received config data: {} apply={}",
-                payload.data,
-                payload.apply
-            );
-            store_pending_deep_link(&handle.state::<crate::state::AppData>(), payload);
-            handle.emit("deep_link_pending", ()).unwrap_or_else(|e| {
-                log::error!("Failed to emit deep_link_pending signal: {}", e);
-            });
+        for url in urls {
+            if let Some(payload) = extract_deep_link_data(url) {
+                log::info!(
+                    "Received config data: {} apply={}",
+                    payload.data,
+                    payload.apply
+                );
+                store_pending_deep_link(&handle.state::<crate::state::AppData>(), payload);
+                handle.emit("deep_link_pending", ()).unwrap_or_else(|e| {
+                    log::error!("Failed to emit deep_link_pending signal: {}", e);
+                });
+            } else if let Some(oauth) = extract_oauth_callback(url) {
+                log::info!("Received OAuth callback: {:?}", oauth);
+                store_pending_oauth(&handle.state::<crate::state::AppData>(), oauth);
+                handle.emit("deep_link_oauth", ()).unwrap_or_else(|e| {
+                    log::error!("Failed to emit deep_link_oauth signal: {}", e);
+                });
+            }
         }
     });
 }
