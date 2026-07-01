@@ -11,6 +11,7 @@ import { fetchSubscriptions, type Subscription } from "../api/subscriptions"
 import TrafficGraph from "./TrafficGraph"
 import { startEngine, stopEngine } from "../utils/vpn-service"
 import { useEngineState } from "../hooks/useEngineState"
+import { useConnectionHealth } from "../hooks/useConnectionHealth"
 import { useTrafficAccumulator } from "../hooks/useTrafficAccumulator"
 import { mergeConnectionConfig } from "../lib/connection-config"
 import { getConfigJsonPath } from "../lib/app-paths"
@@ -40,6 +41,7 @@ import {
   subscribeNetworkInfoRefresh,
 } from "../lib/home-network-info"
 import type { EngineState } from "../types/engine-state"
+import { connectionHealthBadge } from "../lib/connection-health"
 
 /* ── Icons ── */
 const I = {
@@ -90,6 +92,11 @@ function HomePage() {
   const isConnected = engineState.kind === "running"
   const isConnecting = isStopping || engineState.kind === "starting" || (localConnecting && !isConnected)
   const canToggleConnection = shouldAllowConnectionToggle(engineState.kind, localConnecting)
+  const connectionHealth = useConnectionHealth(isConnected)
+  const healthBadge = connectionHealthBadge(
+    isConnected ? connectionHealth.status : isConnecting ? "checking" : "idle",
+    i18n.language.startsWith("zh"),
+  )
 
   useEffect(() => {
     const initMode = async () => {
@@ -701,9 +708,9 @@ function HomePage() {
           {/* Card Header */}
           <div className="flex justify-between items-center w-full mb-3 shrink-0">
             <h2 className="text-sm font-extrabold text-text-muted uppercase tracking-wider">{l("Secure Tunnel", "主控制引擎")}</h2>
-            <div className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase flex items-center gap-1.5 transition-all ${isConnected ? 'bg-success/10 text-success border border-success/20' : 'bg-text-muted/10 text-text-muted border border-border-glass/40'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-text-muted'}`}></span>
-              {isConnected ? l("SECURED", "已保护") : l("PAUSED", "已暂停")}
+            <div className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase flex items-center gap-1.5 transition-all ${healthBadge.className}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${healthBadge.dotClassName}`}></span>
+              {healthBadge.label}
             </div>
           </div>
 
